@@ -1,0 +1,4 @@
+DEWAKO_TEST_PG_URL=... python scripts/pg_restart_check.py "scripts/pg_test_cluster.sh restart"   (pg_ctl -m immediate restart)
+{'first_write_after_restart': 'reconnected', 'actions': ['POST', 'PRE'], 'chain_ok': True, 'uncommitted_rows_visible_after_restart': 0, 'server': '16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)'}
+PG RESTART CHECK: PASS
+Scope: one reconnect after an immediate restart; an open transaction was rolled back. Not covered: restart during order-state update, incident creation, or recovery.

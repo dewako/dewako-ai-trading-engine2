@@ -1,0 +1,149 @@
+# NOTE: this workflow has NOT been executed by the author (no CI runner / Docker daemon / package index was available).
+# It was checked structurally (YAML parse, paths, report names). The first real run is the verification of the workflow itself.
+name: ci
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: python -m compileall -q backend/dewako backend/tests
+      - run: pip install ruff==0.6.9 pip-audit==2.7.3
+      - run: ruff check backend/dewako --select E9,F63,F7,F82      # real errors only: syntax, undefined names, invalid comparisons
+      - run: python scripts/scan_secrets.py
+      - run: pip install -r backend/requirements.txt && pip-audit -r backend/requirements.txt
+  sqlite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy: {matrix: {python: ["3.12", "3.13"]}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "${{ matrix.python }}"}
+      - run: pip install -r backend/requirements.txt
+      - name: tests on SQLite (PostgreSQL-only tests are expected to skip here; HTTP tests must run)
+        working-directory: backend/tests
+        env: {DEWAKO_REQUIRE_HTTP_TESTS: "1", PYTHONPATH: ".."}
+        run: python -m pytest -q -p no:cacheprovider --junitxml=../../sqlite-junit.xml
+      - name: only PostgreSQL-only tests may be skipped; the HTTP regressions must have run
+        run: >-
+          python scripts/assert_no_skips.py sqlite-junit.xml --min-tests 250 --allow-skip "PostgreSQL-only"
+          --require test_logout_requires_authentication_and_is_not_a_public_route
+          --require test_enable_live_returns_409_with_reasons_and_never_claims_live_is_active
+          --require test_hung_worker_is_killed_by_the_controller_timeout
+  postgres16:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: dewako, POSTGRES_PASSWORD: dewako_test_pw, POSTGRES_DB: dewako}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt
+      - name: full suite on PostgreSQL 16 (HTTP, concurrency, process-kill crash matrix, migrations); ZERO skips allowed
+        working-directory: backend/tests
+        timeout-minutes: 30
+        env:
+          DEWAKO_REQUIRE_HTTP_TESTS: "1"
+          DEWAKO_EXPECT_PG_MAJOR: "16"
+          DEWAKO_TEST_DB: postgres
+          DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@127.0.0.1:5432/dewako
+          PYTHONPATH: ".."
+        run: python -m pytest -q -p no:cacheprovider --junitxml=../../pg-junit.xml
+      - name: zero skips; the PostgreSQL identity test, both HTTP regressions and the process-kill matrix must have executed
+        run: >-
+          python scripts/assert_no_skips.py pg-junit.xml --min-tests 250
+          --require test_pg_is_really_postgresql
+          --require test_the_http_job_is_really_running_on_the_requested_backend
+          --require test_logout_requires_authentication_and_is_not_a_public_route
+          --require test_enable_live_returns_409_with_reasons_and_never_claims_live_is_active
+          --require test_1_crash_before_intent_commit
+          --require test_2_crash_after_intent_commit_before_submission
+          --require test_3_crash_during_submission_request_never_reached_exchange
+          --require test_4_crash_after_exchange_accepts_before_local_ack
+          --require test_5_crash_after_partial_fill
+          --require test_6_crash_after_fill_received_before_local_transaction_commits
+          --require test_7_crash_during_cancellation
+          --require test_8_crash_during_reconciliation
+          --require test_9a_exchange_timeouts_block_new_orders_then_escalate_to_an_incident
+          --require test_9b_database_outage_fails_closed_and_sends_nothing
+          --require test_pg_a_held_lock_fails_closed_within_a_bound_instead_of_hanging
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: junit, path: "*-junit.xml"}
+  crash-repeat:
+    # Order-dependence guard: the complete crash/recovery suite in three fresh processes per backend (in-process reorder/repeat runs were done manually, see the audit).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: dewako, POSTGRES_PASSWORD: dewako_test_pw, POSTGRES_DB: dewako}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt
+      - name: crash/recovery suite x3 (fresh processes), SQLite then PostgreSQL 16; any failure or skip fails the job
+        working-directory: backend/tests
+        env:
+          PYTHONPATH: ".."
+          DEWAKO_EXPECT_PG_MAJOR: "16"
+          DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@127.0.0.1:5432/dewako
+        run: |
+          set -euo pipefail
+          for i in 1 2 3; do
+            python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py -k "not pg_" --junitxml=../../crash-sqlite-$i.xml
+            DEWAKO_TEST_DB=postgres python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py --junitxml=../../crash-pg-$i.xml
+          done
+      - run: |
+          set -euo pipefail
+          for f in crash-sqlite-1 crash-sqlite-2 crash-sqlite-3 crash-pg-1 crash-pg-2 crash-pg-3; do python scripts/assert_no_skips.py $f.xml --min-tests 15; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: crash-junit, path: "crash-*.xml"}
+  windows-crash:
+    # Windows has no PostgreSQL service containers: SQLite only. Exercises the Job Object cleanup and the crash matrix on Windows.
+    runs-on: windows-2022
+    timeout-minutes: 40
+    strategy: {matrix: {python: ["3.13", "3.14"]}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "${{ matrix.python }}", allow-prereleases: true}
+      - run: pip install -r backend/requirements.txt
+      - name: process cleanup helper + crash matrix + crash/recovery, x3
+        working-directory: backend/tests
+        shell: bash
+        env: {PYTHONPATH: ".."}
+        run: |
+          set -euo pipefail
+          for i in 1 2 3; do
+            python -m pytest -q -p no:cacheprovider test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
+          done
+      - run: |
+          foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: win-crash-junit, path: "win-crash-*.xml"}
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.test.yml run --rm tests
+      - run: docker build -t dewako-backend backend

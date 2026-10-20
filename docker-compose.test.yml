@@ -1,0 +1,25 @@
+# Test environment: real PostgreSQL 16 + the whole suite. Run:  docker compose -f docker-compose.test.yml run --rm tests
+# STATUS: not executed by the author (no Docker daemon was available). The file is validated structurally only (see docs/TESTING.md).
+services:
+  postgres-test:
+    image: postgres:16
+    environment: {POSTGRES_USER: dewako, POSTGRES_PASSWORD: dewako_test_pw, POSTGRES_DB: dewako}
+    tmpfs: ["/var/lib/postgresql/data"]   # throw-away, in memory
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U dewako"], interval: 2s, timeout: 3s, retries: 30}
+    networks: [internal]
+  tests:
+    build: ./backend
+    depends_on: {postgres-test: {condition: service_healthy}}
+    environment:
+      PYTHONPATH: /app
+      DEWAKO_REQUIRE_HTTP_TESTS: "1"
+      DEWAKO_TEST_DB: postgres                       # no silent SQLite fallback: tmp_db() raises if the URL is missing/unreachable
+      DEWAKO_EXPECT_PG_MAJOR: "16"
+      DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@postgres-test:5432/dewako
+    working_dir: /app/tests
+    user: "10001"
+    command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--junitxml=/tmp/pg-junit.xml", "."]
+    tmpfs: ["/tmp"]
+    networks: [internal]
+networks:
+  internal: {}

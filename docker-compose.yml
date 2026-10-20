@@ -1,0 +1,40 @@
+# Trading state lives in the database named by DEWAKO_TRADING_DB: a SQLite path (default below) or a postgresql:// URL.
+# Tests have their own file so that production-only required variables never gate them: docker compose -f docker-compose.test.yml run --rm tests
+services:
+  postgres:
+    image: postgres:16
+    profiles: ["postgres-port"]          # production-style database; set DEWAKO_TRADING_DB=postgresql://... to use it
+    environment:
+      POSTGRES_USER: dewako
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: dewako
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    networks: [internal]                 # no published port
+  redis:
+    image: redis:7
+    profiles: ["postgres-port"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
+    networks: [internal]
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DEWAKO_TRADING_DB: /state/dewako_trading.db
+      DEWAKO_DB_PATH: /state/dewako_market.db
+    volumes: ["state:/state"]
+    ports: ["127.0.0.1:8000:8000"]       # localhost only; put a TLS reverse proxy in front for remote access
+    networks: [internal]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+  prototype:
+    image: nginx:alpine
+    volumes: ["./frontend/prototype:/usr/share/nginx/html:ro"]
+    ports: ["127.0.0.1:8080:80"]
+networks:
+  internal: {}
+volumes:
+  pgdata: {}
+  state: {}

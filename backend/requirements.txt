@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.6
+cryptography>=42
+httpx>=0.27
+pytest>=8
+# PostgreSQL access uses dewako/persistence/pgwire.py (standard library only). No SQLAlchemy/asyncpg/psycopg/redis dependency.
+# No lock file: the package index was unreachable when this was written. Run `pip freeze` after the first successful install.
