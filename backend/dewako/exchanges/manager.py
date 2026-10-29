@@ -18,15 +18,7 @@ from dewako.exchanges.registry import REGISTRY
 from dewako.services.credentials import CredentialVault, mask
 
 
-_SECRETISH = re.compile(r"(?i)\b(api[_-]?key|secret|token|password|passphrase|signature|key)\b(\s*[=:]\s*)\S+")
-
-
-def _redact(text: str, creds: dict | None = None) -> str:
-    """Mask supplied credential values and anything that looks like `key=...` in an exchange's error text."""
-    for v in (creds or {}).values():
-        if isinstance(v, str) and len(v) >= 4:
-            text = text.replace(v, "***")
-    return _SECRETISH.sub(lambda m: f"{m.group(1)}{m.group(2)}***", text)
+from dewako.exchanges.contract import redact as _redact      # one redaction implementation (kept under the old name)
 
 
 class ExchangeRejected(Exception):

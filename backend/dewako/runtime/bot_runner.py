@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Awaitable, Callable, Optional
 
-from dewako.core.types import MarketState
+from dewako.core.types import MarketState, utcnow
 from dewako.execution.engine import ExecutionEngine
+from dewako.market_data.freshness import CandleFreshnessError, validate_candles
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import now_iso
 from dewako.risk.engine import RiskEngine
@@ -41,10 +43,12 @@ class TickResult:
 
 class BotRunner:
     def __init__(self, engine: ExecutionEngine, risk: RiskEngine, risk_state: RiskStateStore,
-                 state_provider: Callable[[str, str], Awaitable[MarketState]], audit: Optional[AuditLog] = None):
+                 state_provider: Callable[[str, str], Awaitable[MarketState]], audit: Optional[AuditLog] = None,
+                 clock: Callable[[], datetime] = utcnow):
         self.engine, self.risk, self.risk_state = engine, risk, risk_state
         self.state_provider = state_provider
         self.audit = audit or engine.audit
+        self.clock = clock
         self._sig_engines: dict[str, SignalEngine] = {}
 
     async def tick(self, bot: BotConfig) -> TickResult:
@@ -58,6 +62,14 @@ class BotRunner:
             state = await self.state_provider(bot.symbol, bot.timeframe)
         except Exception as e:
             return TickResult("ERROR", f"{type(e).__name__}")  # no data / bad data -> no trade
+        try:
+            if state.symbol != bot.symbol:
+                raise CandleFreshnessError("market-state symbol does not match the bot symbol")
+            validate_candles(state.candles, bot.timeframe, self.clock())
+        except Exception as e:
+            reason = f"market data could not be validated ({type(e).__name__})"
+            self.audit.record("MARKET_DATA_REJECTED", "BLOCKED", cid, resource=f"bot:{bot.bot_id}", metadata={"reason": reason})
+            return TickResult("BLOCKED", reason)
         se = self._sig_engines.setdefault(bot.bot_id, SignalEngine(cls()))
         pos = next(iter(self.engine.positions.active(bot.environment, bot.bot_id)), None)
         res = se.evaluate(state, {"side": pos["side"], "quantity": pos["quantity"], "entry_price": pos["average_price"]} if pos else None)

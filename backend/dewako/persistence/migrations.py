@@ -284,6 +284,36 @@ CREATE TABLE worker_leases (
   acquired_at TEXT NOT NULL, renewed_at TEXT NOT NULL
 );
 """),
+    (6, "strategy_packages", """
+CREATE TABLE strategy_packages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT, version TEXT,
+  package_sha256 TEXT NOT NULL,
+  fingerprint TEXT,
+  state TEXT NOT NULL CHECK (state IN ('IMPORTED','VALIDATION_FAILED','VALIDATED','BACKTEST_ELIGIBLE','PAPER_ELIGIBLE','TESTNET_ELIGIBLE','DISABLED','QUARANTINED')),
+  state_reason TEXT NOT NULL DEFAULT '',
+  manifest TEXT, spec TEXT,
+  findings TEXT NOT NULL DEFAULT '[]',
+  imported_by TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX strategy_packages_name_version_uq ON strategy_packages(name, version) WHERE state <> 'VALIDATION_FAILED';
+CREATE INDEX strategy_packages_sha_idx ON strategy_packages(package_sha256);
+"""),
+    (7, "ai_settings", """
+CREATE TABLE ai_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  config TEXT NOT NULL, providers TEXT NOT NULL,
+  updated_by TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+);
+CREATE TABLE ai_credentials (
+  provider TEXT PRIMARY KEY,
+  encrypted_blob BLOB NOT NULL,
+  encryption_key_version INTEGER NOT NULL,
+  last4 TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+"""),
 ]
 
 # Statements that differ by dialect (triggers/functions contain semicolons and cannot be translated). They run inside the same

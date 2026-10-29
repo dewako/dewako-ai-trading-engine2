@@ -9,6 +9,8 @@ import pytest
 
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import Database
+from dewako.core.types import Candle, MarketState
+from dewako.market_data.timeframes import floor, seconds
 from dewako.runtime.application import Application, Config
 from dewako.runtime.lease import WorkerLease
 from dewako.safety.controller import SafetyController
@@ -256,11 +258,12 @@ def test_gate_blocks_when_freshness_was_never_established_and_when_stale_and_is_
     assert gate("BTC/USDT").allowed
     g = gate("ETH/USDT")
     assert not g.allowed and any("never confirmed fresh" in r for r in g.reasons)
-    old = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
-    safety._set("market_data_ok_at:BTC/USDT", old, "t")
+    stale_open = _candle_open("15m", age_intervals=10)
+    safety._set("market_data_candle_at:BTC/USDT", stale_open.isoformat(), "t")
+    safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
     g = gate("BTC/USDT")
     assert not g.allowed and any("stale" in r for r in g.reasons)
-    safety.mark_market_data_fresh("BTC/USDT")
+    safety.mark_market_data_fresh("BTC/USDT", _candle_open("15m"), "15m")
     assert gate("BTC/USDT").allowed
 
 
@@ -269,7 +272,8 @@ def test_stale_market_data_blocks_a_live_order_and_nothing_is_created_or_sent():
     ad = FakeLive()
     eng, safety = engine_for(db, ad)
     eng.exchange_ids["fake"] = make_live_ready(db, safety)
-    safety._set("market_data_ok_at:BTC/USDT", (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), "t")
+    safety._set("market_data_candle_at:BTC/USDT", _candle_open("15m", age_intervals=10).isoformat(), "t")
+    safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
     out = run(eng.execute(decision("stale"), bot_id="b", environment="LIVE", exchange="fake"))
     assert out.outcome == "BLOCKED" and "stale" in out.detail and ad.create_calls == 0
     with db.read() as c:
@@ -283,7 +287,8 @@ def test_freshness_is_checked_again_immediately_before_sending():
     eng.exchange_ids["fake"] = make_live_ready(db, safety)
     real = eng._send
     async def stale_then_send(order_id, adapter, scope):                  # data goes stale between order creation and the send
-        safety._set("market_data_ok_at:BTC/USDT", (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), "t")
+        safety._set("market_data_candle_at:BTC/USDT", _candle_open("15m", age_intervals=10).isoformat(), "t")
+        safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
         return await real(order_id, adapter, scope)
     eng._send = stale_then_send
     out = run(eng.execute(decision("late"), bot_id="b", environment="LIVE", exchange="fake"))
@@ -293,12 +298,17 @@ def test_freshness_is_checked_again_immediately_before_sending():
 def test_market_worker_marks_symbols_fresh_and_a_failing_provider_does_not():
     db, target = tmp_db()
     safety = SafetyController(db); eid = make_live_ready(db, safety)
-    safety._set("market_data_ok_at:BTC/USDT", (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), "t")
+    safety._set("market_data_candle_at:BTC/USDT", _candle_open("15m", age_intervals=10).isoformat(), "t")
+    safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
     calls = {"fail": False}
     async def provider(sym, tf):
         if calls["fail"]:
             raise RuntimeError("provider down")
-        return object()
+        step = timedelta(seconds=seconds(tf))
+        end_open = _candle_open(tf)
+        rows = [Candle(t=end_open - step * i, o=100, h=101, l=99, c=100, v=1)
+                for i in reversed(range(60))]
+        return MarketState(symbol=sym, as_of=end_open + step, candles=rows)
     gate = lambda: SafetyController(db).live_gate(exchange_id=eid, strategy_id="Trend AI", strategy_version="2.2", symbol="BTC/USDT")
     async def scenario():
         app = Application(Config(db_target=target, workers_enabled=True, lease_ttl=60), adapters={"fake": FakeLive()}, state_provider=provider)
@@ -315,3 +325,8 @@ def test_market_worker_marks_symbols_fresh_and_a_failing_provider_does_not():
         finally:
             await app.shutdown()
     run(scenario())
+
+
+def _candle_open(timeframe, age_intervals=0):
+    step = timedelta(seconds=seconds(timeframe))
+    return floor(datetime.now(timezone.utc), timeframe) - step * (1 + age_intervals)

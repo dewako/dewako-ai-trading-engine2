@@ -1,4 +1,4 @@
-# Trading state lives in the database named by DEWAKO_TRADING_DB: a SQLite path (default below) or a postgresql:// URL.
+# Default backend deployment uses SQLite. For the PostgreSQL profile, use docker-compose.postgres.yml and set DEWAKO_DATABASE_URL.
 # Tests have their own file so that production-only required variables never gate them: docker compose -f docker-compose.test.yml run --rm tests
 services:
   postgres:
@@ -8,6 +8,11 @@ services:
       POSTGRES_USER: dewako
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: dewako
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dewako -d dewako"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     volumes: ["pgdata:/var/lib/postgresql/data"]
     networks: [internal]                 # no published port
   redis:

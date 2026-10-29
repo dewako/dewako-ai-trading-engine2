@@ -17,14 +17,35 @@ Run from `backend/tests`. `pip install -r backend/requirements.txt` provides pyt
 ## CI policy (`scripts/assert_no_skips.py`)
 `assert_no_skips.py REPORT.xml --min-tests N [--allow-skip text] [--require test_name]...` fails on any failure, any skip not explicitly allowed, too few tests, or a required test that is absent/skipped. PostgreSQL job: zero skips and the identity test, both HTTP regressions and the nine crash boundaries are required. SQLite job: only "PostgreSQL-only" skips allowed.
 
-## Docker (not executed by the author: no Docker daemon)
+## Docker and PostgreSQL
 ```bash
-docker compose -f docker-compose.test.yml run --rm tests
+docker compose -f docker-compose.test.yml run --build --rm tests
 ```
-Starts an in-memory PostgreSQL 16 and runs the suite with `DEWAKO_TEST_DB=postgres`. Only `docker compose config` validation was run. (A previous revision merged the postgres service into the tests service, which would have dropped the test environment variables; fixed in Phase 3.4.)
+Builds the backend test image, waits for an isolated PostgreSQL 16 service to become healthy, and runs pytest with `DEWAKO_TEST_DB=postgres`. The backend-only build does not contain `frontend/` or `.github/`, so four repository-wide UI/CI checks explicitly skip; those checks run in the full-layout CI jobs. On 2026-10-28 this command completed with 403 passed, 4 skipped, 0 failed. The first run exposed a backend package path assumption in a safety invariant; the path was corrected without changing the assertion, and the rerun passed.
+
+The default deployment compose uses SQLite. For the PostgreSQL deployment profile, create a local `.env` with test or operator-managed values for `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `DEWAKO_ENV=production`, and `DEWAKO_DATABASE_URL=postgresql://...`, then run:
+```bash
+docker compose --profile postgres-port -f docker-compose.yml -f docker-compose.postgres.yml up --build -d backend postgres redis
+```
+The PostgreSQL service has a `pg_isready` health check; the override waits for that health state before starting the backend. Keep the database URL and passwords private. Redis is included in the optional profile but is not currently used by the backend. `docker compose ... down` stops the services while retaining named data volumes; remove volumes only when their data is disposable.
+
+The backend and prototype publish only to localhost. If the configured prototype host port 8080 is unavailable, choose an unused localhost port in a temporary Compose override rather than exposing it publicly.
 
 ## What the tests do not use
 No real exchange, no network, no real money. Exchanges are in-process fakes; the crash tests kill real child processes against a file-backed fake exchange.
+
+## Market-data and executable-quote gates
+- Candle decisions require a non-empty, strictly ordered, gap-free sequence of valid OHLCV candles aligned to the requested timeframe. The newest candle must be closed and no older than `DEWAKO_CANDLE_MAX_AGE_INTERVALS` (default 2 intervals, configurable from 1 to 10 intervals, measured from candle close). Future candle opens beyond `DEWAKO_CANDLE_CLOCK_SKEW_SECONDS` (default 30 seconds) are refused. No timestamp is rewritten.
+- Execution requires all of `DEWAKO_MAX_SPREAD_PCT`, `DEWAKO_MAX_PRICE_DEVIATION_PCT`, and `DEWAKO_MAX_QUOTE_AGE_SECONDS`. If they are absent or partially configured, order execution fails closed. Values are percent units (`0.25` means 0.25%); the maximum price deviation is measured from the approved reference price to the executable ask for BUY or bid for SELL. `DEWAKO_QUOTE_CLOCK_SKEW_SECONDS` defaults to 2 seconds.
+- Values must be selected for the instrument, venue, and strategy by the operator. There is no universal profitable threshold, including for XAUUSD. The example environment leaves execution limits unset.
+- Illustrative paper-only configuration (not a trading recommendation or an XAUUSD preset):
+  ```dotenv
+  DEWAKO_MAX_SPREAD_PCT=0.25
+  DEWAKO_MAX_PRICE_DEVIATION_PCT=0.50
+  DEWAKO_MAX_QUOTE_AGE_SECONDS=5
+  ```
+- The guard validates top-of-book only. The current adapter contract does not supply verified executable depth or market impact, so this is not depth-based slippage protection and cannot guarantee a fill at the quote. The quote is fetched once before an intent is created and fetched again immediately before the adapter submission.
+- Strategy output must anchor its entry reference to the latest validated candle close. The execution engine independently applies quote checks, so strategy/plugin code cannot skip them.
 
 ## Order-dependence and restart checks (manual, Phase 3.4)
 ```bash
@@ -43,3 +64,15 @@ PostgreSQL waits are bounded server-side: `DEWAKO_PG_LOCK_TIMEOUT_MS` (20000), `
 - Windows: if pytest's `faulthandler_timeout` is configured it competes with the diagnostic watchdog (faulthandler allows one pending dump); do not set it for these tests.
 
 Process identity (Windows): `WorkerHung.pid` is the launched process; with a venv `python.exe` it is a launcher stub and the interpreter is its child. Use `WorkerHung.tree` for descendants. Windows children start suspended, are placed in the Job Object, then resumed. The diagnostic watchdog uses a per-call timer thread (no global state).
+
+
+## Phase 4.5 additions
+- Dependencies for HTTP/browser tests: `pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt`. The constraints are resolved from a Python 3.13.15 install and upgraded to versions with no findings in the pinned-environment `pip-audit` check. Python 3.14 is not part of the CI matrix; the pinned `pydantic-core`/`greenlet` wheels cannot be built on the available 3.14 interpreter.
+- Real-app HTTP tests: `cd backend/tests && DEWAKO_REQUIRE_HTTP_TESTS=1 python -m pytest -q --timeout=300 test_api_testclient.py test_api_phase44.py` (needs fastapi, httpx, uvicorn; with the flag set a missing dependency FAILS).
+- Dashboard e2e against the real app: `python -m playwright install chromium && DEWAKO_E2E_SERVER=real PYTHONPATH=backend python frontend/browser_tests/test_dashboard_browser.py`.
+- Dashboard browser tests against the stand-in (NOT FastAPI): same command without `DEWAKO_E2E_SERVER`. Label results accordingly.
+- Standalone runner (no pytest): `python3 scripts/run_tests_standalone.py [module-substring ...]`; every test has a bound (`DEWAKO_TEST_TIMEOUT`, default 180 s) and a hang is reported as `FAIL (TIMEOUT ...)` with the test name.
+
+
+## Phase 5.1: running without pytest
+`PYTHONPATH=scripts/pytest_shim python3 scripts/run_tests_standalone.py [module-substring ...]` supports the pytest features the suite uses (parametrize, raises(match), approx, monkeypatch) with a per-test timeout. It is a stand-in for sandboxes without package access; CI uses real pytest. Ruff: `ruff check backend/dewako backend/tests scripts --select E9,F63,F7,F82`.

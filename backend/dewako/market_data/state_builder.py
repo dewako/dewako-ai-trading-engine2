@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Optional
 
 from dewako.core.types import Candle, MarketState
+from dewako.market_data.freshness import validate_candles
 from dewako.strategies.indicators import atr, ema
 
 MIN_CANDLES = 60
@@ -19,8 +20,9 @@ class InsufficientData(ValueError):
     pass
 
 
-def build_market_state(symbol: str, candles: list[Candle], as_of: datetime,
+def build_market_state(symbol: str, candles: list[Candle], as_of: datetime, timeframe: str = "15m",
                        minutes_to_high_impact_event: Optional[int] = None) -> MarketState:
+    validate_candles(candles, timeframe, as_of)
     if len(candles) < MIN_CANDLES:
         raise InsufficientData(f"need at least {MIN_CANDLES} closed candles, got {len(candles)}")
     closes = [c.c for c in candles]

@@ -1,11 +1,8 @@
-"""HTTP tests against REAL FastAPI (fastapi.testclient.TestClient: the real app, routing, middleware, dependencies, and a real database).
+"""HTTP tests against the real FastAPI app, routing, middleware, dependencies, and database.
 
-STATUS: NOT EXECUTED in the environment this repo was built in (FastAPI/httpx could not be installed: the package index was blocked).
-Without FastAPI the tests are SKIPPED, and the skip is reported as a skip, never as a pass. In CI, DEWAKO_REQUIRE_HTTP_TESTS=1 turns
-the skip into a failure so this can never go green silently. Run them yourself:
-    pip install -r requirements.txt
-    DEWAKO_REQUIRE_HTTP_TESTS=1 python -m pytest -q backend/tests/test_api_testclient.py
-Because they have never run, treat the first real run as a debugging session, not as proof.
+If FastAPI/httpx are unavailable, tests skip unless DEWAKO_REQUIRE_HTTP_TESTS=1, which makes the missing prerequisite a failure.
+Run with the project's pinned test dependencies and required-HTTP flag. Current verification results are recorded in
+PHASE4_5_VERIFICATION_REPORT.md; historical environment notes are not a statement about the current test status.
 """
 import logging
 import os
@@ -65,7 +62,9 @@ def _world():
 
 
 PUBLIC = {("GET", "/health"), ("POST", "/auth/login"), ("POST", "/auth/bootstrap"), ("GET", "/openapi.json"), ("GET", "/docs"),
-          ("GET", "/docs/oauth2-redirect"), ("GET", "/redoc")}
+          ("GET", "/docs/oauth2-redirect"), ("GET", "/redoc"),
+          # Phase 4.4 dashboard shell: static, allowlisted files only (no account data); verified in test_api_phase44.py
+          ("GET", "/ui"), ("GET", "/ui/"), ("GET", "/ui/{name}")}
 
 
 def _fill(path):

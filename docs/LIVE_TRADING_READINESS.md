@@ -1,6 +1,7 @@
 # DEWAKO Live Trading Readiness
 
 **Live trading: LOCKED. Overall status: NOT READY.** Phase 3.4 (final pass). Evidence: `PHASE3_4_FINAL_HARDENING_AUDIT.md` and `docs/evidence/`. Earlier counts (247/249) in `PHASE3_4_HARDENING_AUDIT.md` are superseded.
+**Phase 4.5 evidence addendum is at the bottom of this file; the table below is the preserved Phase 3.4 assessment.**
 Every exchange in the evidence is a fake or a test double; a fake passing is not evidence about a real exchange.
 Status words: PASS, PARTIAL, FAIL, NOT TESTED. "Blocks live" = must be resolved before any real-money order.
 
@@ -47,3 +48,20 @@ Commands used (author's environment, Python 3.13):
 
 ## Overall Status
 NOT READY. Live trading remains LOCKED by: the activation policy (refuses while any check fails), the independent engine live lock (no adapter is live-verified), and the per-order live gate.
+
+
+## Phase 4.5 evidence addendum (does not replace anything above)
+**Live trading: LOCKED. Overall status: NOT READY. Phase 3: INCOMPLETE. No exchange is verified.** Evidence: `PHASE4_5_REPORT.md`, `docs/evidence/phase4_5_*`.
+Environment: author sandbox, Python 3.13.16, custom runner + pytest shim, no FastAPI/httpx/pytest/Docker, local PostgreSQL 16.15.
+
+| Area | Status after 4.5 | Evidence | Still blocks live |
+|---|---|---|---|
+| Full suite on SQLite | PASS: 351 passed, 0 failed, 33 skipped (22 old + 8 new HTTP tests need FastAPI; 3 PostgreSQL-only) | `phase4_5_sqlite.log` | n/a |
+| Full suite on PostgreSQL 16 | PASS: 354 passed, 0 failed, 30 skipped (the 30 HTTP tests) | `phase4_5_pg16.log` | n/a |
+| FastAPI routes over real HTTP (incl. 4.4 routes) | **NOT VERIFIED** (30 tests exist, never ran; pip blocked) | `phase4_5_browser_real_BLOCKED.log` | yes |
+| Dashboard e2e vs real app | **NOT RUN / BLOCKED**; stand-in layer: 13/13 pass (labelled stand-in) | `phase4_5_browser_standin.log` | yes |
+| UI policy | PARTIAL: no `unsafe-inline` for scripts, verified in Chromium against the stand-in using the shared constants; headers on the real app NOT VERIFIED; `style-src-attr 'unsafe-inline'` exception documented | `docs/LIVE_ACTIVITY.md` | no |
+| Integration invariants (activity read-only, no order route, verified_at writer, no live env var, fake-only tooling) | PASS (static + runtime checks) | `test_phase45_invariants.py` | no |
+| Unknown order stays UNKNOWN until reconciliation | PASS at service level (engine/reconciliation tests, activity tests); HTTP version written, NOT RUN | `test_api_phase44.py` | yes (real exchange) |
+| CI, Docker, Windows | **NOT RUN** (workflow extended with an e2e job, still never executed) | | yes |
+| Testnet lifecycle, protective orders, account identity, balance/position reconciliation on a real exchange, operator authorization drill, MFA, off-host audit anchor | unchanged: NOT DONE | Phase 3.4 table above | yes |

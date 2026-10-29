@@ -66,3 +66,33 @@ Demo figures are simulated. Historical or simulated performance does not predict
 
 ## Status (Phase 3.4)
 PHASE 3 INCOMPLETE. Live trading is LOCKED. See `PHASE3_4_FINAL_HARDENING_AUDIT.md` and `docs/LIVE_TRADING_READINESS.md`. HTTP tests, CI and Docker have not been executed.
+
+## Running the dashboard prototype (Windows)
+
+The dashboard is served by the backend at `/ui/`. Do not open `frontend\prototype\index.html` by double-click: it loads `app.css` and three scripts as separate files, and backend-connected pages (login, live activity, packages) need the API on the same origin, so `file://` does not work for them.
+
+```bat
+cd dewako\backend
+py -3.12 -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+set DEWAKO_ENV=paper
+uvicorn dewako.api.main:app --host 127.0.0.1 --port 8000
+```
+
+Then open `http://127.0.0.1:8000/ui/` (`/ui` redirects to `/ui/`). Adjust the env-var and requirements names to the ones in `docs/DEVELOPER.md` if they differ. These commands were NOT run on Windows here.
+
+For a quick look at the simulated pages only, `frontend\prototype\index.standalone.html` (a single inlined file, rebuilt with `python scripts\build_standalone_dashboard.py`) opens directly from disk; its backend-connected pages stay inactive. Simulated pages carry a demo banner. The dashboard cannot place real orders; live trading stays locked.
+
+
+### Quick Windows launcher
+
+After installing the backend dependencies, run `run_prototype.bat` from the project root.
+It starts the backend bound to `127.0.0.1` and opens `http://127.0.0.1:8000/ui/`.
+Keep the terminal open while using the dashboard. The launcher is for local development only;
+it does not enable testnet or live trading. If port 8000 is occupied, set
+`DEWAKO_PROTOTYPE_PORT` to another free local port before launching.
+
+For the backend-connected dashboard, do not double-click `frontend\\prototype\\index.html`.
+Use the local URL above. `frontend\\prototype\\index.standalone.html` is only for viewing
+simulated pages without backend connectivity.

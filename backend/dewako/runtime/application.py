@@ -11,12 +11,15 @@ import logging
 import math
 import os
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Awaitable, Callable, Optional
 
 from dewako.api.runtime_state import Runtime
 from dewako.core.types import MarketState
 from dewako.exchanges.base import ExchangeAdapter
 from dewako.execution.engine import ExecutionEngine
+from dewako.execution.validation import QuoteGuardConfig
+from dewako.market_data.freshness import validate_candles
 from dewako.execution.positions import PositionStore
 from dewako.persistence.db import Database, DatabaseUnavailable
 from dewako.persistence.migrations import MIGRATIONS
@@ -35,7 +38,7 @@ log = logging.getLogger("dewako.app")
 
 REQUIRED_TABLES = {"users", "sessions", "exchanges", "credentials", "strategy_versions", "signals", "orders", "order_events", "positions",
                    "position_events", "trades", "safety_state", "kill_switch_events", "risk_state", "reconciliation_state",
-                   "account_snapshots", "audit_log", "worker_health", "bots", "risk_decisions", "worker_leases"}
+                   "account_snapshots", "audit_log", "worker_health", "bots", "risk_decisions", "worker_leases", "strategy_packages"}
 
 
 @dataclass
@@ -125,7 +128,8 @@ class Application:
         ok = safety.baseline_intact()
         self._step("safety_state", ok, "" if ok else "baseline safety records missing: trading blocked")
         # engine + services
-        self.engine = ExecutionEngine(db, safety, self.adapters, audit=self.rt.audit, exchange_ids=self.exchange_ids)
+        self.engine = ExecutionEngine(db, safety, self.adapters, audit=self.rt.audit, exchange_ids=self.exchange_ids,
+                                      quote_guard=QuoteGuardConfig.from_env())
         self.recon = ReconciliationService(db, safety, self.engine, self.rt.audit)
         self.lease = WorkerLease(db, "execution", ttl=self.config.lease_ttl)
         self.engine.submit_authorized = self.lease.check            # checked against the database immediately before every LIVE send
@@ -142,6 +146,12 @@ class Application:
             self._step("execution_lease", got, "" if got else "another worker holds the execution lease")
         except Exception as e:
             self._step("execution_lease", False, type(e).__name__)
+        # 4d imported strategy packages: re-register eligible ones after verifying their fingerprints (tampered ones are quarantined)
+        try:
+            problems = self.rt.packages.sync_registry()
+            self._step("strategy_packages", not problems, "; ".join(problems)[:300], critical=False)
+        except Exception as e:
+            self._step("strategy_packages", False, type(e).__name__, critical=False)
         # 5 strategy fingerprints
         try:
             StrategyRegistryStore(db).verify(all_strategies())
@@ -190,6 +200,11 @@ class Application:
         if not crit_ok:
             safety.block_live("startup verification failed")
         self.status = "READY" if crit_ok else "READY_LIVE_BLOCKED"
+        try:      # persisted so the Live Activity feed can show engine start-ups (and a degraded one) after a restart
+            self.rt.audit.record("ENGINE_STARTUP", "OK" if crit_ok else "DEGRADED", "startup",
+                                 metadata={"status": self.status, "failed_steps": [s.name for s in self.steps if not s.ok][:20]})
+        except Exception:
+            pass
         self.accepting = True
         self.events.append(f"startup:{self.status}")
         return self.status
@@ -235,8 +250,11 @@ class Application:
                 wanted = {r["symbol"]: r["timeframe"] for r in c.execute("SELECT DISTINCT symbol, timeframe FROM bots WHERE enabled=1")}
             wanted.setdefault("BTC/USDT", "15m")
             for sym, tf in sorted(wanted.items()):
-                await self.state_provider(sym, tf)          # raises when the data cannot be fetched: the symbol then goes stale
-                rt.safety.mark_market_data_fresh(sym)
+                state = await self.state_provider(sym, tf)
+                if state.symbol != sym:
+                    raise ValueError(f"market state symbol does not match configured symbol {sym}")
+                validate_candles(state.candles, tf, datetime.now(timezone.utc))
+                rt.safety.mark_market_data_fresh(sym, state.candles[-1].t, tf)
             self.market_ok = True
 
         async def lease_renew():
@@ -288,6 +306,11 @@ class Application:
             except Exception:
                 report.setdefault("adapter_errors", []).append(name)
         self.events.append("shutdown:adapters_closed")
+        if self.rt is not None:
+            try:
+                self.rt.audit.record("ENGINE_SHUTDOWN", "OK", "shutdown", metadata={"adapter_errors": report.get("adapter_errors", [])})
+            except Exception:
+                pass
         if self.rt is not None:                                   # 7. close the database
             self.rt.db.close()
         self.events.append("shutdown:database_closed")

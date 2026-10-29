@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import itertools
+from datetime import datetime, timezone
 from typing import Any
 
 from dewako.core.types import Order, OrderRequest, OrderStatus, OrderType, Side
@@ -36,7 +37,10 @@ class PaperAdapter(ExchangeAdapter):
     async def get_account_snapshot(self): return [AccountBalance("USDT", self.cash, self.cash, 0.0)]
     async def get_markets(self): return [{"symbol": s, "tick_size": 0.01, "qty_precision": 5,
                                           "min_notional": self.min_notional, "fee": self.fee_rate} for s in self.prices]
-    async def get_ticker(self, symbol): return {"last": self.prices[symbol]}
+    async def get_ticker(self, symbol):
+        price = self.prices[symbol]
+        return {"last": price, "bid": price * (1 - self.slippage), "ask": price * (1 + self.slippage),
+                "timestamp": datetime.now(timezone.utc)}
     async def get_orderbook(self, symbol, depth=20):
         p = self.prices[symbol]
         return {"bids": [[p * (1 - 0.0004 * i), 1.0] for i in range(1, depth + 1)],

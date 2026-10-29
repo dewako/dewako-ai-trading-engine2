@@ -1,6 +1,6 @@
 import threading
 
-from dewako.core.types import Side
+from dewako.core.types import OrderStatus, Side
 from dewako.exchanges.base import ExchangeError
 from dewako.execution.engine import ExecutionEngine
 from dewako.execution.order_store import OrderStore, RetryNotAllowed, StaleState
@@ -129,6 +129,28 @@ def test_http500_and_malformed_and_wrong_id_go_to_unknown_path():
         assert "UNKNOWN" in ev and "RECONCILING" in ev, mode
 
 
+def test_adapter_error_secrets_are_redacted_from_order_events_and_audit():
+    secret, key = "EXECUTIONSECRET99", "EXECUTIONKEY77"
+
+    class LeakingError(FakeLive):
+        async def create_order(self, req):
+            self.create_calls += 1
+            raise ExchangeError(f"request failed api_key={key} secret={secret}")
+
+    db, _ = tmp_db()
+    ad = LeakingError()
+    eng, safety = engine_for(db, ad)
+    eng.exchange_ids["fake"] = make_live_ready(db, safety)
+    result = run(eng.execute(decision("secret-error"), bot_id="bot", environment="LIVE", exchange="fake"))
+
+    assert result.outcome == "FAILED"
+    with db.read() as c:
+        event_errors = " ".join(str(row[0]) for row in c.execute("SELECT error FROM order_events WHERE error IS NOT NULL"))
+        audit_metadata = " ".join(str(row[0]) for row in c.execute("SELECT metadata FROM audit_log"))
+    assert secret not in event_errors + audit_metadata
+    assert key not in event_errors + audit_metadata
+
+
 def test_partial_then_full_fill_updates_position_incrementally():
     db, ad, eng, _ = _live("partial")
     r = run(eng.execute(decision(qty=2.0), bot_id="bot", environment="LIVE", exchange="fake"))
@@ -143,6 +165,68 @@ def test_partial_then_full_fill_updates_position_incrementally():
     assert eng.positions.active("LIVE", "bot")[0]["quantity"] == 2.0
     with db.read() as c:
         assert c.execute("SELECT SUM(quantity) FROM trades").fetchone()[0] == 2.0
+
+
+@pytest.mark.parametrize(
+    ("status", "filled", "price", "response_quantity"),
+    [
+        (OrderStatus.FILLED, 1.0, -1.0, None),
+        (OrderStatus.FILLED, 1.0, 0.0, None),
+        (OrderStatus.FILLED, 1.0, float("nan"), None),
+        (OrderStatus.FILLED, 1.0, float("inf"), None),
+        (OrderStatus.PARTIAL, 0.5, None, None),
+        (OrderStatus.FILLED, 0.5, 100.0, None),
+        (OrderStatus.FILLED, 1.1, 100.0, None),
+        (OrderStatus.FILLED, 1.0, 100.0, 0.5),
+    ],
+)
+def test_malformed_fill_response_remains_unresolved_and_does_not_change_accounting(status, filled, price, response_quantity):
+    class MalformedFill(FakeLive):
+        async def create_order(self, req):
+            updates = {"price": price}
+            if response_quantity is not None:
+                updates["quantity"] = response_quantity
+            order = self._order(req, status, filled).model_copy(update=updates)
+            self.store[req.client_order_id] = order
+            return order
+
+    db, _ = tmp_db()
+    ad = MalformedFill()
+    eng, safety = engine_for(db, ad)
+    eng.exchange_ids["fake"] = make_live_ready(db, safety)
+    result = run(eng.execute(decision("invalid-fill-price"), bot_id="bot", environment="LIVE", exchange="fake"))
+
+    assert result.outcome == "UNRESOLVED" and result.state == "RECONCILING"
+    with db.read() as c:
+        order = c.execute("SELECT state,filled FROM orders").fetchone()
+        assert c.execute("SELECT COUNT(*) FROM trades").fetchone()[0] == 0
+        assert c.execute("SELECT COUNT(*) FROM positions").fetchone()[0] == 0
+        assert c.execute("SELECT status FROM risk_reservations").fetchone()["status"] == "ACTIVE"
+    assert order["state"] == "RECONCILING" and order["filled"] == 0
+
+
+def test_out_of_order_lower_cumulative_fill_is_not_applied_or_persisted():
+    db, ad, eng, _ = _live("partial")
+    result = run(eng.execute(decision("out-of-order-fill", qty=2.0), bot_id="bot", environment="LIVE", exchange="fake"))
+    assert result.state == "PARTIALLY_FILLED"
+    cid = eng.orders.get(result.order_id)["client_order_id"]
+    ad.store[cid] = ad.store[cid].model_copy(update={"filled": 0.5})
+    eng.orders.transition(result.order_id, S.PARTIALLY_FILLED, S.UNKNOWN, "OUT_OF_ORDER_REPORT")
+
+    out_of_order = run(eng.reconcile_order(result.order_id))
+    with db.read() as c:
+        order = c.execute("SELECT state,filled FROM orders").fetchone()
+        trade_count = c.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+        position_qty = c.execute("SELECT quantity FROM positions WHERE status<>'CLOSED'").fetchone()["quantity"]
+    assert out_of_order.outcome == "UNRESOLVED" and order["state"] == "RECONCILING"
+    assert order["filled"] == 1.0 and trade_count == 1 and position_qty == 1.0
+
+    ad.store[cid] = ad.store[cid].model_copy(update={"filled": 1.5})
+    recovered = run(eng.reconcile_order(result.order_id))
+    with db.read() as c:
+        total_traded = c.execute("SELECT SUM(quantity) FROM trades").fetchone()[0]
+        position_qty = c.execute("SELECT quantity FROM positions WHERE status<>'CLOSED'").fetchone()["quantity"]
+    assert recovered.state == "PARTIALLY_FILLED" and total_traded == 1.5 and position_qty == 1.5
 
 
 def test_cancel_open_order():
@@ -164,7 +248,7 @@ def test_crash_after_persisting_submitting_recovers_without_duplicate():
     from dewako.core.types import OrderRequest, OrderType
     run(ad.create_order(OrderRequest(symbol="BTC/USDT", side=Side.BUY, type=OrderType.MARKET, quantity=1.0, client_order_id=created.client_order_id)))
     db2 = Database(db.path)  # restart
-    eng2 = ExecutionEngine(db2, SafetyController(db2), {"fake": ad})
+    eng2 = ExecutionEngine(db2, SafetyController(db2), {"fake": ad}, quote_guard=TEST_QUOTE_GUARD)
     out = run(eng2.recover())
     assert out[0].state == "FILLED" and ad.create_calls == 1
     ev = [e["event_type"] for e in eng2.orders.events(created.order_id)]
@@ -203,7 +287,7 @@ def test_concurrent_engines_same_signal_send_once():
 
     def worker():
         d = Database(path)
-        e = ExecutionEngine(d, SafetyController(d), {"fake": ad}, exchange_ids={"fake": eid})
+        e = ExecutionEngine(d, SafetyController(d), {"fake": ad}, exchange_ids={"fake": eid}, quote_guard=TEST_QUOTE_GUARD)
         barrier.wait()
         outs.append(run(e.execute(decision("same"), bot_id="bot", environment="LIVE", exchange="fake")).outcome)
     ts = [threading.Thread(target=worker) for _ in range(2)]

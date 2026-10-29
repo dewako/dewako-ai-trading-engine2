@@ -16,7 +16,7 @@ from dewako.paper_trading.paper_exchange import PaperAdapter
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import Database
 from dewako.reconciliation.service import ReconciliationService
-from dewako.risk.engine import RiskEngine
+from dewako.risk.engine import RiskEngine, RiskLimits
 from dewako.risk.state import RiskStateStore
 from dewako.runtime.bot_runner import BotConfig, BotRunner
 from dewako.runtime.health import health_report
@@ -356,7 +356,7 @@ def test_startup_resolves_crashed_order_before_trading():
     # simulate a crash while unresolved: new process
     db2 = Database(path)
     s2 = SafetyController(db2)
-    eng2 = ExecutionEngine(db2, s2, {"fake": ad}, exchange_ids=eng.exchange_ids)
+    eng2 = ExecutionEngine(db2, s2, {"fake": ad}, exchange_ids=eng.exchange_ids, quote_guard=TEST_QUOTE_GUARD)
     rec2 = ReconciliationService(db2, s2, eng2)
     rep = run(startup(db2, s2, eng2, rec2, all_strategies(), ["fake"]))
     assert s2.live_switch() in (LiveSwitch.ENABLED, LiveSwitch.BLOCKED)
@@ -368,10 +368,14 @@ def _paper_bot():
     db, path = tmp_db()
     pa = PaperAdapter(10_000.0); pa.set_price("BTC/USDT", 109.39)
     safety = SafetyController(db)
-    eng = ExecutionEngine(db, safety, {"paper": pa})
+    eng = ExecutionEngine(db, safety, {"paper": pa}, quote_guard=TEST_QUOTE_GUARD)
     rs = RiskStateStore(db); rs.init_scope("PAPER", 10_000.0)
-    async def provider(sym, tf): return S.state(S.steady_uptrend())
-    runner = BotRunner(eng, RiskEngine(kill_switch_active=safety.kill_switch_active), rs, provider)
+    candles = S.steady_uptrend()
+    now = candles[-1].t + S.STEP
+    async def provider(sym, tf): return S.state(candles)
+    # Phase 5: the engine's backstop now evaluates the position cap at the executable ask. The RiskEngine sizes at the reference price, so a size
+    # exactly at the 10% cap is (correctly) refused once slippage lifts it above 10%. Sizing at 9.5% leaves headroom; the 10% backstop is unchanged.
+    runner = BotRunner(eng, RiskEngine(RiskLimits(max_position_pct=9.5), kill_switch_active=safety.kill_switch_active), rs, provider, clock=lambda: now)
     bot = BotConfig("pb", "Trend AI", "2.2", "BTC/USDT", "15m", "PAPER", "paper")
     return db, path, pa, eng, runner, bot
 
@@ -389,9 +393,11 @@ def test_bot_tick_end_to_end_paper_and_is_idempotent():
     # restart: a brand-new runner (empty in-memory dedupe) still cannot create a second order for the same bar
     db2 = Database(path)
     safety2 = SafetyController(db2)
-    eng2 = ExecutionEngine(db2, safety2, {"paper": pa})
-    async def provider(sym, tf): return S.state(S.steady_uptrend())
-    runner2 = BotRunner(eng2, RiskEngine(), RiskStateStore(db2), provider)
+    eng2 = ExecutionEngine(db2, safety2, {"paper": pa}, quote_guard=TEST_QUOTE_GUARD)
+    candles = S.steady_uptrend()
+    now = candles[-1].t + S.STEP
+    async def provider(sym, tf): return S.state(candles)
+    runner2 = BotRunner(eng2, RiskEngine(), RiskStateStore(db2), provider, clock=lambda: now)
     run(runner2.tick(bot))
     with db2.read() as c:
         assert c.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 1
