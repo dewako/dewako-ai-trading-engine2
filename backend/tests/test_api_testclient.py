@@ -61,7 +61,7 @@ def _world():
     return c, h
 
 
-PUBLIC = {("GET", "/health"), ("POST", "/auth/login"), ("POST", "/auth/bootstrap"), ("GET", "/openapi.json"), ("GET", "/docs"),
+PUBLIC = {("GET", "/health"), ("GET", "/health/live"), ("POST", "/auth/login"), ("POST", "/auth/bootstrap"), ("GET", "/openapi.json"), ("GET", "/docs"),
           ("GET", "/docs/oauth2-redirect"), ("GET", "/redoc"),
           # Phase 4.4 dashboard shell: static, allowlisted files only (no account data); verified in test_api_phase44.py
           ("GET", "/ui"), ("GET", "/ui/"), ("GET", "/ui/{name}")}

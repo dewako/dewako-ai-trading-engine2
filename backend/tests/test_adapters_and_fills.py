@@ -70,7 +70,7 @@ def test_lookup_by_client_id_returns_the_order_and_unknown_ids_are_not_found():
     ad = FakeLive()
     eng, safety = engine_for(*tmp_db()[:1], ad)
     eng.exchange_ids["fake"] = make_live_ready(eng.db, safety)
-    r = run(eng.execute(decision("lk"), bot_id="b", environment="LIVE", exchange="fake"))
+    r = run(eng.execute(decision("lk", entry_price=FAKE_LIVE_ASK), bot_id="b", environment="LIVE", exchange="fake"))
     cid = eng.orders.get(r.order_id)["client_order_id"]
     got = run(ad.get_order("BTC/USDT", client_order_id=cid))
     assert got.client_order_id == cid and got.filled == 1.0

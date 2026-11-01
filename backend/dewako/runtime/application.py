@@ -65,6 +65,16 @@ class Config:
     paper_enabled: bool = False          # explicit in code; Config.from_env() turns the PAPER adapter on (paper money only)
     paper_balance: float = 10_000.0
     market_data: str = "none"            # "public" = the MarketDataHub's public REST providers (no credentials); "none" = nothing configured
+    max_hold_seconds: Optional[float] = None                 # time stop; None = DISABLED (no implicit default is ever invented)
+    emergency_exit_max_spread_pct: Optional[float] = None    # None = a triggered exit is NOT sent through a spread wider than the normal limit
+
+    def __post_init__(self) -> None:
+        for name, upper in (("max_hold_seconds", None), ("emergency_exit_max_spread_pct", 100.0)):
+            v = getattr(self, name)
+            if v is None:
+                continue
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0 or (upper is not None and v > upper):
+                raise ValueError(f"{name} must be a finite positive number" + (f" not above {upper:g}" if upper else "") + " or unset; refusing to start")
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -74,7 +84,19 @@ class Config:
                    workers_enabled=e.get("DEWAKO_WORKERS", "1") == "1",
                    paper_enabled=e.get("DEWAKO_PAPER_TRADING", "1") == "1", paper_balance=float(e.get("DEWAKO_PAPER_BALANCE", "10000")),
                    market_data=e.get("DEWAKO_MARKET_DATA", "public").strip().lower(),
-                   recon_interval=float(e.get("DEWAKO_RECON_INTERVAL", "60")), bot_interval=float(e.get("DEWAKO_BOT_INTERVAL", "30")))
+                   recon_interval=float(e.get("DEWAKO_RECON_INTERVAL", "60")), bot_interval=float(e.get("DEWAKO_BOT_INTERVAL", "30")),
+                   max_hold_seconds=_optional_number(e, "DEWAKO_MAX_HOLD_SECONDS"),
+                   emergency_exit_max_spread_pct=_optional_number(e, "DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT"))
+
+
+def _optional_number(env, key: str) -> Optional[float]:
+    raw = (env.get(key) or "").strip()
+    if raw == "":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        raise ValueError(f"{key} must be a number or unset; refusing to start") from None
 
 
 @dataclass
@@ -167,7 +189,8 @@ class Application:
         self.engine.submit_authorized = self.lease.check            # checked against the database immediately before every LIVE send
         self.limits_store = RiskLimitsStore(db, self.rt.audit)
         self.engine.limits = self.limits_store.hard_caps()                 # the durable, operator-set caps; defaults only when none were ever set
-        self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock)
+        self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.config.max_hold_seconds,
+                                        emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct)
         # No new entry unless the exit monitor is verified running: a position that nothing is watching must not be created.
         self.engine.entry_guard = self._protection_ok
         self.bot_service = BotService(db, self.adapters, RiskStateStore(db), self.rt.audit)
@@ -410,6 +433,21 @@ class Application:
         self.events.append("shutdown:database_closed")
         self.status = "STOPPED"
         return report
+
+    def readiness(self) -> tuple[bool, str]:
+        """Current readiness, not the startup verdict. Ready only when startup finished READY/READY_LIVE_BLOCKED AND, if workers are running,
+        every critical worker is currently HEALTHY (exit_monitor and risk_equity included). Anything unknown is NOT ready (fail closed).
+        With workers disabled nothing trades (entries are refused), so the startup status alone is reported, as before."""
+        if self.status not in ("READY", "READY_LIVE_BLOCKED") or not self.accepting:
+            return False, self.status
+        if self.supervisor is None:
+            return True, self.status
+        try:
+            ok, _ = self.supervisor.healthy()
+            protected, _ = self._protection_ok()
+        except Exception:
+            return False, "SYSTEM_DEGRADED"
+        return (True, self.status) if (ok and protected) else (False, "SYSTEM_DEGRADED")
 
     def health(self) -> dict:
         if self.rt is None:

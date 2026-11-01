@@ -47,8 +47,8 @@ def test_successful_live_order_and_duplicate_signal():
     eng, safety = engine_for(db, ad, exchange_id=1)
     eid = make_live_ready(db, safety)
     eng.exchange_ids["fake"] = eid
-    r1 = run(eng.execute(decision(), bot_id="bot", environment="LIVE", exchange="fake"))
-    r2 = run(eng.execute(decision(), bot_id="bot", environment="LIVE", exchange="fake"))
+    r1 = run(eng.execute(decision(entry_price=FAKE_LIVE_ASK), bot_id="bot", environment="LIVE", exchange="fake"))
+    r2 = run(eng.execute(decision(entry_price=FAKE_LIVE_ASK), bot_id="bot", environment="LIVE", exchange="fake"))
     assert r1.outcome == "EXECUTED" and r1.state == "FILLED"
     assert r2.outcome == "DUPLICATE" and ad.create_calls == 1
     assert eng.positions.active("LIVE", "bot")[0]["quantity"] == 1.0
@@ -153,7 +153,7 @@ def test_adapter_error_secrets_are_redacted_from_order_events_and_audit():
 
 def test_partial_then_full_fill_updates_position_incrementally():
     db, ad, eng, _ = _live("partial")
-    r = run(eng.execute(decision(qty=2.0), bot_id="bot", environment="LIVE", exchange="fake"))
+    r = run(eng.execute(decision(qty=2.0, entry_price=FAKE_LIVE_ASK), bot_id="bot", environment="LIVE", exchange="fake"))
     assert r.state == "PARTIALLY_FILLED"
     assert eng.positions.active("LIVE", "bot")[0]["quantity"] == 1.0
     cid = eng.orders.get(r.order_id)["client_order_id"]
@@ -207,7 +207,7 @@ def test_malformed_fill_response_remains_unresolved_and_does_not_change_accounti
 
 def test_out_of_order_lower_cumulative_fill_is_not_applied_or_persisted():
     db, ad, eng, _ = _live("partial")
-    result = run(eng.execute(decision("out-of-order-fill", qty=2.0), bot_id="bot", environment="LIVE", exchange="fake"))
+    result = run(eng.execute(decision("out-of-order-fill", qty=2.0, entry_price=FAKE_LIVE_ASK), bot_id="bot", environment="LIVE", exchange="fake"))
     assert result.state == "PARTIALLY_FILLED"
     cid = eng.orders.get(result.order_id)["client_order_id"]
     ad.store[cid] = ad.store[cid].model_copy(update={"filled": 0.5})

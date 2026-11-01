@@ -75,6 +75,17 @@ class QuoteGuardError(ValueError):
     pass
 
 
+class WideSpreadError(QuoteGuardError):
+    """The quote is otherwise valid (fresh, positive, uncrossed) but its spread exceeds the configured maximum.
+
+    Carries the quote's own figures so a caller that has an explicit, bounded policy for it (the exit monitor's emergency exit) can
+    evaluate stop/target triggers on the bid without re-parsing the quote. Everyone else treats it as the QuoteGuardError it is."""
+
+    def __init__(self, message: str, *, bid: float, ask: float, spread_pct: float, timestamp: datetime):
+        super().__init__(message)
+        self.bid, self.ask, self.spread_pct, self.timestamp = bid, ask, spread_pct, timestamp
+
+
 def validate_executable_quote(ticker: dict[str, Any], *, side: str, reference_price: float, now: datetime,
                               config: QuoteGuardConfig) -> QuoteCheck:
     """Validate a normalized top-of-book quote and price it at ask for BUY / bid for SELL."""
@@ -117,9 +128,9 @@ def validate_executable_quote(ticker: dict[str, Any], *, side: str, reference_pr
     mid = (bid + ask) / 2
     spread_pct = (ask - bid) / mid * 100
     if spread_pct > config.max_spread_pct:
-        raise QuoteGuardError(
-            f"spread {spread_pct:.6g}% exceeds configured maximum {config.max_spread_pct:.6g}%"
-        )
+        raise WideSpreadError(
+            f"spread {spread_pct:.6g}% exceeds configured maximum {config.max_spread_pct:.6g}%",
+            bid=bid, ask=ask, spread_pct=spread_pct, timestamp=timestamp)
     if side == "BUY":
         executable = ask
     elif side == "SELL":
@@ -152,6 +163,28 @@ def conservative_risk_price(side: str, reference_price: float, check: QuoteCheck
     if side == "SELL":
         return min(float(reference_price), float(check.executable_price))
     raise QuoteGuardError("order side is invalid")
+
+
+def executable_risk_quantity(quantity: float, *, reference_price: float, risk_price: float, stop_price: float) -> float:
+    """Scale an approved ENTRY quantity so the loss at the stop cannot exceed what the Risk Engine approved.
+
+    The Risk Engine sizes from the reference price: approved loss = quantity x (reference - stop). The order can fill at the executable
+    ask, so the real loss at the stop is quantity x (risk_price - stop). When the executable basis is higher the quantity is reduced in
+    proportion; it is never increased (a lower ask than the reference keeps the approved quantity: nothing is gained by sizing up).
+    A stop at or above the executable entry price, or any missing/non-finite figure, raises QuoteGuardError: the order is blocked."""
+    for label, value in (("approved quantity", quantity), ("reference price", reference_price), ("executable entry price", risk_price),
+                         ("stop price", stop_price)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            raise QuoteGuardError(f"{label} is missing, non-finite or not positive; entry risk cannot be verified")
+    if stop_price >= risk_price:
+        raise QuoteGuardError(f"stop {stop_price:g} is at or above the executable entry price {risk_price:g}; entry blocked")
+    reference_distance = reference_price - stop_price
+    if reference_distance <= 0:
+        raise QuoteGuardError(f"stop {stop_price:g} is at or above the reference price {reference_price:g}; entry blocked")
+    executable_distance = risk_price - stop_price
+    if executable_distance <= reference_distance * (1 + 1e-9):      # equal up to floating-point noise (1e-9 of the risk budget)
+        return float(quantity)
+    return float(quantity) * reference_distance / executable_distance
 
 
 def validate_order(markets: list[dict], balances: dict, *, symbol: str, side: str, quantity: float, price: float | None,

@@ -9,6 +9,12 @@ status, or an exit that could not be placed) the monitor opens an EXIT_PROTECTIO
 Execution Engine refuses new entries. The incident is closed again only after `clean_cycles_to_clear` consecutive cycles in which every
 position was verified. The worker wrapper raises when anything is unverified so the supervisor reports the worker unhealthy.
 
+Wide spreads: a triggered exit whose quote fails ONLY the spread limit is never silently dropped and never silently forced. The trigger is
+evaluated on the bid. If `emergency_exit_max_spread_pct` is configured and the spread is within it, the exit is sent with that bound (the
+quote must still be fresh, positive and uncrossed). If it is not configured, or the spread is wider than it, NO order is sent, the position
+stays OPEN, an EXIT_BLOCKED_WIDE_SPREAD incident (CRITICAL) blocks new entries, the attempt count is recorded, and the exit is retried every
+cycle. The monitor never reports a position closed that is not.
+
 Gap behaviour: an exit is a market order at the next executable price. A gap through the stop fills at the gapped market, never at the
 stop price; the stop is a trigger, not a guaranteed fill.
 """
@@ -22,12 +28,15 @@ from typing import Callable, Optional
 
 from dewako.core.types import Side, Signal, utcnow
 from dewako.execution import reservations as rsv
-from dewako.execution.validation import QuoteGuardError, validate_executable_quote
+import math
+
+from dewako.execution.validation import QuoteGuardError, WideSpreadError, validate_executable_quote
 from dewako.persistence.db import now_iso
 
 log = logging.getLogger("dewako.exit_monitor")
 
 INCIDENT_KIND = "EXIT_PROTECTION_UNVERIFIED"
+WIDE_SPREAD_KIND = "EXIT_BLOCKED_WIDE_SPREAD"
 _PENDING_STATES = ("CREATED", "SUBMITTING", "SUBMITTED", "OPEN", "PARTIALLY_FILLED", "CANCEL_REQUESTED", "UNKNOWN", "RECONCILING")
 
 
@@ -37,13 +46,22 @@ class MonitorReport:
     exits: list = field(default_factory=list)          # (position_id, reason, outcome)
     unverified: list = field(default_factory=list)     # (position_id, why)
     pending: list = field(default_factory=list)        # position ids with an exit already in flight
+    wide: list = field(default_factory=list)           # (position_id, reason, spread_pct, attempts): triggered but blocked by a wide spread
 
 
 class ExitMonitor:
     def __init__(self, engine, risk, *, max_hold_seconds: Optional[float] = None, clock: Callable[[], datetime] = utcnow,
-                 clean_cycles_to_clear: int = 2):
+                 clean_cycles_to_clear: int = 2, emergency_exit_max_spread_pct: Optional[float] = None):
         self.engine, self.risk = engine, risk
+        for name, value, upper in (("max_hold_seconds", max_hold_seconds, None), ("emergency_exit_max_spread_pct", emergency_exit_max_spread_pct, 100.0)):
+            if value is None:
+                continue
+            if (isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0
+                    or (upper is not None and value > upper)):
+                raise ValueError(f"{name} must be a finite positive number" + (f" not above {upper:g}" if upper else "") + " or unset")
         self.max_hold_seconds = max_hold_seconds
+        self.emergency_exit_max_spread_pct = emergency_exit_max_spread_pct
+        self._wide_attempts: dict[int, int] = {}
         self.clock = clock
         self.clean_cycles_to_clear = clean_cycles_to_clear
         self._clean = 0
@@ -60,10 +78,16 @@ class ExitMonitor:
                 await self._check(p, rep)
             except Exception as e:      # one bad position must never stop the others being protected
                 rep.unverified.append((p["id"], f"unexpected {type(e).__name__}"))
+        wide_ids = {w[0] for w in rep.wide}
         for pid, why in rep.unverified:
             p = next(x for x in positions if x["id"] == pid)
-            self.engine.open_incident(INCIDENT_KIND, f"position {pid} {p['symbol']}: {why}", severity="HIGH",
+            wide = pid in wide_ids
+            self.engine.open_incident(WIDE_SPREAD_KIND if wide else INCIDENT_KIND, f"position {pid} {p['symbol']}: {why}",
+                                      severity="CRITICAL" if wide else "HIGH",
                                       scope=rsv.scope_of(p["environment"], p["exchange"]), correlation_id=f"exitmon:{pid}")
+        live = {p["id"] for p in positions}
+        for pid in [k for k in self._wide_attempts if k not in live or (k not in wide_ids)]:
+            self._wide_attempts.pop(pid, None)            # the streak ends when the trigger clears, the exit goes out, or the position closes
         if rep.unverified:
             self._clean = 0
         else:
@@ -95,17 +119,20 @@ class ExitMonitor:
         if adapter is None:
             rep.unverified.append((pid, f"no adapter for {p['exchange']}"))
             return
+        wide: Optional[WideSpreadError] = None
         try:
             quote = await adapter.get_ticker(p["symbol"])
             bid = quote.get("bid") if isinstance(quote, dict) else None
             check = validate_executable_quote(quote, side="SELL", reference_price=bid, now=self.clock(), config=self.engine.quote_guard)
+            price = check.executable_price
+        except WideSpreadError as e:      # otherwise-valid quote: the triggers can still be evaluated on its bid
+            wide, price = e, e.bid
         except (QuoteGuardError, TypeError, ValueError) as e:
             rep.unverified.append((pid, f"no valid fresh quote ({e})"))
             return
         except Exception as e:
             rep.unverified.append((pid, f"quote unavailable ({type(e).__name__})"))
             return
-        price = check.executable_price
         reason = None
         if price <= p["stop_loss"]:
             reason = "STOP"
@@ -114,10 +141,27 @@ class ExitMonitor:
         elif self.max_hold_seconds is not None and self._held_seconds(p) >= self.max_hold_seconds:
             reason = "MAX_HOLD"
         if reason is None:
+            if wide is not None:
+                rep.unverified.append((pid, f"no valid fresh quote ({wide})"))
             return
         if self._exit_in_flight(p):
             rep.pending.append(pid)
             return
+        cap = None
+        if wide is not None:
+            cap = self.emergency_exit_max_spread_pct
+            if cap is None or wide.spread_pct > cap:
+                n = self._wide_attempts[pid] = self._wide_attempts.get(pid, 0) + 1
+                limit = "no emergency spread limit is configured" if cap is None else f"it exceeds the emergency limit {cap:g}%"
+                rep.wide.append((pid, reason, wide.spread_pct, n))
+                rep.unverified.append((pid, f"{reason} triggered at bid {price:g} but the spread {wide.spread_pct:.4g}% exceeds the "
+                                            f"normal limit and {limit}: exit NOT sent, position remains OPEN (attempt {n}, retried every cycle)"))
+                if n == 1:
+                    self.engine.audit.record("EXIT_BLOCKED_WIDE_SPREAD", "BLOCKED", "", resource=f"position:{pid}",
+                                             metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})
+                return
+            self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
+                                     metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})
         sig = Signal(symbol=p["symbol"], side=Side.SELL, confidence=1.0, strategy="ExitMonitor", strategy_version="1",
                      signal_id=self._signal_id(pid, reason), reason=[f"{reason} trigger at {price:g}"], entry_price=price,
                      timestamp=self.clock())
@@ -126,7 +170,8 @@ class ExitMonitor:
             rep.unverified.append((pid, "exit refused by risk engine: " + "; ".join(decision.reasons)))
             return
         res = await self.engine.execute(decision, bot_id=p["bot_id"], environment=p["environment"], exchange=p["exchange"],
-                                        intent="EXIT", correlation_id=uuid.uuid4().hex, risk_scope=None)
+                                        intent="EXIT", correlation_id=uuid.uuid4().hex, risk_scope=None,
+                                        emergency_max_spread_pct=cap)
         rep.exits.append((pid, reason, res.outcome))
         if res.outcome in ("BLOCKED", "REJECTED", "FAILED"):
             rep.unverified.append((pid, f"{reason} exit could not be placed: {res.outcome} {res.detail[:120]}"))
@@ -155,7 +200,7 @@ class ExitMonitor:
 
     def _resolve_incidents(self) -> None:
         with self.engine.db.tx() as c:
-            rows = c.execute("SELECT id FROM incidents WHERE status='OPEN' AND kind=?", (INCIDENT_KIND,)).fetchall()
+            rows = c.execute("SELECT id FROM incidents WHERE status='OPEN' AND kind IN (?,?)", (INCIDENT_KIND, WIDE_SPREAD_KIND)).fetchall()
             for r in rows:
                 c.execute("UPDATE incidents SET status='RESOLVED', resolved_by=?, resolved_at=?, resolution=? WHERE id=? AND status='OPEN'",
                           ("exit_monitor", now_iso(), f"{self.clean_cycles_to_clear} consecutive cycles with every position verified", r["id"]))

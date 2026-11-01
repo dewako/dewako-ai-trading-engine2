@@ -10,7 +10,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from hardening_helpers import TEST_QUOTE_GUARD, decision, tmp_db  # noqa: E402
+from hardening_helpers import PAPER_ASK, TEST_QUOTE_GUARD, decision, tmp_db  # noqa: E402
 
 from dewako.core.types import Side  # noqa: E402
 from dewako.execution.engine import ExecutionEngine  # noqa: E402
@@ -36,7 +36,7 @@ def sell(eng, sid, qty, intent):
 
 
 def buy(eng, sid="e1", qty=1.0):
-    return run(eng.execute(decision(sid, Side.BUY, qty), bot_id="b1", environment="PAPER", exchange="paper"))
+    return run(eng.execute(decision(sid, Side.BUY, qty, entry_price=PAPER_ASK), bot_id="b1", environment="PAPER", exchange="paper"))
 
 
 def count(db, table):

@@ -7,6 +7,7 @@ FastAPI is recorded they count as "not run" in the Stage 1 evidence matrix.
 Market data is injected by this test file only, through the Python-level `set_application_factory` seam; no route or setting can feed prices.
 """
 import asyncio
+import datetime
 import os
 import sys
 import tempfile
@@ -121,6 +122,13 @@ class HttpLifecycle(unittest.TestCase):
             with _client(target) as c:
                 h = _users(c)
                 app = c.app.state.application
+                app.adapters["paper"].set_price("BTC/USDT", LAST, as_of=app.clock())
+                self.assertEqual(c.get("/health/live").json(), {"status": "alive"})
+                r0 = c.get("/health")                                   # readiness is CURRENT: no worker has reported yet, so not ready
+                self.assertEqual((r0.status_code, r0.json()["state"]), (503, "SYSTEM_DEGRADED"))
+                for w in app.supervisor.workers:
+                    if w.critical:
+                        _tick(app, w.name)
                 self.assertEqual(c.get("/health").json()["state"], "READY")
                 app.adapters["paper"].set_price("BTC/USDT", LAST, as_of=app.clock())
                 self.assertEqual(c.post("/bots", json=BOT, headers=h["trader"]).status_code, 403)      # not an admin action
@@ -170,6 +178,28 @@ class HttpReadinessAndRisk(unittest.TestCase):
             with _client(_target(), with_provider=False, paper=False) as c:
                 r = c.get("/health").json()
                 self.assertEqual((r["status"], r["state"]), ("not_ready", "NOT_CONFIGURED"))
+
+    def test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not(self):
+        _need()
+        with _Env():
+            with _client(_target()) as c:
+                h = _users(c)
+                app = c.app.state.application
+                app.adapters["paper"].set_price("BTC/USDT", LAST, as_of=app.clock())
+                self.assertEqual(c.post("/bots", json=BOT, headers=h["admin"]).status_code, 201)
+                self.assertEqual(c.post("/bots/p1/enable", headers=h["admin"]).status_code, 200)
+                for w in app.supervisor.workers:
+                    if w.critical:
+                        _tick(app, w.name)
+                _tick(app, "bot_runner")
+                ok = c.get("/health")
+                self.assertEqual((ok.status_code, ok.json()), (200, {"status": "ok", "state": "READY"}))
+                app._clock_box["now"] = NOW + datetime.timedelta(minutes=5)           # the price feed stops; the exit monitor can no longer verify
+                self.assertFalse(_tick(app, "exit_monitor"))
+                bad = c.get("/health")
+                self.assertEqual((bad.status_code, bad.json()), (503, {"status": "degraded", "state": "SYSTEM_DEGRADED"}))
+                self.assertEqual(c.get("/health/live").status_code, 200)               # liveness is independent of protection state
+                self.assertNotIn("traceback", bad.text.lower())
 
     def test_risk_limits_are_admin_changeable_validated_audited_and_report_unenforced_controls(self):
         _need()

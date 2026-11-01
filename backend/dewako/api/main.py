@@ -128,18 +128,33 @@ if _origins:
 @app.middleware("http")
 async def reject_when_not_accepting(request: Request, call_next):
     application = getattr(request.app.state, "application", None)
-    if application is not None and not application.accepting and request.url.path != "/health":
+    if application is not None and not application.accepting and request.url.path not in ("/health", "/health/live"):
         from fastapi.responses import JSONResponse
         return JSONResponse({"detail": "service is shutting down or not ready"}, status_code=503)
     return await call_next(request)
 
 
+@app.get("/health/live")
+def health_live():
+    """Liveness only: the process is up and answering. It says nothing about whether trading protection works; use /health for that."""
+    return {"status": "alive"}
+
+
 @app.get("/health")
 def health(request: Request):
-    """Public and minimal: liveness + coarse readiness. No internal detail. Detail is at /health/detailed (authenticated)."""
+    """Public and minimal READINESS, computed from the CURRENT state of the application, not the startup verdict. When workers are running
+    and a critical worker (exit monitor, risk equity, ...) is not healthy it answers 503 {"status": "degraded", "state": "SYSTEM_DEGRADED"}.
+    Unknown health is never reported as ready. No internal detail; detail is at /health/detailed (authenticated)."""
     application = getattr(request.app.state, "application", None)
-    status = application.status if application is not None else "UNKNOWN"
-    return {"status": "ok" if status in ("READY", "READY_LIVE_BLOCKED") else "not_ready", "state": status}
+    if application is None:
+        return {"status": "not_ready", "state": "UNKNOWN"}
+    ready, state = application.readiness()
+    if ready:
+        return {"status": "ok", "state": state}
+    if state == "SYSTEM_DEGRADED":
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"status": "degraded", "state": state}, status_code=503)
+    return {"status": "not_ready", "state": state}
 
 
 @app.get("/health/detailed")

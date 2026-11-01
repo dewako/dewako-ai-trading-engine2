@@ -162,7 +162,7 @@ def test_paper_restart_keeps_cash_positions_and_orders():
     RiskStateStore(db).init_scope("PAPER", 10_000.0)
     # Phase 5: limits are evaluated at the executable ask (100.05), not the reference (100). 10 units at the reference sat exactly ON the 10% cap
     # (1000.00) and is now correctly refused at 1000.50; 9.9 units keeps this restart test about persistence, with the limit unchanged.
-    r = run(eng.execute(decision(qty=9.9), bot_id="pb", environment="PAPER", exchange="paper"))
+    r = run(eng.execute(decision(qty=9.9, entry_price=PAPER_ASK), bot_id="pb", environment="PAPER", exchange="paper"))
     assert r.state == "FILLED"
     cash = pa.cash
     db2 = Database(path)

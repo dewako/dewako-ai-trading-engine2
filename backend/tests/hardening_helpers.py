@@ -53,9 +53,16 @@ def tmp_db(path=None):
     return Database(path), path
 
 
-def decision(signal_id="sig1", side=Side.BUY, qty=1.0, symbol="BTC/USDT", approved=True, strategy="Trend AI", version="2.2"):
+FAKE_LIVE_ASK = 100.04      # FakeLive(price=100) quotes ask = 100 x 1.0004
+PAPER_ASK = 100.05          # PaperAdapter(price=100) quotes ask = 100 x 1.0005
+
+
+def decision(signal_id="sig1", side=Side.BUY, qty=1.0, symbol="BTC/USDT", approved=True, strategy="Trend AI", version="2.2",
+             entry_price=100.0):
+    """`entry_price` is the Risk Engine's reference price. Since Stage 1.1 an ENTRY is scaled down when the executable ask is above it, so a
+    test that is not about that effect passes the adapter's ask (FAKE_LIVE_ASK / PAPER_ASK) to keep its quantities exact."""
     s = Signal(symbol=symbol, side=side, confidence=0.8, strategy=strategy, strategy_version=version, signal_id=signal_id,
-               entry_price=100.0, stop_price=95.0 if side is Side.BUY else 105.0, reason=["test"],
+               entry_price=entry_price, stop_price=95.0 if side is Side.BUY else 105.0, reason=["test"],
                timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc))
     return RiskDecision(approved=approved, signal=s, quantity=qty if approved else 0.0, reasons=["ok"])
 

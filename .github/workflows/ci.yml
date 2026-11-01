@@ -1,3 +1,4 @@
+# NOTE (Stage 1.1): added the seven Stage 1.1 required tests (executable-price sizing, wide-spread exits, time stop, current-state readiness).
 # NOTE (Stage 1): added the Stage 1 required tests (exit monitor, SELL-while-flat, application lifecycle, HTTP lifecycle, bootstrap race) and raised --min-tests to 450.
 #   THIS WORKFLOW HAS STILL NEVER BEEN EXECUTED ON A HOSTED RUNNER; no hosted result exists.
 # NOTE (Phase 4.5): added the e2e-real-app job, pinned test constraints and the Phase 4.4/4.5 required tests. STILL NEVER EXECUTED.
@@ -60,6 +61,13 @@ jobs:
           --require test_drawdown_from_an_unrealised_loss_blocks_a_new_entry_through_the_running_application
           --require test_concurrent_first_user_requests_create_exactly_one_admin
           --require test_unset_workers_healthy_blocks_the_gate
+          --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
+          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
+          --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
+          --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
+          --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
+          --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -125,6 +133,13 @@ jobs:
           --require test_drawdown_from_an_unrealised_loss_blocks_a_new_entry_through_the_running_application
           --require test_concurrent_first_user_requests_create_exactly_one_admin
           --require test_unset_workers_healthy_blocks_the_gate
+          --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
+          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
+          --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
+          --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
+          --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
+          --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}

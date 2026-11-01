@@ -15,7 +15,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from hardening_helpers import TEST_QUOTE_GUARD, decision, tmp_db  # noqa: E402
+from hardening_helpers import PAPER_ASK, TEST_QUOTE_GUARD, decision, tmp_db  # noqa: E402
 
 from dewako.core.types import OrderStatus, Side  # noqa: E402
 from dewako.execution.engine import ExecutionEngine  # noqa: E402
@@ -29,7 +29,7 @@ def run(coro):
 
 
 def bdec(sid, stop=95.0, tp=110.0, qty=1.0, symbol="BTC/USDT"):
-    d = decision(sid, Side.BUY, qty, symbol=symbol)
+    d = decision(sid, Side.BUY, qty, symbol=symbol, entry_price=PAPER_ASK)
     s = d.signal.model_copy(update={"stop_price": stop, "take_profit_price": tp})
     return d.model_copy(update={"signal": s})
 

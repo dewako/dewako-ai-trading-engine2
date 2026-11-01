@@ -13,7 +13,7 @@ from dewako.reconciliation.service import ReconciliationService
 from dewako.risk.engine import RiskLimits
 from dewako.safety.controller import SafetyController
 from bounded import hard_kill_self
-from hardening_helpers import FakeLive, TEST_QUOTE_GUARD, decision
+from hardening_helpers import FAKE_LIVE_ASK, FakeLive, TEST_QUOTE_GUARD, decision
 
 CRASH = os.environ.get("CRASH_AT", "")
 
@@ -119,7 +119,7 @@ def main():
     db, sim, safety, eng, rec = build(target, sim_path, eid)
     if cmd == "exec":
         sid, qty, bot = args
-        r = asyncio.run(eng.execute(decision(sid, qty=float(qty)), bot_id=bot, environment="LIVE", exchange="fake"))
+        r = asyncio.run(eng.execute(decision(sid, qty=float(qty), entry_price=FAKE_LIVE_ASK), bot_id=bot, environment="LIVE", exchange="fake"))
         out = {"outcome": r.outcome, "order_id": r.order_id, "state": r.state}
     elif cmd == "recover":
         out = {"results": [(r.outcome, r.state) for r in asyncio.run(eng.recover(created_grace_seconds=0))]}

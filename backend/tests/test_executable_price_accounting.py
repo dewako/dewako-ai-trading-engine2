@@ -73,15 +73,20 @@ def test_conservative_price_rejects_missing_invalid_or_non_finite_inputs():
 
 # ------------------------------------------------------------------ the regressions the review asked for
 def test_buy_passes_at_the_reference_price_but_is_rejected_at_the_executable_ask_for_the_position_limit():
-    db, eng, ad = _live(price=100.4)                       # ask 100.44004 (within the quote guard); strategy reference stays 100.0
-    qty = 99.9                                             # 10% of 100000 equity = 10000
+    # Stage 1.1: the entry is first scaled so its loss at the stop is not above the approved risk (reference 100, stop 95, ask 100.44004),
+    # THEN the limits are checked on the scaled quantity at the executable basis. The limit below sits between the two notionals.
+    ask = 100.4 * 1.0004                                   # 100.44004 (within the quote guard); strategy reference stays 100.0
+    qty = 99.9
+    scaled = qty * (100.0 - 95.0) / (ask - 95.0)           # about 91.82 units
+    limit_pct = 9.2                                        # 9200 of 100000 equity
+    assert scaled * 100.0 < 9200 < scaled * ask            # reference arithmetic would pass; executable would not
+    db, eng, ad = _live(price=100.4, limits=RiskLimits(max_position_pct=limit_pct, max_exposure_pct=100))
     dec = decision("cap1", qty=qty)
-    assert qty * dec.signal.entry_price < 10000 < qty * ad.price * 1.0004           # reference arithmetic would pass; executable would not
-    assert rsv.check_limits(eng.limits, equity=100000.0, quote_balance=100000.0, notional=qty * dec.signal.entry_price,
+    assert rsv.check_limits(eng.limits, equity=100000.0, quote_balance=100000.0, notional=scaled * 100.0,
                             st={"position_cost": 0.0, "reserved_notional": 0.0, "open_positions": 0, "reserved_new_positions": 0},
                             new_position=True, exposure_increasing=True) == []   # proves the OLD (reference) basis would have approved it
     r = run(eng.execute(dec, bot_id="b", environment="LIVE", exchange="fake"))
-    assert r.outcome == "BLOCKED" and "exceeds 10.0% of equity" in r.detail, r
+    assert r.outcome == "BLOCKED" and f"exceeds {limit_pct}% of equity" in r.detail, r
     assert ad.create_calls == 0 and _counts(db) == {"orders": 0, "execution_intents": 0, "risk_reservations": 0}
     with db.read() as c:
         assert c.execute("SELECT status FROM signals WHERE signal_id='cap1'").fetchone()["status"] == "REJECTED"
@@ -89,11 +94,13 @@ def test_buy_passes_at_the_reference_price_but_is_rejected_at_the_executable_ask
 
 
 def test_buy_passes_at_the_reference_price_but_is_rejected_at_the_executable_ask_for_available_balance():
-    qty, fee = 99.0, 0.001
-    ref_cost = qty * 100.0 * (1 + fee)                     # 9909.9
-    exec_cost = qty * 100.44004 * (1 + fee)                # about 9953.9
-    balance = 9910.0
+    fee = 0.001
+    qty = 99.0 * (100.0 - 95.0) / (100.44004 - 95.0)       # Stage 1.1: the approved 99 units are first scaled to the executable stop distance
+    ref_cost = qty * 100.0 * (1 + fee)
+    exec_cost = qty * 100.44004 * (1 + fee)
+    balance = round((ref_cost + exec_cost) / 2, 2)          # reference cost fits, executable cost does not
     assert ref_cost <= balance < exec_cost
+    qty = 99.0
     db, eng, ad = _live(price=100.4, balance=balance, limits=RiskLimits(max_position_pct=100, max_exposure_pct=100))
     r = run(eng.execute(decision("bal1", qty=qty), bot_id="b", environment="LIVE", exchange="fake"))
     assert r.outcome == "BLOCKED" and "available USDT" in r.detail, r
@@ -109,8 +116,10 @@ def test_buy_that_fits_at_the_executable_ask_is_reserved_at_that_price_not_the_r
         st = rsv.committed_state(c, "LIVE", "fake", rsv.scope_of("LIVE", "fake"))
         order = c.execute("SELECT price, quantity FROM orders").fetchone()
     ask = 100.4 * 1.0004
-    assert row["status"] == "ACTIVE" and abs(row["notional"] - 10.0 * ask) < 1e-6 and row["notional"] > 10.0 * 100.0
-    assert abs(st["reserved_notional"] - 10.0 * ask) < 1e-6                                  # exposure accounting sees the same figure
+    q = order["quantity"]                                                                    # Stage 1.1: scaled to the executable stop distance
+    assert q < 10.0 and q * (ask - 95.0) <= 10.0 * (100.0 - 95.0) + 1e-6
+    assert row["status"] == "ACTIVE" and abs(row["notional"] - q * ask) < 1e-6 and row["notional"] > q * 100.0
+    assert abs(st["reserved_notional"] - q * ask) < 1e-6                                     # exposure accounting sees the same figure
     assert order["price"] == 100.0                                                           # the order keeps the APPROVED reference (the deviation guard anchors on it)
 
 
@@ -200,10 +209,12 @@ def test_paper_accounting_matches_the_reservation_the_position_and_the_modelled_
         res = c.execute("SELECT notional, status FROM risk_reservations").fetchone()
         pos = c.execute("SELECT quantity, COALESCE(average_price, entry_price) AS px FROM positions").fetchone()
         order = c.execute("SELECT price FROM orders").fetchone()
-    assert res["status"] == "CONSUMED" and abs(res["notional"] - 9.0 * ask) < 1e-6          # reserved at the modelled fill price
-    assert abs(pos["px"] - ask) < 1e-9 and abs(pos["quantity"] - 9.0) < 1e-12                # the position is booked at the same price
+    q = pos["quantity"]                                                                      # Stage 1.1: 9 units scaled to the executable stop distance
+    assert 8.9 < q < 9.0 and abs(q - 9.0 * 5.0 / (ask - 95.0)) < 1e-4
+    assert res["status"] == "CONSUMED" and abs(res["notional"] - q * ask) < 1e-6            # reserved at the modelled fill price
+    assert abs(pos["px"] - ask) < 1e-9                                                        # the position is booked at the same price
     spent = 10_000.0 - pa.cash
-    assert abs(spent - (9.0 * ask) * (1 + pa.fee_rate)) < 1e-6                               # cash moved by exactly notional + fee
+    assert abs(spent - (q * ask) * (1 + pa.fee_rate)) < 1e-6                                 # cash moved by exactly notional + fee
     assert spent >= res["notional"]                                                          # the reservation never understates the cash used
     assert order["price"] == 100.0
 
@@ -282,7 +293,7 @@ class BidScript(FakeLive):
 def _with_position():
     ad = BidScript("ok")
     db, eng, _ = _live(adapter=ad)
-    assert run(eng.execute(decision("pos-buy", qty=1.0), bot_id="b", environment="LIVE", exchange="fake")).outcome == "EXECUTED"
+    assert run(eng.execute(decision("pos-buy", qty=1.0, entry_price=FAKE_LIVE_ASK), bot_id="b", environment="LIVE", exchange="fake")).outcome == "EXECUTED"
     return db, eng, ad
 
 

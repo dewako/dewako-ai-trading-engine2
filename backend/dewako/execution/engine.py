@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 import math
+import dataclasses
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -23,7 +24,8 @@ from dewako.exchanges.base import (ExchangeAdapter, ExchangeError, InsufficientB
 from dewako.exchanges.contract import ORDER_ENVIRONMENTS_ENABLED, redact, refusals_for_submission
 from dewako.execution.order_store import OrderStore, StaleState
 from dewako.execution.positions import PositionError, PositionStore
-from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price, validate_executable_quote,
+from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price, executable_risk_quantity,
+                                         validate_executable_quote,
                                          validate_order)
 from dewako.execution.state_machine import OrderState as S
 from dewako.execution import reservations as rsv
@@ -115,7 +117,10 @@ class ExecutionEngine:
     # ------------------------------------------------------------------ entry point
     async def execute(self, decision: RiskDecision, *, bot_id: str, environment: str, exchange: str,
                       intent: str = "ENTRY", correlation_id: str = "", market_type: str = "SPOT",
-                      risk_scope: Optional[str] = None) -> ExecResult:
+                      risk_scope: Optional[str] = None, emergency_max_spread_pct: Optional[float] = None) -> ExecResult:
+        """`emergency_max_spread_pct` is honoured ONLY for a SELL EXIT: it raises that order's spread limit (never lowers it) so a triggered
+        stop/target can still leave through a wide spread. Everything else about the quote (fresh, positive, uncrossed) is still enforced.
+        The caller owns the policy; without it a wide spread blocks the exit exactly as before."""
         cid = correlation_id or uuid.uuid4().hex
         sig = decision.signal
         reasons = self._refusals(decision, environment, exchange, market_type)
@@ -136,17 +141,34 @@ class ExecutionEngine:
             self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"signal:{sig.signal_id}", metadata={"reasons": reasons})
             return ExecResult("BLOCKED", detail="; ".join(reasons))
 
+        guard = self.quote_guard
+        if emergency_max_spread_pct is not None and sig.side is Side.SELL and intent == "EXIT":
+            try:
+                guard = dataclasses.replace(self.quote_guard, max_spread_pct=max(self.quote_guard.max_spread_pct, float(emergency_max_spread_pct)))
+            except (TypeError, ValueError):
+                reasons = ["emergency exit spread limit is invalid; refusing order"]
+                self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"signal:{sig.signal_id}", metadata={"reasons": reasons})
+                return ExecResult("BLOCKED", detail="; ".join(reasons))
+        sized_from = None
         # Exchange rules. Anything we cannot verify blocks the order (nothing is created, nothing is sent).
         try:
             markets = await adapter.get_markets()
             balances = await adapter.get_balance()
             quote = await adapter.get_ticker(sig.symbol)
             check = validate_executable_quote(quote, side=sig.side.value, reference_price=sig.entry_price, now=self.clock(),
-                                              config=self.quote_guard)
+                                              config=guard)
             # One conservative executable-price basis for every pre-trade figure below (min notional, balance, limits, reservation).
             risk_price = conservative_risk_price(sig.side.value, sig.entry_price, check)
+            order_quantity = decision.quantity
+            if sig.side is Side.BUY and intent == "ENTRY":
+                # The Risk Engine sized this from the reference price. The order can fill at the executable ask, so the loss at the stop is
+                # measured from that price; the quantity is scaled down (never up) so it cannot exceed the approved risk.
+                order_quantity = executable_risk_quantity(decision.quantity, reference_price=sig.entry_price, risk_price=risk_price,
+                                                          stop_price=sig.stop_price)
+                if order_quantity < decision.quantity:
+                    sized_from = decision.quantity
             v = validate_order(markets, balances, symbol=sig.symbol, side=sig.side.value,
-                               quantity=decision.quantity, price=risk_price)
+                               quantity=order_quantity, price=risk_price)
             problems = v.problems
         except QuoteGuardError as e:
             problems = [str(e)]
@@ -173,7 +195,8 @@ class ExecutionEngine:
             if seen is None:      # first time this decision reaches the engine (a replay is not a new decision)
                 self.audit.record("RISK_APPROVED", "OK", cid, resource=f"signal:{sig.signal_id}", conn=c,
                                   metadata={"quantity": decision.quantity, "symbol": sig.symbol, "strategy": sig.strategy, "version": sig.strategy_version,
-                                            "environment": environment})
+                                            "environment": environment,
+                                            **({"reduced_for_executable_entry_risk_from": sized_from} if sized_from else {})})
             if risk_increasing and seen is None:
                 # 1. take the scope lock, 2. read durable reservations + positions, 3. read the exchange balance (this order is
                 # deliberate: a fill landing in between can only make the check stricter, never looser), 4. check, 5. reserve.
@@ -215,7 +238,9 @@ class ExecutionEngine:
             return ExecResult("BLOCKED", detail="; ".join(blocked))
         if not created.created:
             return ExecResult("DUPLICATE", created.order_id, self.orders.get(created.order_id)["state"], "this signal already has an order")
-        return await self._send(created.order_id, adapter, risk_scope or environment)
+        if guard is self.quote_guard:
+            return await self._send(created.order_id, adapter, risk_scope or environment)
+        return await self._send(created.order_id, adapter, risk_scope or environment, quote_config=guard)      # only the bounded emergency exit
 
     def _entry_protection_refusals(self, sig) -> list[str]:
         why = []
@@ -232,7 +257,8 @@ class ExecutionEngine:
             if not ok:
                 why.append(f"exit protection is not verified: {reason}")
         with self.db.read() as c:
-            open_inc = c.execute("SELECT COUNT(*) FROM incidents WHERE status='OPEN' AND kind='EXIT_PROTECTION_UNVERIFIED'").fetchone()[0]
+            open_inc = c.execute("SELECT COUNT(*) FROM incidents WHERE status='OPEN' AND kind IN "
+                                 "('EXIT_PROTECTION_UNVERIFIED','EXIT_BLOCKED_WIDE_SPREAD')").fetchone()[0]
         if open_inc:
             why.append("exit protection is unverified for an open position (incident open); new entries are blocked")
         return why
@@ -311,7 +337,7 @@ class ExecutionEngine:
                   (s.stop_price, s.take_profit_price, s.signal_id))
 
     # ------------------------------------------------------------------ sending
-    async def _send(self, order_id: int, adapter: ExchangeAdapter, risk_scope: str) -> ExecResult:
+    async def _send(self, order_id: int, adapter: ExchangeAdapter, risk_scope: str, quote_config: Optional[QuoteGuardConfig] = None) -> ExecResult:
         o = self.orders.get(order_id)
         cid = o["correlation_id"]
         cur = S(o["state"])
@@ -325,7 +351,7 @@ class ExecutionEngine:
         event = "QUOTE_REVALIDATION_FAILED"
         try:
             fresh = validate_executable_quote(await adapter.get_ticker(o["symbol"]), side=o["side"], reference_price=o["price"],
-                                              now=self.clock(), config=self.quote_guard)
+                                              now=self.clock(), config=quote_config or self.quote_guard)
             reason = self._reserved_price_exceeded(o, fresh.executable_price)
             if reason:
                 raise _SendBlocked(reason)
