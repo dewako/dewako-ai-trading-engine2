@@ -101,7 +101,7 @@ def test_real_adapters_keep_activation_closed_because_the_engine_live_lock_would
         eid = make_live_ready(db, safety, exchange=ad.name)
         safety.live_adapters_ok = None                                       # let the real engine register itself
         safety.disable_live(ADMIN)
-        eng = ExecutionEngine(db, safety, {ad.name: ad}, exchange_ids={ad.name: eid})
+        eng = ExecutionEngine(db, safety, {ad.name: ad}, exchange_ids={ad.name: eid}, quote_guard=TEST_QUOTE_GUARD)
         assert ad.environment == "LIVE"
         _refused(safety, "live lock")
         # and the engine independently refuses an order even if the switch were forced to ENABLED in the table

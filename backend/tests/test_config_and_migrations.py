@@ -54,8 +54,8 @@ def test_security_headers_and_cors_policy():
 # ------------------------------------------------------------------ upgrade from the previous schema version
 def test_upgrade_from_previous_schema_keeps_data_and_adds_new_tables():
     latest = MIGRATIONS[-1][0]
-    assert latest >= 5
-    old = MIGRATIONS[:-1]
+    assert latest >= 6
+    old = [m for m in MIGRATIONS if m[0] < 5]                                    # the release before the audit hash chain and worker leases (schema 4)
     real = dbmod.MIGRATIONS
     dbmod.MIGRATIONS = old                                                       # a database as the previous release left it
     try:
@@ -76,7 +76,7 @@ def test_upgrade_from_previous_schema_keeps_data_and_adds_new_tables():
     finally:
         dbmod.MIGRATIONS = real
     db2 = Database(target)                                                       # the new release opens the old database
-    assert {"worker_leases", "risk_reservations", "incidents"} <= set(db2.table_names())
+    assert {"worker_leases", "risk_reservations", "incidents", "strategy_packages", "ai_settings"} <= set(db2.table_names())
     with db2.read() as c:
         after = (c.execute("SELECT COUNT(*) FROM orders").fetchone()[0], c.execute("SELECT COUNT(*) FROM trades").fetchone()[0],
                  c.execute("SELECT COUNT(*) FROM positions").fetchone()[0], c.execute("SELECT MAX(version) FROM schema_version").fetchone()[0])
@@ -93,6 +93,28 @@ def test_upgrade_from_previous_schema_keeps_data_and_adds_new_tables():
     # the upgraded database still works end to end: a fresh signal executes and reserves capacity
     eng2, _ = engine_for(db2, FakeLive(), exchange_id=eid)
     assert run(eng2.execute(decision("post-upgrade"), bot_id="b2", environment="LIVE", exchange="fake")).outcome == "EXECUTED"
+
+
+def test_upgrade_from_schema_5_adds_later_tables_and_keeps_data():
+    real = dbmod.MIGRATIONS
+    dbmod.MIGRATIONS = [m for m in MIGRATIONS if m[0] <= 5]
+    try:
+        db, target = tmp_db()
+        assert "strategy_packages" not in db.table_names()
+        eid_db = db
+        safety = SafetyController(db)
+        make_live_ready(db, safety)
+        with db.read() as c:
+            before = c.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+        db.close()
+    finally:
+        dbmod.MIGRATIONS = real
+    db2 = Database(target)
+    assert {"strategy_packages", "ai_settings", "ai_credentials"} <= set(db2.table_names())
+    with db2.read() as c:
+        assert c.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] >= before
+        assert c.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == MIGRATIONS[-1][0]
+    assert db2.migrate() == [] and SafetyController(db2).audit.verify_chain()["ok"]
 
 
 def test_clean_database_applies_every_migration_in_order_once():

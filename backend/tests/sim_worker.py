@@ -13,7 +13,7 @@ from dewako.reconciliation.service import ReconciliationService
 from dewako.risk.engine import RiskLimits
 from dewako.safety.controller import SafetyController
 from bounded import hard_kill_self
-from hardening_helpers import FakeLive, decision
+from hardening_helpers import FakeLive, TEST_QUOTE_GUARD, decision
 
 CRASH = os.environ.get("CRASH_AT", "")
 
@@ -80,8 +80,9 @@ def build(target, sim_path, eid):
     db = Database(target)
     sim = SimExchange(sim_path)
     safety = SafetyController(db)
+    safety.workers_healthy = lambda: (True, "")      # fixture stand-in: the live gate fails closed without a supervisor
     lim = RiskLimits(max_position_pct=100, max_exposure_pct=100, max_open_positions=50)
-    eng = ExecutionEngine(db, safety, {"fake": sim}, exchange_ids={"fake": eid}, limits=lim)
+    eng = ExecutionEngine(db, safety, {"fake": sim}, exchange_ids={"fake": eid}, limits=lim, quote_guard=TEST_QUOTE_GUARD)
     rec = ReconciliationService(db, safety, eng)
     if CRASH == "before_intent_commit":
         eng.orders.create = lambda **kw: die()                    # transaction open, nothing committed

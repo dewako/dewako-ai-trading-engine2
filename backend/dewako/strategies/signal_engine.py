@@ -40,6 +40,10 @@ def validate_signal(sig: Signal, strategy: Strategy, state: MarketState) -> Opti
             return "stop must be below entry for a BUY"
         if sig.side is Side.SELL and sig.stop_price <= sig.entry_price:
             return "stop must be above entry for a SELL"
+    if sig.entry_price is not None and state.candles:
+        reference = state.candles[-1].c
+        if not math.isclose(sig.entry_price, reference, rel_tol=1e-12, abs_tol=0.0):
+            return "entry price must match the newest validated candle close"
     if sig.entry_price is not None and sig.take_profit_price is not None:
         if sig.side is Side.BUY and sig.take_profit_price <= sig.entry_price:
             return "take profit must be above entry for a BUY"

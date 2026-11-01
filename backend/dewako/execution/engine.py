@@ -11,16 +11,20 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
-from dewako.core.types import Order, OrderRequest, OrderStatus, OrderType, RiskDecision, Side
+from dewako.core.types import Order, OrderRequest, OrderStatus, OrderType, RiskDecision, Side, utcnow
 from dewako.exchanges.base import (ExchangeAdapter, ExchangeError, InsufficientBalance, InvalidOrder, NotConnected,
                                    NotImplementedForExchange, OrderNotFound, OrderOutcomeUnknown)
+from dewako.exchanges.contract import ORDER_ENVIRONMENTS_ENABLED, redact, refusals_for_submission
 from dewako.execution.order_store import OrderStore, StaleState
 from dewako.execution.positions import PositionError, PositionStore
-from dewako.execution.validation import validate_order
+from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price, validate_executable_quote,
+                                         validate_order)
 from dewako.execution.state_machine import OrderState as S
 from dewako.execution import reservations as rsv
 from dewako.risk.engine import RiskLimits
@@ -43,6 +47,14 @@ class ExecutionRefused(Exception):
         self.reasons = reasons
 
 
+class _SendBlocked(Exception):
+    """A last-moment refusal with a safe, user-readable reason."""
+
+
+def _safe_error(error: object) -> str:
+    return redact(str(error))[:500]
+
+
 @dataclass
 class ExecResult:
     outcome: str            # EXECUTED | DUPLICATE | REJECTED | UNRESOLVED | FAILED | BLOCKED
@@ -59,10 +71,20 @@ def _valid(o: object, order: dict) -> Optional[str]:
         return "response is for a different client order id"
     if o.symbol != order["symbol"] or o.side.value != order["side"]:
         return "response symbol or side does not match"
-    if not (0 <= o.filled <= order["quantity"] * 1.000001):
+    if (isinstance(o.quantity, bool) or not isinstance(o.quantity, (int, float))
+            or not math.isfinite(o.quantity) or o.quantity <= 0
+            or not math.isclose(o.quantity, order["quantity"], rel_tol=1e-9, abs_tol=1e-12)):
+        return "response quantity does not match the submitted quantity"
+    if (isinstance(o.filled, bool) or not isinstance(o.filled, (int, float))
+            or not math.isfinite(o.filled) or not 0 <= o.filled <= order["quantity"]):
         return "filled quantity is impossible"
-    if o.status is OrderStatus.FILLED and o.price is None:
-        return "filled order has no price"
+    if o.filled < order["filled"]:
+        return "filled quantity regressed from the previously confirmed amount"
+    if (o.filled > 0 and (o.price is None or isinstance(o.price, bool) or not isinstance(o.price, (int, float))
+                          or not math.isfinite(o.price) or o.price <= 0)):
+        return "filled order has no valid positive finite price"
+    if o.status is OrderStatus.FILLED and not math.isclose(o.filled, order["quantity"], rel_tol=1e-9, abs_tol=1e-12):
+        return "filled order quantity does not match the submitted quantity"
     return None
 
 
@@ -70,7 +92,8 @@ class ExecutionEngine:
     def __init__(self, db: Database, safety: SafetyController, adapters: dict[str, ExchangeAdapter], *,
                  audit: Optional[AuditLog] = None, risk_state: Optional[RiskStateStore] = None,
                  exchange_ids: Optional[dict[str, int]] = None, limits: Optional[RiskLimits] = None,
-                 submit_authorized=None):
+                 submit_authorized=None, quote_guard: Optional[QuoteGuardConfig] = None,
+                 clock=utcnow):
         """`adapters` maps exchange name -> adapter. Live exchange ids come from `exchange_ids` (exchanges table).
         `limits` are the hard caps enforced under the reservation lock (default: the platform's default RiskLimits, never 'unlimited').
         `submit_authorized` is a callable returning (ok, reason); the application sets it so a worker that has been stopped or has
@@ -83,6 +106,10 @@ class ExecutionEngine:
         self.risk_state = risk_state or RiskStateStore(db)
         self.adapters = adapters
         self.exchange_ids = exchange_ids or {}
+        self.quote_guard = quote_guard
+        self.clock = clock
+        self._unapplied: list = []
+        self.entry_guard = None          # optional callable -> (ok, reason): the application wires the exit monitor's health here
         safety.live_adapters_ok = self._live_capable             # activation asks the engine whether its own live lock would let any order through
 
     # ------------------------------------------------------------------ entry point
@@ -92,6 +119,10 @@ class ExecutionEngine:
         cid = correlation_id or uuid.uuid4().hex
         sig = decision.signal
         reasons = self._refusals(decision, environment, exchange, market_type)
+        if sig.side is Side.SELL and intent != "EXIT":
+            reasons.append("spot SELL is only allowed as an EXIT of an existing long position (short selling is not implemented)")
+        if sig.side is Side.BUY and intent == "ENTRY":
+            reasons += self._entry_protection_refusals(sig)
         if environment == "LIVE" and not reasons:
             gate = self.safety.live_gate(exchange_id=self.exchange_ids.get(exchange, -1), strategy_id=sig.strategy,
                                          strategy_version=sig.strategy_version, symbol=sig.symbol)
@@ -100,12 +131,25 @@ class ExecutionEngine:
             self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"signal:{sig.signal_id}", metadata={"reasons": reasons, "bot": bot_id})
             return ExecResult("BLOCKED", detail="; ".join(reasons))
         adapter = self.adapters[exchange]
+        if self.quote_guard is None:
+            reasons = ["quote guard configuration is missing; refusing order"]
+            self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"signal:{sig.signal_id}", metadata={"reasons": reasons})
+            return ExecResult("BLOCKED", detail="; ".join(reasons))
 
         # Exchange rules. Anything we cannot verify blocks the order (nothing is created, nothing is sent).
         try:
-            v = validate_order(await adapter.get_markets(), await adapter.get_balance(), symbol=sig.symbol, side=sig.side.value,
-                               quantity=decision.quantity, price=sig.entry_price)
+            markets = await adapter.get_markets()
+            balances = await adapter.get_balance()
+            quote = await adapter.get_ticker(sig.symbol)
+            check = validate_executable_quote(quote, side=sig.side.value, reference_price=sig.entry_price, now=self.clock(),
+                                              config=self.quote_guard)
+            # One conservative executable-price basis for every pre-trade figure below (min notional, balance, limits, reservation).
+            risk_price = conservative_risk_price(sig.side.value, sig.entry_price, check)
+            v = validate_order(markets, balances, symbol=sig.symbol, side=sig.side.value,
+                               quantity=decision.quantity, price=risk_price)
             problems = v.problems
+        except QuoteGuardError as e:
+            problems = [str(e)]
         except NotImplementedForExchange as e:
             problems = [str(e)]
         except Exception as e:
@@ -126,6 +170,10 @@ class ExecutionEngine:
             self._upsert_signal(c, decision, bot_id, "EXECUTING")
             did = self.record_decision(c, decision, bot_id)
             seen = c.execute("SELECT id FROM execution_intents WHERE bot_id=? AND signal_id=? AND intent=?", (bot_id, sig.signal_id, intent)).fetchone()
+            if seen is None:      # first time this decision reaches the engine (a replay is not a new decision)
+                self.audit.record("RISK_APPROVED", "OK", cid, resource=f"signal:{sig.signal_id}", conn=c,
+                                  metadata={"quantity": decision.quantity, "symbol": sig.symbol, "strategy": sig.strategy, "version": sig.strategy_version,
+                                            "environment": environment})
             if risk_increasing and seen is None:
                 # 1. take the scope lock, 2. read durable reservations + positions, 3. read the exchange balance (this order is
                 # deliberate: a fill landing in between can only make the check stricter, never looser), 4. check, 5. reserve.
@@ -140,8 +188,15 @@ class ExecutionEngine:
                     held = c.execute("SELECT 1 FROM positions WHERE bot_id=? AND exchange=? AND environment=? AND symbol=? AND status<>'CLOSED'",
                                      (bot_id, exchange, environment, sig.symbol)).fetchone()
                     blocked = rsv.check_limits(self.limits, equity=quote_balance + st["position_cost"], quote_balance=quote_balance,
-                                               notional=decision.quantity * sig.entry_price, st=st, new_position=held is None,
+                                               notional=decision.quantity * risk_price, st=st, new_position=held is None,
                                                exposure_increasing=True)
+            if sig.side is Side.SELL and seen is None and not blocked:
+                # A SELL may only reduce an existing long position, counting exits that are already pending. Checked under the scope lock
+                # so two concurrent exits cannot together sell more than is held.
+                rsv.lock_scope(self.db, c, scope)
+                problem = self._exit_size_problem(c, bot_id, exchange, environment, sig.symbol, decision.quantity, sig.signal_id, intent)
+                if problem:
+                    blocked = [problem]
             if blocked:
                 c.execute("UPDATE signals SET status='REJECTED', rejection_reason=? WHERE signal_id=? AND status='EXECUTING'", ("; ".join(blocked)[:500], sig.signal_id))
                 self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"signal:{sig.signal_id}", metadata={"reasons": blocked, "scope": scope}, conn=c)
@@ -153,7 +208,7 @@ class ExecutionEngine:
                 if created.created:
                     if risk_increasing:
                         rsv.reserve(c, order_id=created.order_id, scope=scope, environment=environment, exchange=exchange, bot_id=bot_id,
-                                    symbol=sig.symbol, side=sig.side.value, quantity=decision.quantity, price=sig.entry_price)
+                                    symbol=sig.symbol, side=sig.side.value, quantity=decision.quantity, price=risk_price)
                     self.audit.record("ORDER_CREATED", "OK", cid, resource=f"order:{created.order_id}",
                                       metadata={"signal": sig.signal_id, "bot": bot_id, "env": environment}, conn=c)
         if blocked:
@@ -161,6 +216,42 @@ class ExecutionEngine:
         if not created.created:
             return ExecResult("DUPLICATE", created.order_id, self.orders.get(created.order_id)["state"], "this signal already has an order")
         return await self._send(created.order_id, adapter, risk_scope or environment)
+
+    def _entry_protection_refusals(self, sig) -> list[str]:
+        why = []
+        px = sig.entry_price
+        if sig.stop_price is None or not (px and 0 < sig.stop_price < px):
+            why.append("entry needs a stop below the entry price; an unprotected position cannot be created")
+        elif sig.take_profit_price is not None and sig.take_profit_price <= px:
+            why.append("take-profit must be above the entry price for a long")
+        if self.entry_guard is not None:
+            try:
+                ok, reason = self.entry_guard()
+            except Exception as e:
+                ok, reason = False, f"protection status could not be verified ({type(e).__name__})"
+            if not ok:
+                why.append(f"exit protection is not verified: {reason}")
+        with self.db.read() as c:
+            open_inc = c.execute("SELECT COUNT(*) FROM incidents WHERE status='OPEN' AND kind='EXIT_PROTECTION_UNVERIFIED'").fetchone()[0]
+        if open_inc:
+            why.append("exit protection is unverified for an open position (incident open); new entries are blocked")
+        return why
+
+    _OPEN_ORDER_STATES = ("CREATED", "SUBMITTING", "SUBMITTED", "OPEN", "PARTIALLY_FILLED", "CANCEL_REQUESTED", "UNKNOWN", "RECONCILING")
+
+    def _exit_size_problem(self, c, bot_id: str, exchange: str, environment: str, symbol: str, qty: float, signal_id: str, intent: str) -> Optional[str]:
+        pos = c.execute("SELECT quantity FROM positions WHERE bot_id=? AND exchange=? AND environment=? AND symbol=? AND status<>'CLOSED'",
+                        (bot_id, exchange, environment, symbol)).fetchone()
+        if pos is None or pos["quantity"] <= 0:
+            return f"no open position in {symbol} to exit; SELL refused"
+        marks = ",".join("?" * len(self._OPEN_ORDER_STATES))
+        pending = c.execute(f"SELECT COALESCE(SUM(o.quantity - o.filled), 0) FROM orders o JOIN execution_intents i ON i.id=o.intent_id "
+                            f"WHERE o.bot_id=? AND o.exchange=? AND o.environment=? AND o.symbol=? AND o.side='SELL' AND o.state IN ({marks}) "
+                            f"AND NOT (i.signal_id=? AND i.intent=?)",
+                            (bot_id, exchange, environment, symbol, *self._OPEN_ORDER_STATES, signal_id, intent)).fetchone()[0]
+        if qty > pos["quantity"] - pending + 1e-12:
+            return f"exit quantity {qty:g} exceeds the open position {pos['quantity']:g} less {pending:g} already being sold; SELL refused"
+        return None
 
     def _live_capable(self) -> tuple[bool, str]:
         """Same rule as the live lock in `_refusals`: an adapter must be live-verified (or a test double) to receive a LIVE order."""
@@ -178,7 +269,9 @@ class ExecutionEngine:
             why.append("only approved risk decisions can be executed")
         if not d.signal.signal_id:
             why.append("signal has no signal_id (it did not come from the SignalEngine)")
-        if environment not in ("PAPER", "LIVE"):
+        if environment == "TESTNET":
+            why.append("TESTNET execution is not enabled in this build (it needs a schema migration and a verified testnet adapter)")
+        elif environment not in ORDER_ENVIRONMENTS_ENABLED:
             why.append("environment must be PAPER or LIVE")
         if market_type != "SPOT":
             why.append(f"NOT_IMPLEMENTED: {market_type} execution")
@@ -187,7 +280,9 @@ class ExecutionEngine:
             why.append(f"no adapter configured for {exchange}")
         elif ad.environment != environment:
             why.append(f"adapter environment {ad.environment} does not match requested {environment}")
-        elif environment == "LIVE":
+        else:
+            why += refusals_for_submission(ad, environment)       # declared capabilities (Phase 4.1); the live lock below is separate
+        if ad is not None and ad.environment == environment and environment == "LIVE":
             # LIVE LOCK: independent of the live switch, environment variables, API calls or confirmation phrases. An adapter that has not been
             # verified for live execution (no shipped adapter has) cannot receive an order. Test doubles cannot reach a real exchange.
             caps = ad.capabilities()
@@ -207,10 +302,13 @@ class ExecutionEngine:
     @staticmethod
     def _upsert_signal(c, d: RiskDecision, bot_id: str, status: str) -> None:
         s = d.signal
-        c.execute("INSERT INTO signals(signal_id,bot_id,strategy_id,strategy_version,symbol,side,price,confidence,timestamp,status,created_at) "
-                  "VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(signal_id) DO NOTHING",
+        c.execute("INSERT INTO signals(signal_id,bot_id,strategy_id,strategy_version,symbol,side,price,confidence,timestamp,status,created_at,"
+                  "stop_price,take_profit_price) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(signal_id) DO NOTHING",
                   (s.signal_id, bot_id, s.strategy, s.strategy_version, s.symbol, s.side.value, s.entry_price, s.confidence,
-                   s.timestamp.isoformat(), status, now_iso()))
+                   s.timestamp.isoformat(), status, now_iso(), s.stop_price, s.take_profit_price))
+        # a signal row written earlier by the bot runner has no levels yet: fill them in without overwriting anything set
+        c.execute("UPDATE signals SET stop_price=COALESCE(stop_price,?), take_profit_price=COALESCE(take_profit_price,?) WHERE signal_id=?",
+                  (s.stop_price, s.take_profit_price, s.signal_id))
 
     # ------------------------------------------------------------------ sending
     async def _send(self, order_id: int, adapter: ExchangeAdapter, risk_scope: str) -> ExecResult:
@@ -224,6 +322,26 @@ class ExecutionEngine:
                 self._signal_status(o, "FAILED")
             self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"order:{order_id}", metadata={"reasons": [refusal], "stage": "pre-send"})
             return ExecResult("BLOCKED", order_id, self.orders.get(order_id)["state"], refusal)
+        event = "QUOTE_REVALIDATION_FAILED"
+        try:
+            fresh = validate_executable_quote(await adapter.get_ticker(o["symbol"]), side=o["side"], reference_price=o["price"],
+                                              now=self.clock(), config=self.quote_guard)
+            reason = self._reserved_price_exceeded(o, fresh.executable_price)
+            if reason:
+                raise _SendBlocked(reason)
+            if o["side"] == "SELL":          # a SELL reserves nothing, so its last-moment protection is the exchange rules at the current bid
+                event = "RULES_REVALIDATION_FAILED"
+                reason = await self._sell_rules_problem(o, adapter, fresh)
+                if reason:
+                    raise _SendBlocked(reason)
+        except Exception as e:
+            reason = str(e) if isinstance(e, _SendBlocked) else f"executable quote could not be revalidated ({type(e).__name__})"
+            if cur is S.CREATED:
+                self.orders.transition(order_id, cur, S.FAILED, event, correlation_id=cid, error=reason)
+                self._signal_status(o, "FAILED")
+            self.audit.record("ORDER_BLOCKED", "BLOCKED", cid, resource=f"order:{order_id}",
+                              metadata={"reasons": [reason], "stage": "pre-send"})
+            return ExecResult("BLOCKED", order_id, self.orders.get(order_id)["state"], reason)
         # Persist the intent to send BEFORE sending. A crash after this line leaves SUBMITTING, which recovery treats as unknown.
         self.orders.transition(order_id, cur, S.SUBMITTING, "SUBMIT_ATTEMPT", correlation_id=cid)
         req = OrderRequest(symbol=o["symbol"], side=Side(o["side"]), type=OrderType.MARKET, quantity=o["quantity"],
@@ -231,16 +349,18 @@ class ExecutionEngine:
         try:
             res = await adapter.create_order(req)
         except (InvalidOrder, InsufficientBalance) as e:  # definitive refusal by the exchange
-            self.orders.transition(order_id, S.SUBMITTING, S.REJECTED, "EXCHANGE_REJECTED", correlation_id=cid, error=str(e))
+            reason = _safe_error(e)
+            self.orders.transition(order_id, S.SUBMITTING, S.REJECTED, "EXCHANGE_REJECTED", correlation_id=cid, error=reason)
             self._signal_status(o, "FAILED")
-            self.audit.record("ORDER_REJECTED", "REJECTED", cid, resource=f"order:{order_id}", metadata={"error": str(e)})
-            return ExecResult("REJECTED", order_id, S.REJECTED.value, str(e))
-        except NotConnected as e:  # includes NOT_IMPLEMENTED: nothing was sent
-            self.orders.transition(order_id, S.SUBMITTING, S.FAILED, "NOT_SENT", correlation_id=cid, error=str(e))
+            self.audit.record("ORDER_REJECTED", "REJECTED", cid, resource=f"order:{order_id}", metadata={"error": reason})
+            return ExecResult("REJECTED", order_id, S.REJECTED.value, reason)
+        except NotImplementedForExchange as e:  # the adapter says the capability does not exist: nothing was sent
+            reason = _safe_error(e)
+            self.orders.transition(order_id, S.SUBMITTING, S.FAILED, "NOT_SENT", correlation_id=cid, error=reason)
             self._signal_status(o, "FAILED")
-            return ExecResult("FAILED", order_id, S.FAILED.value, str(e))
-        except Exception as e:  # timeout, 5xx, reset, anything unclassified: the order MAY exist
-            return await self._unknown(order_id, adapter, f"{type(e).__name__}: {e}", risk_scope)
+            return ExecResult("FAILED", order_id, S.FAILED.value, reason)
+        except Exception as e:  # timeout, 5xx, reset, a generic NotConnected (a drop mid-request is indistinguishable from "never sent"), anything unclassified: the order MAY exist
+            return await self._unknown(order_id, adapter, f"{type(e).__name__}: {_safe_error(e)}", risk_scope)
         bad = _valid(res, o)
         if bad:
             return await self._unknown(order_id, adapter, f"malformed response: {bad}", risk_scope)
@@ -248,6 +368,35 @@ class ExecutionEngine:
                                exchange_order_id=res.exchange_order_id)
         self.audit.record("ORDER_SUBMITTED", "OK", cid, resource=f"order:{order_id}", metadata={"exchange_order_id": res.exchange_order_id})
         return self._apply_exchange_order(order_id, S.SUBMITTED, res, risk_scope, adapter)
+
+    async def _sell_rules_problem(self, o: dict, adapter: ExchangeAdapter, fresh) -> Optional[str]:
+        """Re-run the exchange rules for a SELL at the CURRENT executable bid (conservative: the lower of the approved reference and the bid)
+        with the final validated quantity. Any problem, or any failure to read the rules, blocks the send (fail closed)."""
+        try:
+            px = conservative_risk_price("SELL", o["price"], fresh)
+            v = validate_order(await adapter.get_markets(), await adapter.get_balance(), symbol=o["symbol"], side="SELL",
+                               quantity=o["quantity"], price=px)
+        except Exception as e:
+            return f"exchange rules could not be revalidated before sending ({type(e).__name__})"
+        if v.problems:
+            return "exchange rules no longer met at the current executable bid: " + "; ".join(v.problems)
+        if abs(v.quantity - float(o["quantity"])) > 1e-12:
+            return "order quantity no longer matches the exchange lot size at send time"
+        return None
+
+    def _reserved_price_exceeded(self, o: dict, executable_price: float) -> Optional[str]:
+        """A risk-increasing BUY reserved risk at a specific unit price. If the executable ask has since risen above it, the order would
+        cost more than was checked against the limits and the balance, so it is not sent (the reservation is released with the FAILED state)."""
+        if o["side"] != "BUY":
+            return None
+        with self.db.read() as c:
+            r = c.execute("SELECT notional, quantity FROM risk_reservations WHERE order_id=? AND status='ACTIVE'", (o["id"],)).fetchone()
+        if r is None or not r["quantity"]:
+            return None
+        reserved_unit = r["notional"] / r["quantity"]
+        if executable_price > reserved_unit * (1 + 1e-9):
+            return f"executable ask {executable_price:.8g} rose above the price reserved for risk ({reserved_unit:.8g}); order not sent"
+        return None
 
     def _send_refusal(self, o: dict) -> Optional[str]:
         """Last-moment checks before anything is sent. Returns a reason, or None."""
@@ -317,6 +466,7 @@ class ExecutionEngine:
                 c.execute("UPDATE signals SET status='FAILED' WHERE signal_id=(SELECT i.signal_id FROM execution_intents i WHERE i.id=?)", (o["intent_id"],))
                 if target is S.CANCELLED:
                     self.audit.record("ORDER_CANCELLED", "OK", cid, resource=f"order:{order_id}", conn=c)
+        self._flush_unapplied()
         if pnl_info is not None and pnl_info[0] is not None:
             self._record_risk(o, risk_scope, pnl_info[0], pnl_info[1])
         out = {S.FILLED: "EXECUTED", S.REJECTED: "REJECTED"}.get(target, "EXECUTED" if target is S.PARTIALLY_FILLED else "UNRESOLVED")
@@ -327,15 +477,31 @@ class ExecutionEngine:
     def _apply_fill(self, c, o: dict, delta: float, price: float, ex_oid: str, total_filled: float, adapter: ExchangeAdapter):
         """Trade row + position + paper cash, in the caller's transaction. Returns (realized_pnl or None, equity)."""
         pnl = None
+        pid = None
         if o["side"] == "BUY":
-            pid = self.positions.open_or_add(c, bot_id=o["bot_id"], exchange=o["exchange"], environment=o["environment"], symbol=o["symbol"],
-                                             side="BUY", quantity=delta, price=price, market_type=o["market_type"], order_id=o["id"],
-                                             correlation_id=o["correlation_id"])
+            lv = c.execute("SELECT s.stop_price, s.take_profit_price FROM signals s JOIN execution_intents i ON i.signal_id=s.signal_id "
+                           "WHERE i.id=?", (o["intent_id"],)).fetchone()
+            try:
+                pid = self.positions.open_or_add(c, bot_id=o["bot_id"], exchange=o["exchange"], environment=o["environment"], symbol=o["symbol"],
+                                                 side="BUY", quantity=delta, price=price, market_type=o["market_type"], order_id=o["id"],
+                                                 correlation_id=o["correlation_id"], stop_loss=lv["stop_price"] if lv else None,
+                                                 take_profit=lv["take_profit_price"] if lv else None)
+            except PositionError as e:
+                # A real fill that cannot be turned into a PROTECTED position (for example no stop was recorded for the signal). No unprotected
+                # position is invented; the fill is kept as a trade row and a CRITICAL incident plus reconciliation require a human decision.
+                pid = None
+                self._unapplied.append((o["id"], o["exchange"], o["environment"], f"{e}; fill {delta:g} @ {price:g}", o["correlation_id"]))
         else:
             # LIVE closes are only accepted from an exchange-reported fill, which is what reached this point.
-            pid, pnl, _ = self.positions.reduce(c, bot_id=o["bot_id"], exchange=o["exchange"], environment=o["environment"], symbol=o["symbol"],
-                                                quantity=delta, price=price, exchange_confirmed=True, order_id=o["id"],
-                                                correlation_id=o["correlation_id"])
+            try:
+                pid, pnl, _ = self.positions.reduce(c, bot_id=o["bot_id"], exchange=o["exchange"], environment=o["environment"], symbol=o["symbol"],
+                                                    quantity=delta, price=price, exchange_confirmed=True, order_id=o["id"],
+                                                    correlation_id=o["correlation_id"])
+            except PositionError as e:
+                # The exchange reports a fill that the local books cannot apply. The fill is real, so it is recorded (trade row without a
+                # position); the divergence is surfaced after this transaction commits (incident + reconciliation), never raised.
+                pid, pnl = None, None
+                self._unapplied.append((o["id"], o["exchange"], o["environment"], f"{e}; fill {delta:g} @ {price:g}", o["correlation_id"]))
         c.execute("INSERT INTO trades(order_id,environment,symbol,side,quantity,price,exchange_trade_id,correlation_id,created_at,position_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (o["id"], o["environment"], o["symbol"], o["side"], delta, price, f"{ex_oid}:{total_filled:.10f}", o["correlation_id"], now_iso(), pid))
         equity = None
@@ -344,6 +510,12 @@ class ExecutionEngine:
                       (o["bot_id"], adapter.cash, now_iso()))
             equity = adapter.cash
         return pnl, equity
+
+    def _flush_unapplied(self) -> None:
+        pending, self._unapplied = self._unapplied, []
+        for oid, exch, env, why, cid in pending:
+            self.safety.set_reconciliation_required(True, f"order {oid}: fill could not be applied to local positions", by="execution", correlation_id=cid)
+            self.open_incident("FILL_NOT_APPLICABLE", f"order {oid}: {why}", severity="CRITICAL", scope=rsv.scope_of(env, exch), order_id=oid, correlation_id=cid)
 
     def _record_risk(self, o: dict, scope: str, pnl: float, equity: Optional[float]) -> None:
         try:
@@ -382,7 +554,8 @@ class ExecutionEngine:
             self._maybe_clear_reconciliation(cid)
             return ExecResult("FAILED", order_id, S.FAILED.value, "exchange confirmed the order was never accepted; a retry is now safe")
         except Exception as e:
-            self.orders.transition(order_id, st, S.RECONCILING, "RECONCILE_INCONCLUSIVE", actor="recovery", correlation_id=cid, error=f"{type(e).__name__}: {e}")
+            self.orders.transition(order_id, st, S.RECONCILING, "RECONCILE_INCONCLUSIVE", actor="recovery", correlation_id=cid,
+                                   error=f"{type(e).__name__}: {_safe_error(e)}")
             self._escalate_if_stuck(order_id, o)
             return ExecResult("UNRESOLVED", order_id, S.RECONCILING.value, "could not confirm with the exchange yet")
         bad = _valid(res, o)
@@ -428,7 +601,8 @@ class ExecutionEngine:
         try:
             res = await adapter.cancel_order(o["symbol"], o["exchange_order_id"] or o["client_order_id"])
         except Exception as e:
-            self.orders.transition(order_id, S.CANCEL_REQUESTED, S.UNKNOWN, "CANCEL_OUTCOME_UNKNOWN", correlation_id=cid, error=f"{type(e).__name__}: {e}")
+            self.orders.transition(order_id, S.CANCEL_REQUESTED, S.UNKNOWN, "CANCEL_OUTCOME_UNKNOWN", correlation_id=cid,
+                                   error=f"{type(e).__name__}: {_safe_error(e)}")
             return await self.reconcile_order(order_id, adapter)
         if _valid(res, o) or res.status is not OrderStatus.CANCELLED:
             self.orders.transition(order_id, S.CANCEL_REQUESTED, S.UNKNOWN, "CANCEL_RESPONSE_UNTRUSTED", correlation_id=cid)

@@ -40,6 +40,10 @@ class PositionStore:
         row = c.execute("SELECT * FROM positions WHERE bot_id=? AND exchange=? AND environment=? AND symbol=? AND status<>'CLOSED'",
                         (bot_id, exchange, environment, symbol)).fetchone()
         if row is None:
+            if side == "BUY" and (stop_loss is None or not (0 < stop_loss < price)):
+                # An unprotected long must be impossible to create (Stage 1 / P0-1). The engine refuses such entries before any order
+                # exists; this is the second, independent line of defence at the point the position row is written.
+                raise PositionError("a long position needs a stop_loss below the entry price; refusing to create an unprotected position")
             pid = c.execute("INSERT INTO positions(bot_id,exchange,environment,market_type,symbol,side,quantity,entry_price,average_price,"
                              "leverage,stop_loss,take_profit,status,opened_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                              (bot_id, exchange, environment, market_type, symbol, side, quantity, price, price, leverage, stop_loss,
@@ -51,6 +55,10 @@ class PositionStore:
         if row["status"] not in ("OPEN", "OPENING"):
             raise PositionError(f"position is {row['status']}; cannot add")
         q = row["quantity"] + quantity
+        if row["stop_loss"] is None and stop_loss is not None:
+            c.execute("UPDATE positions SET stop_loss=? WHERE id=?", (stop_loss, row["id"]))
+        if row["take_profit"] is None and take_profit is not None:
+            c.execute("UPDATE positions SET take_profit=? WHERE id=?", (take_profit, row["id"]))
         avg = (row["quantity"] * (row["average_price"] or price) + quantity * price) / q
         c.execute("UPDATE positions SET quantity=?, average_price=?, updated_at=? WHERE id=?", (q, avg, ts, row["id"]))
         self._event(c, row["id"], "POSITION_INCREASED", row["status"], row["status"], quantity, price, order_id, correlation_id)

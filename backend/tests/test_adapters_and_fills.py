@@ -114,7 +114,7 @@ def test_live_lock_blocks_an_unverified_adapter_even_when_live_is_enabled_and_fl
     safety = SafetyController(db)
     eid = make_live_ready(db, safety)                                           # live switch ENABLED, gate conditions satisfied
     assert safety.live_switch() is LiveSwitch.ENABLED
-    eng = ExecutionEngine(db, safety, {"fake": ad}, exchange_ids={"fake": eid})
+    eng = ExecutionEngine(db, safety, {"fake": ad}, exchange_ids={"fake": eid}, quote_guard=TEST_QUOTE_GUARD)
     os.environ["DEWAKO_ALLOW_LIVE"] = "1"; os.environ["DEWAKO_LIVE_TRADING"] = "I UNDERSTAND THE RISK"
     try:
         r = run(eng.execute(decision("lock"), bot_id="b", environment="LIVE", exchange="fake"))
@@ -132,7 +132,7 @@ def test_real_adapter_classes_are_blocked_by_the_live_lock_and_never_called():
     safety = SafetyController(db)
     eid = make_live_ready(db, safety, exchange="binance")
     for ad in (BinanceAdapter(api_key="k", api_secret="s"), BybitAdapter(), OKXAdapter()):
-        eng = ExecutionEngine(db, safety, {ad.name: ad}, exchange_ids={ad.name: eid})
+        eng = ExecutionEngine(db, safety, {ad.name: ad}, exchange_ids={ad.name: eid}, quote_guard=TEST_QUOTE_GUARD)
         r = run(eng.execute(decision(f"x-{ad.name}"), bot_id="b", environment="LIVE", exchange=ad.name))
         assert r.outcome == "BLOCKED", (ad.name, r)
 

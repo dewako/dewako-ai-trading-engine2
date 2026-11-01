@@ -142,13 +142,16 @@ def test_stub_exchange_returns_not_implemented_never_success():
     from dewako.exchanges.stubs import BybitAdapter
     db, _ = tmp_db()
     s = SafetyController(db)
-    eng = ExecutionEngine(db, s, {"bybit": BybitAdapter()})
+    eng = ExecutionEngine(db, s, {"bybit": BybitAdapter()}, quote_guard=TEST_QUOTE_GUARD)
     assert run(eng.execute(decision(), bot_id="b", environment="LIVE", exchange="bybit")).outcome == "BLOCKED"
     class P(BybitAdapter):  # even if wrongly marked PAPER, the stub refuses and the order ends FAILED
         environment = "PAPER"
-    eng = ExecutionEngine(db, s, {"bybit": P()})
+    eng = ExecutionEngine(db, s, {"bybit": P()}, quote_guard=TEST_QUOTE_GUARD)
     r = run(eng.execute(decision(), bot_id="b", environment="PAPER", exchange="bybit"))
-    assert r.outcome == "BLOCKED" and "NOT_IMPLEMENTED" in r.detail
+    # Phase 4.1: the capability gate refuses it before any order row exists (stricter than the old late NOT_IMPLEMENTED failure).
+    assert r.outcome == "BLOCKED" and "does not declare order_submission" in r.detail
+    with db.read() as c:
+        assert c.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
 
 
 def test_paper_restart_keeps_cash_positions_and_orders():
@@ -157,13 +160,15 @@ def test_paper_restart_keeps_cash_positions_and_orders():
     pa = PaperAdapter(10_000.0); pa.set_price("BTC/USDT", 100.0)
     eng, _ = engine_for(db, pa, exchange="paper")
     RiskStateStore(db).init_scope("PAPER", 10_000.0)
-    r = run(eng.execute(decision(qty=10.0), bot_id="pb", environment="PAPER", exchange="paper"))
+    # Phase 5: limits are evaluated at the executable ask (100.05), not the reference (100). 10 units at the reference sat exactly ON the 10% cap
+    # (1000.00) and is now correctly refused at 1000.50; 9.9 units keeps this restart test about persistence, with the limit unchanged.
+    r = run(eng.execute(decision(qty=9.9), bot_id="pb", environment="PAPER", exchange="paper"))
     assert r.state == "FILLED"
     cash = pa.cash
     db2 = Database(path)
     from dewako.execution.positions import PositionStore
     pos = PositionStore(db2).active("PAPER", "pb")
-    assert len(pos) == 1 and pos[0]["quantity"] == 10.0
+    assert len(pos) == 1 and pos[0]["quantity"] == 9.9
     with db2.read() as c:
         assert abs(c.execute("SELECT cash FROM paper_accounts WHERE bot_id='pb'").fetchone()[0] - cash) < 1e-9
     # paper activity never created LIVE rows
@@ -177,7 +182,9 @@ def test_closing_fill_realises_pnl_and_closes_position_and_persists_risk():
     RiskStateStore(db).init_scope("PAPER", 10_000.0)
     run(eng.execute(decision("buy", qty=10.0), bot_id="pb", environment="PAPER", exchange="paper"))
     pa.set_price("BTC/USDT", 90.0)
-    r = run(eng.execute(decision("sell", side=Side.SELL, qty=10.0), bot_id="pb", environment="PAPER", exchange="paper", intent="EXIT"))
+    sell = decision("sell", side=Side.SELL, qty=10.0)
+    sell = sell.model_copy(update={"signal": sell.signal.model_copy(update={"entry_price": 90.0})})
+    r = run(eng.execute(sell, bot_id="pb", environment="PAPER", exchange="paper", intent="EXIT"))
     assert r.state == "FILLED" and eng.positions.active("PAPER") == []
     with db.read() as c:
         assert abs(c.execute("SELECT realized_pnl FROM positions").fetchone()[0] - (-100.0)) < 1e-9
@@ -190,7 +197,7 @@ def test_cannot_close_position_without_exchange_confirmation():
     db, _ = tmp_db()
     ps = PositionStore(db)
     with db.tx() as c:
-        pid = ps.open_or_add(c, bot_id="b", exchange="e", environment="LIVE", symbol="BTC/USDT", side="BUY", quantity=1, price=10)
+        pid = ps.open_or_add(c, bot_id="b", exchange="e", environment="LIVE", symbol="BTC/USDT", side="BUY", quantity=1, price=10, stop_loss=9)
     with pytest.raises(PositionError):
         ps.set_status(pid, "CLOSED")
     with pytest.raises(PositionError):
@@ -272,3 +279,36 @@ def test_exchange_filters_block_or_round_down_and_never_send():
     with db.read() as c:
         assert c.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
         assert c.execute("SELECT status FROM signals").fetchone()[0] == "REJECTED"
+
+
+@pytest.mark.parametrize(
+    ("market_updates", "balances"),
+    [
+        ({"step_size": -0.3}, {"USDT": 1000.0}),
+        ({"step_size": float("inf")}, {"USDT": 1000.0}),
+        ({"step_size": float("nan")}, {"USDT": 1000.0}),
+        ({"step_size": 0.001, "fee": -0.1}, {"USDT": 1000.0}),
+        ({"step_size": 0.001, "min_notional": float("inf")}, {"USDT": 1000.0}),
+        ({"step_size": 0.001}, {"USDT": float("nan")}),
+        ({"step_size": 0.001}, {"USDT": float("inf")}),
+        ({"step_size": 0.001}, {"USDT": -1.0}),
+    ],
+)
+def test_invalid_exchange_filters_and_balances_fail_closed(market_updates, balances):
+    from dewako.execution.validation import validate_order
+
+    market = {"symbol": "BTC/USDT", "qty_precision": 3, "min_notional": 1.0}
+    market.update(market_updates)
+    result = validate_order([market], balances, symbol="BTC/USDT", side="BUY", quantity=1.0, price=100.0)
+    assert result.problems
+    assert result.quantity == 0.0
+
+
+def test_quantity_rounding_never_exceeds_the_requested_size():
+    from dewako.execution.validation import validate_order
+
+    markets = [{"symbol": "BTC/USDT", "step_size": 1.0, "min_qty": 0.1, "min_notional": 1.0}]
+    result = validate_order(markets, {"USDT": 1000.0}, symbol="BTC/USDT", side="BUY",
+                            quantity=0.9999999999, price=100.0)
+    assert result.problems
+    assert result.quantity == 0.0

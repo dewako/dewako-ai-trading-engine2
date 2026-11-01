@@ -4,17 +4,21 @@ import atexit
 import os
 import tempfile
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from dewako.core.types import Order, OrderRequest, OrderStatus, OrderType, RiskDecision, Side, Signal
 from dewako.exchanges.base import (AccountBalance, AdapterCapabilities, Fill, ExchangeAdapter, ExchangeError, InvalidOrder, OrderNotFound, OrderOutcomeUnknown)
 from dewako.execution.engine import ExecutionEngine
+from dewako.execution.validation import QuoteGuardConfig
+from dewako.market_data.timeframes import floor, seconds
 from dewako.paper_trading.paper_exchange import PaperAdapter
 from dewako.persistence.db import Database, now_iso
 from dewako.safety.controller import SafetyController
 
 ADMIN = {"user_id": 1, "username": "alice", "role": "ADMIN"}
 TRADER = {"user_id": 2, "username": "bob", "role": "TRADER"}
+TEST_QUOTE_GUARD = QuoteGuardConfig(max_spread_pct=0.25, max_price_deviation_pct=0.5,
+                                   max_quote_age_seconds=30, clock_skew_tolerance_seconds=2)
 
 
 _SCHEMAS = []
@@ -158,7 +162,10 @@ class FakeLive(ExchangeAdapter):
 
     async def get_markets(self):
         return [{"symbol": "BTC/USDT", "tick_size": 0.01, "qty_precision": 5, "min_notional": 5.0, "min_qty": 0.0001, "max_qty": 1000, "fee": 0.001}]
-    async def get_ticker(self, s): return {"last": self.price}
+    async def get_ticker(self, s):
+        from datetime import datetime, timezone
+        return {"last": self.price, "bid": self.price * 0.9996, "ask": self.price * 1.0004,
+                "timestamp": datetime.now(timezone.utc)}
     async def get_orderbook(self, s, depth=20): return {"bids": [], "asks": []}
 
     async def get_open_orders(self, symbol=None): return [o for o in self.store.values() if o.status in (OrderStatus.OPEN, OrderStatus.PARTIAL)]
@@ -191,7 +198,9 @@ def make_live_ready(db, safety, exchange="fake", strategy=("Trend AI", "2.2"), r
         safety.live_adapters_ok = lambda: (True, "")
     safety.verify_audit("test_setup")
     safety.record_evidence("TESTNET_VERIFIED", ADMIN, "fixture-only attestation used by tests; no real testnet was involved")
-    safety.mark_market_data_fresh("BTC/USDT")
+    tf = "15m"
+    candle_open = floor(datetime.now(timezone.utc), tf) - timedelta(seconds=seconds(tf))
+    safety.mark_market_data_fresh("BTC/USDT", candle_open, tf)
     safety.enable_live(ADMIN)
     return eid
 
@@ -202,4 +211,6 @@ def run(coro):
 
 def engine_for(db, adapter, exchange="fake", exchange_id=None):
     safety = SafetyController(db)
-    return ExecutionEngine(db, safety, {exchange: adapter}, exchange_ids={exchange: exchange_id} if exchange_id else {}), safety
+    safety.workers_healthy = lambda: (True, "")      # fixture stand-in (also used by subprocess workers): the live gate fails closed without a supervisor
+    return ExecutionEngine(db, safety, {exchange: adapter}, exchange_ids={exchange: exchange_id} if exchange_id else {},
+                           quote_guard=TEST_QUOTE_GUARD), safety

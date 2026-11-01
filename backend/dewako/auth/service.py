@@ -99,6 +99,13 @@ class AuthService:
             raise ValueError("invalid username")
         ts = now_iso()
         with self.db.tx() as c:
+            if first:
+                # Atomic bootstrap: the "no users yet" decision is re-made INSIDE the transaction under a table lock (SQLite's BEGIN IMMEDIATE
+                # already serialises writers), so concurrent first-user requests cannot each see an empty table and each create an ADMIN.
+                if self.db.is_pg:
+                    c.execute("LOCK TABLE users IN EXCLUSIVE MODE")
+                if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] != 0:
+                    raise AuthError("bootstrap already done")
             try:
                 uid = c.execute("INSERT INTO users(username,password_hash,role,created_at,updated_at) VALUES (?,?,?,?,?)",
                                 (username.strip(), hash_password(password), role, ts, ts)).lastrowid
