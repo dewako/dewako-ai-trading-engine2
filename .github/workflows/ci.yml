@@ -179,7 +179,7 @@ jobs:
         run: |
           set -euo pipefail
           for i in 1 2 3; do
-            python -m pytest -q -p no:cacheprovider test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
+            python -m pytest -q -p no:cacheprovider -v --timeout=300 --timeout-method=thread -o faulthandler_timeout=240 test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
           done
       - run: |
           foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
