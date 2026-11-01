@@ -55,8 +55,10 @@ def add(m, **kw):
 # ---- vault
 def test_vault_roundtrip_and_wrong_key():
     v = CredentialVault(KEY)
-    blob = v.encrypt({"api_key": "abc"})
-    assert b"abc" not in blob and v.decrypt(blob) == {"api_key": "abc"}
+    secret = "plaintext-secret-marker-that-must-not-leak"
+    payload = {"api_key": secret}
+    blob = v.encrypt(payload)
+    assert secret.encode() not in blob and v.decrypt(blob) == payload
     with pytest.raises(VaultError):
         CredentialVault(Fernet.generate_key()).decrypt(blob)
 
