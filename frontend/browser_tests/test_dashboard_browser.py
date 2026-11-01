@@ -236,16 +236,16 @@ def t_zip_import_valid_malicious_duplicate(br):
 @case
 def t_zip_cancel_and_server_down(br):
     c, p, errs = open_page(br, "pkgs")
-    def slow(route):
-        time.sleep(2.5)
-        try: route.continue_()
-        except Exception: pass
-    p.route("**/strategy-packages", lambda r: slow(r) if r.request.method == "POST" else r.continue_())
+    held = []
+    p.route("**/strategy-packages", lambda r: held.append(r) if r.request.method == "POST" else r.continue_())
     p.set_input_files("#pkFile", zip_file("slow.zip", build("Browser Slow A")))
     expect(p.locator("[data-bk=cancelup]")).to_be_visible(timeout=5000)
     p.click("[data-bk=cancelup]")
     expect(p.locator("#pkResult")).to_contain_text("cancelled", timeout=5000)
     assert "Accepted" not in p.inner_text("#pkResult")
+    for r in held:
+        try: r.abort()
+        except Exception: pass
     c.close()
 
 
