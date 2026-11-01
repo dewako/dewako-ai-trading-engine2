@@ -22,7 +22,7 @@ jobs:
   sqlite:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy: {matrix: {python: ["3.12", "3.13"]}}
+    strategy: {fail-fast: false, matrix: {python: ["3.12", "3.13"]}}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -199,7 +199,9 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - name: dashboard e2e vs real FastAPI (any failure fails the job)
         env: {DEWAKO_E2E_SERVER: real, PYTHONPATH: backend}
-        run: python frontend/browser_tests/test_dashboard_browser.py | tee e2e-real.log
+        run: |
+          set -euo pipefail
+          python frontend/browser_tests/test_dashboard_browser.py | tee e2e-real.log
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: e2e-real, path: "e2e-real.log\nfrontend/browser_tests/shots"}

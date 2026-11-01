@@ -154,11 +154,11 @@ def test_live_gate_requires_audit_integrity_to_have_been_verified():
 # ------------------------------------------------------------------ worker lease
 def test_only_one_of_two_workers_gets_the_lease_and_expiry_hands_it_over_with_a_new_epoch():
     db, _ = tmp_db()
-    a, b = WorkerLease(db, ttl=0.4), WorkerLease(db, ttl=0.4)
+    a, b = WorkerLease(db, ttl=0.4), WorkerLease(db, ttl=60)
     assert a.acquire() and not b.acquire()
     assert a.check() == (True, "") and not b.check()[0]
     first_epoch = a.epoch
-    time.sleep(0.6)                                                       # a stops renewing (crash/hang): lease expires
+    time.sleep(0.8)                                                       # a stops renewing (crash/hang): lease expires
     assert b.acquire() and b.epoch == first_epoch + 1
     ok, why = a.check()
     assert not ok and ("another worker" in why or "expired" in why)
