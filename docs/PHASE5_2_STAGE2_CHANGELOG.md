@@ -56,4 +56,4 @@ Stage 1.1 had already implemented the policy (separate exit-spread tolerance `DE
 - Mutation check: ignoring the tolerance in the exit monitor fails 5 tests.
 
 Decision recorded, not changed: the exit tolerance applies to every trigger including take-profit and time stop. A less urgent trigger could reasonably wait for a tighter spread; that would be a policy change and is not made here.
-Local and hosted evidence: pending.
+Evidence: local SQLite 532 passed / PG16 535 passed, 0 failed; hosted CI run 41445224976 (WP5 + WP4 + WP1 + WP2), all 9 jobs green on `35f1c921`; PG16 571 tests, 0 skipped, gate 56/56; SQLite 571 tests, 3 allowed skips, gate 44/44.
