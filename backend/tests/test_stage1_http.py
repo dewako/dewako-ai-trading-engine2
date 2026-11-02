@@ -124,8 +124,8 @@ class HttpLifecycle(unittest.TestCase):
                 app = c.app.state.application
                 app.adapters["paper"].set_price("BTC/USDT", LAST, as_of=app.clock())
                 self.assertEqual(c.get("/health/live").json(), {"status": "alive"})
-                r0 = c.get("/health")                                   # readiness is CURRENT: no worker has reported yet, so not ready
-                self.assertEqual((r0.status_code, r0.json()["state"]), (503, "SYSTEM_DEGRADED"))
+                # the running supervisor may or may not have ticked yet, so the not-ready window is not asserted here
+                # (the deterministic 503 case is test_readiness_follows_the_current_worker_state_over_http...)
                 for w in app.supervisor.workers:
                     if w.critical:
                         _tick(app, w.name)
