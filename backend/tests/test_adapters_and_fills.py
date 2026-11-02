@@ -70,7 +70,7 @@ def test_lookup_by_client_id_returns_the_order_and_unknown_ids_are_not_found():
     ad = FakeLive()
     eng, safety = engine_for(*tmp_db()[:1], ad)
     eng.exchange_ids["fake"] = make_live_ready(eng.db, safety)
-    r = run(eng.execute(decision("lk"), bot_id="b", environment="LIVE", exchange="fake"))
+    r = run(eng.execute(decision("lk", entry_price=FAKE_LIVE_ASK), bot_id="b", environment="LIVE", exchange="fake"))
     cid = eng.orders.get(r.order_id)["client_order_id"]
     got = run(ad.get_order("BTC/USDT", client_order_id=cid))
     assert got.client_order_id == cid and got.filled == 1.0
@@ -114,7 +114,7 @@ def test_live_lock_blocks_an_unverified_adapter_even_when_live_is_enabled_and_fl
     safety = SafetyController(db)
     eid = make_live_ready(db, safety)                                           # live switch ENABLED, gate conditions satisfied
     assert safety.live_switch() is LiveSwitch.ENABLED
-    eng = ExecutionEngine(db, safety, {"fake": ad}, exchange_ids={"fake": eid})
+    eng = ExecutionEngine(db, safety, {"fake": ad}, exchange_ids={"fake": eid}, quote_guard=TEST_QUOTE_GUARD)
     os.environ["DEWAKO_ALLOW_LIVE"] = "1"; os.environ["DEWAKO_LIVE_TRADING"] = "I UNDERSTAND THE RISK"
     try:
         r = run(eng.execute(decision("lock"), bot_id="b", environment="LIVE", exchange="fake"))
@@ -132,7 +132,7 @@ def test_real_adapter_classes_are_blocked_by_the_live_lock_and_never_called():
     safety = SafetyController(db)
     eid = make_live_ready(db, safety, exchange="binance")
     for ad in (BinanceAdapter(api_key="k", api_secret="s"), BybitAdapter(), OKXAdapter()):
-        eng = ExecutionEngine(db, safety, {ad.name: ad}, exchange_ids={ad.name: eid})
+        eng = ExecutionEngine(db, safety, {ad.name: ad}, exchange_ids={ad.name: eid}, quote_guard=TEST_QUOTE_GUARD)
         r = run(eng.execute(decision(f"x-{ad.name}"), bot_id="b", environment="LIVE", exchange=ad.name))
         assert r.outcome == "BLOCKED", (ad.name, r)
 

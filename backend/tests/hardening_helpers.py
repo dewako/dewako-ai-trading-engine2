@@ -4,17 +4,21 @@ import atexit
 import os
 import tempfile
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from dewako.core.types import Order, OrderRequest, OrderStatus, OrderType, RiskDecision, Side, Signal
 from dewako.exchanges.base import (AccountBalance, AdapterCapabilities, Fill, ExchangeAdapter, ExchangeError, InvalidOrder, OrderNotFound, OrderOutcomeUnknown)
 from dewako.execution.engine import ExecutionEngine
+from dewako.execution.validation import QuoteGuardConfig
+from dewako.market_data.timeframes import floor, seconds
 from dewako.paper_trading.paper_exchange import PaperAdapter
 from dewako.persistence.db import Database, now_iso
 from dewako.safety.controller import SafetyController
 
 ADMIN = {"user_id": 1, "username": "alice", "role": "ADMIN"}
 TRADER = {"user_id": 2, "username": "bob", "role": "TRADER"}
+TEST_QUOTE_GUARD = QuoteGuardConfig(max_spread_pct=0.25, max_price_deviation_pct=0.5,
+                                   max_quote_age_seconds=30, clock_skew_tolerance_seconds=2)
 
 
 _SCHEMAS = []
@@ -49,9 +53,16 @@ def tmp_db(path=None):
     return Database(path), path
 
 
-def decision(signal_id="sig1", side=Side.BUY, qty=1.0, symbol="BTC/USDT", approved=True, strategy="Trend AI", version="2.2"):
+FAKE_LIVE_ASK = 100.04      # FakeLive(price=100) quotes ask = 100 x 1.0004
+PAPER_ASK = 100.05          # PaperAdapter(price=100) quotes ask = 100 x 1.0005
+
+
+def decision(signal_id="sig1", side=Side.BUY, qty=1.0, symbol="BTC/USDT", approved=True, strategy="Trend AI", version="2.2",
+             entry_price=100.0):
+    """`entry_price` is the Risk Engine's reference price. Since Stage 1.1 an ENTRY is scaled down when the executable ask is above it, so a
+    test that is not about that effect passes the adapter's ask (FAKE_LIVE_ASK / PAPER_ASK) to keep its quantities exact."""
     s = Signal(symbol=symbol, side=side, confidence=0.8, strategy=strategy, strategy_version=version, signal_id=signal_id,
-               entry_price=100.0, stop_price=95.0 if side is Side.BUY else 105.0, reason=["test"],
+               entry_price=entry_price, stop_price=95.0 if side is Side.BUY else 105.0, reason=["test"],
                timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc))
     return RiskDecision(approved=approved, signal=s, quantity=qty if approved else 0.0, reasons=["ok"])
 
@@ -158,7 +169,10 @@ class FakeLive(ExchangeAdapter):
 
     async def get_markets(self):
         return [{"symbol": "BTC/USDT", "tick_size": 0.01, "qty_precision": 5, "min_notional": 5.0, "min_qty": 0.0001, "max_qty": 1000, "fee": 0.001}]
-    async def get_ticker(self, s): return {"last": self.price}
+    async def get_ticker(self, s):
+        from datetime import datetime, timezone
+        return {"last": self.price, "bid": self.price * 0.9996, "ask": self.price * 1.0004,
+                "timestamp": datetime.now(timezone.utc)}
     async def get_orderbook(self, s, depth=20): return {"bids": [], "asks": []}
 
     async def get_open_orders(self, symbol=None): return [o for o in self.store.values() if o.status in (OrderStatus.OPEN, OrderStatus.PARTIAL)]
@@ -191,7 +205,9 @@ def make_live_ready(db, safety, exchange="fake", strategy=("Trend AI", "2.2"), r
         safety.live_adapters_ok = lambda: (True, "")
     safety.verify_audit("test_setup")
     safety.record_evidence("TESTNET_VERIFIED", ADMIN, "fixture-only attestation used by tests; no real testnet was involved")
-    safety.mark_market_data_fresh("BTC/USDT")
+    tf = "15m"
+    candle_open = floor(datetime.now(timezone.utc), tf) - timedelta(seconds=seconds(tf))
+    safety.mark_market_data_fresh("BTC/USDT", candle_open, tf)
     safety.enable_live(ADMIN)
     return eid
 
@@ -202,4 +218,6 @@ def run(coro):
 
 def engine_for(db, adapter, exchange="fake", exchange_id=None):
     safety = SafetyController(db)
-    return ExecutionEngine(db, safety, {exchange: adapter}, exchange_ids={exchange: exchange_id} if exchange_id else {}), safety
+    safety.workers_healthy = lambda: (True, "")      # fixture stand-in (also used by subprocess workers): the live gate fails closed without a supervisor
+    return ExecutionEngine(db, safety, {exchange: adapter}, exchange_ids={exchange: exchange_id} if exchange_id else {},
+                           quote_guard=TEST_QUOTE_GUARD), safety

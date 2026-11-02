@@ -13,7 +13,7 @@ from dewako.reconciliation.service import ReconciliationService
 from dewako.risk.engine import RiskLimits
 from dewako.safety.controller import SafetyController
 from bounded import hard_kill_self
-from hardening_helpers import FakeLive, decision
+from hardening_helpers import FAKE_LIVE_ASK, FakeLive, TEST_QUOTE_GUARD, decision
 
 CRASH = os.environ.get("CRASH_AT", "")
 
@@ -80,8 +80,9 @@ def build(target, sim_path, eid):
     db = Database(target)
     sim = SimExchange(sim_path)
     safety = SafetyController(db)
+    safety.workers_healthy = lambda: (True, "")      # fixture stand-in: the live gate fails closed without a supervisor
     lim = RiskLimits(max_position_pct=100, max_exposure_pct=100, max_open_positions=50)
-    eng = ExecutionEngine(db, safety, {"fake": sim}, exchange_ids={"fake": eid}, limits=lim)
+    eng = ExecutionEngine(db, safety, {"fake": sim}, exchange_ids={"fake": eid}, limits=lim, quote_guard=TEST_QUOTE_GUARD)
     rec = ReconciliationService(db, safety, eng)
     if CRASH == "before_intent_commit":
         eng.orders.create = lambda **kw: die()                    # transaction open, nothing committed
@@ -118,7 +119,7 @@ def main():
     db, sim, safety, eng, rec = build(target, sim_path, eid)
     if cmd == "exec":
         sid, qty, bot = args
-        r = asyncio.run(eng.execute(decision(sid, qty=float(qty)), bot_id=bot, environment="LIVE", exchange="fake"))
+        r = asyncio.run(eng.execute(decision(sid, qty=float(qty), entry_price=FAKE_LIVE_ASK), bot_id=bot, environment="LIVE", exchange="fake"))
         out = {"outcome": r.outcome, "order_id": r.order_id, "state": r.state}
     elif cmd == "recover":
         out = {"results": [(r.outcome, r.state) for r in asyncio.run(eng.recover(created_grace_seconds=0))]}

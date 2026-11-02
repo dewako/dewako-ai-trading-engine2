@@ -25,7 +25,8 @@ def _env(mode="open", **limits):
 
 def _engine(target, eid, ad, lim, **kw):
     d = Database(target)
-    eng = ExecutionEngine(d, SafetyController(d), {"fake": ad}, exchange_ids={"fake": eid}, limits=lim, **kw)
+    eng = ExecutionEngine(d, SafetyController(d), {"fake": ad}, exchange_ids={"fake": eid}, limits=lim,
+                          quote_guard=TEST_QUOTE_GUARD, **kw)
     return d, eng
 
 

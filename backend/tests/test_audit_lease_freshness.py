@@ -9,6 +9,8 @@ import pytest
 
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import Database
+from dewako.core.types import Candle, MarketState
+from dewako.market_data.timeframes import floor, seconds
 from dewako.runtime.application import Application, Config
 from dewako.runtime.lease import WorkerLease
 from dewako.safety.controller import SafetyController
@@ -152,11 +154,11 @@ def test_live_gate_requires_audit_integrity_to_have_been_verified():
 # ------------------------------------------------------------------ worker lease
 def test_only_one_of_two_workers_gets_the_lease_and_expiry_hands_it_over_with_a_new_epoch():
     db, _ = tmp_db()
-    a, b = WorkerLease(db, ttl=0.4), WorkerLease(db, ttl=0.4)
+    a, b = WorkerLease(db, ttl=0.4), WorkerLease(db, ttl=60)
     assert a.acquire() and not b.acquire()
     assert a.check() == (True, "") and not b.check()[0]
     first_epoch = a.epoch
-    time.sleep(0.6)                                                       # a stops renewing (crash/hang): lease expires
+    time.sleep(0.8)                                                       # a stops renewing (crash/hang): lease expires
     assert b.acquire() and b.epoch == first_epoch + 1
     ok, why = a.check()
     assert not ok and ("another worker" in why or "expired" in why)
@@ -256,11 +258,12 @@ def test_gate_blocks_when_freshness_was_never_established_and_when_stale_and_is_
     assert gate("BTC/USDT").allowed
     g = gate("ETH/USDT")
     assert not g.allowed and any("never confirmed fresh" in r for r in g.reasons)
-    old = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
-    safety._set("market_data_ok_at:BTC/USDT", old, "t")
+    stale_open = _candle_open("15m", age_intervals=10)
+    safety._set("market_data_candle_at:BTC/USDT", stale_open.isoformat(), "t")
+    safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
     g = gate("BTC/USDT")
     assert not g.allowed and any("stale" in r for r in g.reasons)
-    safety.mark_market_data_fresh("BTC/USDT")
+    safety.mark_market_data_fresh("BTC/USDT", _candle_open("15m"), "15m")
     assert gate("BTC/USDT").allowed
 
 
@@ -269,7 +272,8 @@ def test_stale_market_data_blocks_a_live_order_and_nothing_is_created_or_sent():
     ad = FakeLive()
     eng, safety = engine_for(db, ad)
     eng.exchange_ids["fake"] = make_live_ready(db, safety)
-    safety._set("market_data_ok_at:BTC/USDT", (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), "t")
+    safety._set("market_data_candle_at:BTC/USDT", _candle_open("15m", age_intervals=10).isoformat(), "t")
+    safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
     out = run(eng.execute(decision("stale"), bot_id="b", environment="LIVE", exchange="fake"))
     assert out.outcome == "BLOCKED" and "stale" in out.detail and ad.create_calls == 0
     with db.read() as c:
@@ -283,7 +287,8 @@ def test_freshness_is_checked_again_immediately_before_sending():
     eng.exchange_ids["fake"] = make_live_ready(db, safety)
     real = eng._send
     async def stale_then_send(order_id, adapter, scope):                  # data goes stale between order creation and the send
-        safety._set("market_data_ok_at:BTC/USDT", (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), "t")
+        safety._set("market_data_candle_at:BTC/USDT", _candle_open("15m", age_intervals=10).isoformat(), "t")
+        safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
         return await real(order_id, adapter, scope)
     eng._send = stale_then_send
     out = run(eng.execute(decision("late"), bot_id="b", environment="LIVE", exchange="fake"))
@@ -293,17 +298,25 @@ def test_freshness_is_checked_again_immediately_before_sending():
 def test_market_worker_marks_symbols_fresh_and_a_failing_provider_does_not():
     db, target = tmp_db()
     safety = SafetyController(db); eid = make_live_ready(db, safety)
-    safety._set("market_data_ok_at:BTC/USDT", (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), "t")
+    safety._set("market_data_candle_at:BTC/USDT", _candle_open("15m", age_intervals=10).isoformat(), "t")
+    safety._set("market_data_timeframe:BTC/USDT", "15m", "t")
     calls = {"fail": False}
     async def provider(sym, tf):
         if calls["fail"]:
             raise RuntimeError("provider down")
-        return object()
+        step = timedelta(seconds=seconds(tf))
+        end_open = _candle_open(tf)
+        rows = [Candle(t=end_open - step * i, o=100, h=101, l=99, c=100, v=1)
+                for i in reversed(range(60))]
+        return MarketState(symbol=sym, as_of=end_open + step, candles=rows)
     gate = lambda: SafetyController(db).live_gate(exchange_id=eid, strategy_id="Trend AI", strategy_version="2.2", symbol="BTC/USDT")
     async def scenario():
         app = Application(Config(db_target=target, workers_enabled=True, lease_ttl=60), adapters={"fake": FakeLive()}, state_provider=provider)
         app.exchange_ids["fake"] = eid
         await app.startup()
+        with app.rt.db.tx() as c:      # freshness is tracked for configured bots' symbols only (no hard-coded default symbol any more)
+            c.execute("INSERT INTO bots(bot_id,strategy_id,strategy_version,symbol,timeframe,environment,exchange,risk_scope,enabled,created_at,updated_at) "
+                      "VALUES ('mw','Trend AI','2.2','BTC/USDT','15m','PAPER','fake','PAPER',1,'2026-01-01','2026-01-01')")
         try:
             worker = next(w for w in app.supervisor.workers if w.name == "market_data")
             calls["fail"] = True
@@ -315,3 +328,8 @@ def test_market_worker_marks_symbols_fresh_and_a_failing_provider_does_not():
         finally:
             await app.shutdown()
     run(scenario())
+
+
+def _candle_open(timeframe, age_intervals=0):
+    step = timedelta(seconds=seconds(timeframe))
+    return floor(datetime.now(timezone.utc), timeframe) - step * (1 + age_intervals)

@@ -59,6 +59,16 @@ class MarketDataHub:
                 errors.append(f"{p.name}: {e}")
         raise AllProvidersFailed("; ".join(errors))
 
+    async def ticker(self, symbol: str):
+        """First provider that answers. Returns the Ticker (its `quality` says which source and when)."""
+        errors = []
+        for p in self.providers:
+            try:
+                return await p.get_ticker(symbol)
+            except ProviderError as e:
+                errors.append(f"{p.name}: {e}")
+        raise AllProvidersFailed("; ".join(errors))
+
     async def cross_check(self, symbol: str, timeframe: str, limit: int = 100, tolerance: float = 0.005) -> list[Divergence]:
         if len(self.providers) < 2:
             return []

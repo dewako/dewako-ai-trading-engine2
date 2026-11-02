@@ -1,0 +1,7 @@
+# Test/CI dependency set. Install with:  pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
+# These are the pieces the HTTP and browser end-to-end tests need. Missing packages must FAIL CI (DEWAKO_REQUIRE_HTTP_TESTS=1), never skip.
+pytest
+pytest-timeout
+httpx
+uvicorn[standard]
+playwright

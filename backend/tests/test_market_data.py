@@ -242,13 +242,14 @@ def test_state_uptrend_and_volume_ratio():
 
 
 def test_state_downtrend():
-    assert build_market_state("BTC/USDT", series(drift=-0.002), T0).trend == "BEARISH"
+    assert build_market_state("BTC/USDT", series(drift=-0.002), T0 + STEP * 120).trend == "BEARISH"
 
 
 def test_state_needs_enough_history_and_is_deterministic():
+    as_of = T0 + STEP * 120
     with pytest.raises(InsufficientData):
-        build_market_state("BTC/USDT", series(30), T0)
-    a, b = build_market_state("BTC/USDT", series(), T0), build_market_state("BTC/USDT", series(), T0)
+        build_market_state("BTC/USDT", series(30), T0 + STEP * 30)
+    a, b = build_market_state("BTC/USDT", series(), as_of), build_market_state("BTC/USDT", series(), as_of)
     assert a.model_dump() == b.model_dump()
 
 

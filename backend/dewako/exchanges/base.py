@@ -161,7 +161,8 @@ class ExchangeAdapter(ABC):
         """Return normalized market metadata: symbol, tick_size, qty_precision, min_notional, fees."""
 
     @abstractmethod
-    async def get_ticker(self, symbol: str) -> dict[str, float]: ...
+    async def get_ticker(self, symbol: str) -> dict[str, Any]:
+        """Return normalized last, bid, ask and an aware ISO-8601/datetime timestamp."""
 
     @abstractmethod
     async def get_orderbook(self, symbol: str, depth: int = 20) -> dict[str, list[list[float]]]: ...

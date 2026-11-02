@@ -1,3 +1,7 @@
+# NOTE (Stage 1.1): added the seven Stage 1.1 required tests (executable-price sizing, wide-spread exits, time stop, current-state readiness).
+# NOTE (Stage 1): added the Stage 1 required tests (exit monitor, SELL-while-flat, application lifecycle, HTTP lifecycle, bootstrap race) and raised --min-tests to 450.
+#   THIS WORKFLOW HAS STILL NEVER BEEN EXECUTED ON A HOSTED RUNNER; no hosted result exists.
+# NOTE (Phase 4.5): added the e2e-real-app job, pinned test constraints and the Phase 4.4/4.5 required tests. STILL NEVER EXECUTED.
 # NOTE: this workflow has NOT been executed by the author (no CI runner / Docker daemon / package index was available).
 # It was checked structurally (YAML parse, paths, report names). The first real run is the verification of the workflow itself.
 name: ci
@@ -19,22 +23,51 @@ jobs:
   sqlite:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy: {matrix: {python: ["3.12", "3.13"]}}
+    strategy: {fail-fast: false, matrix: {python: ["3.12", "3.13"]}}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "${{ matrix.python }}"}
-      - run: pip install -r backend/requirements.txt
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - name: tests on SQLite (PostgreSQL-only tests are expected to skip here; HTTP tests must run)
         working-directory: backend/tests
         env: {DEWAKO_REQUIRE_HTTP_TESTS: "1", PYTHONPATH: ".."}
-        run: python -m pytest -q -p no:cacheprovider --junitxml=../../sqlite-junit.xml
+        run: python -m pytest -q -p no:cacheprovider --timeout=300 --junitxml=../../sqlite-junit.xml
       - name: only PostgreSQL-only tests may be skipped; the HTTP regressions must have run
         run: >-
-          python scripts/assert_no_skips.py sqlite-junit.xml --min-tests 250 --allow-skip "PostgreSQL-only"
+          python scripts/assert_no_skips.py sqlite-junit.xml --min-tests 450 --allow-skip "PostgreSQL-only"
           --require test_logout_requires_authentication_and_is_not_a_public_route
           --require test_enable_live_returns_409_with_reasons_and_never_claims_live_is_active
           --require test_hung_worker_is_killed_by_the_controller_timeout
+          --require test_auth_me_returns_identity_and_permission_names_and_requires_a_session
+          --require test_ui_routes_serve_only_allowlisted_assets_with_a_strict_policy
+          --require test_activity_history_requires_auth_has_the_documented_schema_and_paginates_without_duplicates
+          --require test_activity_status_and_an_unknown_order_stays_unknown_across_reads
+          --require test_package_upload_routes_over_http_validate_authorize_and_never_activate
+          --require test_sse_stream_over_real_http_hello_events_heartbeat_resume_and_no_duplicates
+          --require test_sse_stream_closes_when_the_session_is_revoked_and_caps_concurrent_streams
+          --require test_sse_frames_never_leak_exception_text_when_the_backend_fails
+          --require test_activity_package_is_read_only_and_cannot_reach_anything_that_acts
+          --require test_ui_package_labels_match_backend_states
+          --require test_stop_closes_the_position
+          --require test_stop_and_take_profit_survive_sigkill_and_a_fresh_engine_enforces_them
+          --require test_sell_entry_with_no_position_is_blocked_and_sends_nothing
+          --require test_fill_for_a_vanished_position_opens_a_critical_incident_and_recover_completes
+          --require test_enter_protected_then_exit_on_stop_then_restart_recovers_an_open_position
+          --require test_create_bot_over_http_then_see_an_order_and_a_protected_position
+          --require test_position_survives_an_application_restart_and_is_closed_by_its_stop
+          --require test_nothing_configured_is_not_ready_over_http
+          --require test_risk_limits_are_admin_changeable_validated_audited_and_report_unenforced_controls
+          --require test_drawdown_from_an_unrealised_loss_blocks_a_new_entry_through_the_running_application
+          --require test_concurrent_first_user_requests_create_exactly_one_admin
+          --require test_unset_workers_healthy_blocks_the_gate
+          --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
+          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
+          --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
+          --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
+          --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
+          --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -49,7 +82,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.13"}
-      - run: pip install -r backend/requirements.txt
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - name: full suite on PostgreSQL 16 (HTTP, concurrency, process-kill crash matrix, migrations); ZERO skips allowed
         working-directory: backend/tests
         timeout-minutes: 30
@@ -59,10 +92,10 @@ jobs:
           DEWAKO_TEST_DB: postgres
           DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@127.0.0.1:5432/dewako
           PYTHONPATH: ".."
-        run: python -m pytest -q -p no:cacheprovider --junitxml=../../pg-junit.xml
+        run: python -m pytest -q -p no:cacheprovider --timeout=300 --junitxml=../../pg-junit.xml
       - name: zero skips; the PostgreSQL identity test, both HTTP regressions and the process-kill matrix must have executed
         run: >-
-          python scripts/assert_no_skips.py pg-junit.xml --min-tests 250
+          python scripts/assert_no_skips.py pg-junit.xml --min-tests 450
           --require test_pg_is_really_postgresql
           --require test_the_http_job_is_really_running_on_the_requested_backend
           --require test_logout_requires_authentication_and_is_not_a_public_route
@@ -78,6 +111,35 @@ jobs:
           --require test_9a_exchange_timeouts_block_new_orders_then_escalate_to_an_incident
           --require test_9b_database_outage_fails_closed_and_sends_nothing
           --require test_pg_a_held_lock_fails_closed_within_a_bound_instead_of_hanging
+          --require test_auth_me_returns_identity_and_permission_names_and_requires_a_session
+          --require test_ui_routes_serve_only_allowlisted_assets_with_a_strict_policy
+          --require test_activity_history_requires_auth_has_the_documented_schema_and_paginates_without_duplicates
+          --require test_activity_status_and_an_unknown_order_stays_unknown_across_reads
+          --require test_package_upload_routes_over_http_validate_authorize_and_never_activate
+          --require test_sse_stream_over_real_http_hello_events_heartbeat_resume_and_no_duplicates
+          --require test_sse_stream_closes_when_the_session_is_revoked_and_caps_concurrent_streams
+          --require test_sse_frames_never_leak_exception_text_when_the_backend_fails
+          --require test_activity_package_is_read_only_and_cannot_reach_anything_that_acts
+          --require test_ui_package_labels_match_backend_states
+          --require test_stop_closes_the_position
+          --require test_stop_and_take_profit_survive_sigkill_and_a_fresh_engine_enforces_them
+          --require test_sell_entry_with_no_position_is_blocked_and_sends_nothing
+          --require test_fill_for_a_vanished_position_opens_a_critical_incident_and_recover_completes
+          --require test_enter_protected_then_exit_on_stop_then_restart_recovers_an_open_position
+          --require test_create_bot_over_http_then_see_an_order_and_a_protected_position
+          --require test_position_survives_an_application_restart_and_is_closed_by_its_stop
+          --require test_nothing_configured_is_not_ready_over_http
+          --require test_risk_limits_are_admin_changeable_validated_audited_and_report_unenforced_controls
+          --require test_drawdown_from_an_unrealised_loss_blocks_a_new_entry_through_the_running_application
+          --require test_concurrent_first_user_requests_create_exactly_one_admin
+          --require test_unset_workers_healthy_blocks_the_gate
+          --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
+          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
+          --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
+          --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
+          --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
+          --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
@@ -96,7 +158,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.13"}
-      - run: pip install -r backend/requirements.txt
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - name: crash/recovery suite x3 (fresh processes), SQLite then PostgreSQL 16; any failure or skip fails the job
         working-directory: backend/tests
         env:
@@ -124,7 +186,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "${{ matrix.python }}", allow-prereleases: true}
-      - run: pip install -r backend/requirements.txt
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt pytest-timeout
       - name: process cleanup helper + crash matrix + crash/recovery, x3
         working-directory: backend/tests
         shell: bash
@@ -132,7 +194,7 @@ jobs:
         run: |
           set -euo pipefail
           for i in 1 2 3; do
-            python -m pytest -q -p no:cacheprovider test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
+            python -m pytest -q -p no:cacheprovider -v --timeout=300 --timeout-method=thread -o faulthandler_timeout=240 test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
           done
       - run: |
           foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
@@ -140,6 +202,24 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: win-crash-junit, path: "win-crash-*.xml"}
+  e2e-real-app:
+    # Browser end-to-end tests against the ACTUAL FastAPI app under Uvicorn (not the stand-in). The only job that can verify the dashboard end to end.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: dashboard e2e vs real FastAPI (any failure fails the job)
+        env: {DEWAKO_E2E_SERVER: real, PYTHONPATH: backend}
+        run: |
+          set -euo pipefail
+          python frontend/browser_tests/test_dashboard_browser.py | tee e2e-real.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: e2e-real, path: "e2e-real.log\nfrontend/browser_tests/shots"}
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

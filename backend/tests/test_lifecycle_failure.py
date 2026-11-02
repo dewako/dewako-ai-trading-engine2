@@ -39,9 +39,10 @@ def test_startup_runs_steps_in_documented_order_and_reaches_ready():
     status = run(app.startup())
     names = [s.name for s in app.steps]
     expected = ["config", "database", "schema", "safety_state", "audit_integrity", "execution_lease",
-                "strategy_fingerprints", "recover_orders", "recover_positions", "reconcile:fake", "risk_state", "workers"]
+                "strategy_packages", "strategy_fingerprints", "recover_orders", "recover_positions", "reconcile:fake", "risk_state", "workers", "trading_configuration"]
     assert names == expected
-    assert status in ("READY", "READY_LIVE_BLOCKED")
+    # an adapter but no market-data provider: the application must NOT claim READY (Stage 1 / P0-3)
+    assert status == "NOT_CONFIGURED"
     assert app.events[0] == "startup:config:ok"
     run(app.shutdown())
 
@@ -254,7 +255,7 @@ def test_paper_bot_never_touches_a_live_endpoint():
     paper = PaperAdapter(); paper.set_price("BTC/USDT", 100.0)
     safety = SafetyController(db)
     from dewako.execution.engine import ExecutionEngine
-    eng = ExecutionEngine(db, safety, {"paper": paper, "fake": live})
+    eng = ExecutionEngine(db, safety, {"paper": paper, "fake": live}, quote_guard=TEST_QUOTE_GUARD)
     r = run(eng.execute(decision("p1"), bot_id="pb", environment="PAPER", exchange="paper"))
     assert r.outcome == "EXECUTED"
     # a paper bot pointed at the live adapter is refused before anything is called

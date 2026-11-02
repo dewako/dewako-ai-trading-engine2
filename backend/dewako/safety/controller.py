@@ -18,6 +18,7 @@ from typing import Optional
 
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import Database, now_iso
+from dewako.market_data.freshness import CandleFreshnessError, validate_latest_candle_timestamp
 from dewako.reconciliation.state import ReconState
 
 log = logging.getLogger("dewako.safety")
@@ -67,7 +68,6 @@ class SafetyController:
         self.live_adapters_ok = None  # callable() -> (bool, reason); the execution engine registers itself here
         self.workers_healthy = None   # optional callable() -> (bool, reason); wired by the application lifecycle
         self.vault = None             # optional CredentialVault; lets the live gate prove credentials still decrypt
-        self.market_data_max_age = timedelta(seconds=120)
         self._bootstrap()
 
     # ---- low level
@@ -256,8 +256,11 @@ class SafetyController:
                               ("AUDIT_CHAIN_BROKEN", "CRITICAL", "audit_log", f"first bad row {res['first_bad_id']}: {res['reason']}"[:500], "OPEN", now_iso()))
         return res
 
-    def mark_market_data_fresh(self, symbol: str, by: str = "market_data") -> None:
-        self._set(f"market_data_ok_at:{symbol}", now_iso(), by)
+    def mark_market_data_fresh(self, symbol: str, candle_timestamp: datetime, timeframe: str,
+                               by: str = "market_data") -> None:
+        validate_latest_candle_timestamp(candle_timestamp, timeframe, datetime.now(timezone.utc))
+        self._set(f"market_data_candle_at:{symbol}", candle_timestamp.astimezone(timezone.utc).isoformat(), by)
+        self._set(f"market_data_timeframe:{symbol}", timeframe, by)
 
     def _exchange_reasons(self, c, exchange_id: int) -> list[str]:
         """Everything about one exchange that must be true before a live order may go to it. Shared by the per-order gate and by activation."""
@@ -388,11 +391,16 @@ class SafetyController:
             if ai != "OK":
                 why.append(f"audit log integrity is {ai or 'UNVERIFIED'}, not OK")
             if symbol is not None:
-                ts = self._get(f"market_data_ok_at:{symbol}")
-                if ts is None:
+                ts = self._get(f"market_data_candle_at:{symbol}")
+                timeframe = self._get(f"market_data_timeframe:{symbol}")
+                if ts is None or timeframe is None:
                     why.append(f"market data for {symbol} was never confirmed fresh")
-                elif datetime.now(timezone.utc) - datetime.fromisoformat(ts) > self.market_data_max_age:
-                    why.append(f"market data for {symbol} is stale")
+                else:
+                    try:
+                        validate_latest_candle_timestamp(datetime.fromisoformat(ts), timeframe, datetime.now(timezone.utc))
+                    except CandleFreshnessError as e:
+                        label = "stale" if "stale" in str(e) else "invalid or unverified"
+                        why.append(f"market data for {symbol} is {label}: {e}")
             if self.live_switch() is not LiveSwitch.ENABLED:
                 why.append(f"live trading is {self.live_switch().value}")
             st = self.trading_state()
@@ -408,7 +416,9 @@ class SafetyController:
                 inc = c2.execute("SELECT COUNT(*) FROM incidents WHERE status='OPEN'").fetchone()[0]
             if inc:
                 why.append(f"{inc} open incident(s) require investigation")
-            if self.workers_healthy is not None:
+            if self.workers_healthy is None:
+                why.append("workers not healthy: no worker supervisor is registered (fail closed)")
+            else:
                 ok, reason = self.workers_healthy()
                 if not ok:
                     why.append(f"workers not healthy: {reason}")

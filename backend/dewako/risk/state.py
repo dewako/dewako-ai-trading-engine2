@@ -14,8 +14,9 @@ from dewako.risk.engine import RiskContext
 
 
 class RiskStateStore:
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, correlation_groups: Optional[dict] = None):
         self.db = db
+        self.correlation_groups = correlation_groups or {}       # symbol -> group name; empty means one group for everything
 
     def init_scope(self, scope: str, equity: float) -> None:
         if equity <= 0:
@@ -59,16 +60,29 @@ class RiskStateStore:
             with self.db.tx() as c:
                 run(c)
 
-    def context(self, scope: str, bot_id: str, environment: str, now: Optional[datetime] = None) -> RiskContext:
+    def context(self, scope: str, bot_id: str, environment: str, now: Optional[datetime] = None, symbol: Optional[str] = None) -> RiskContext:
+        """Open-position figures cover the whole environment (every bot), because the limits are account-level.
+        `correlated_risk_pct` is the capital currently at risk (entry to stop) across open positions in the same correlation group as `symbol`;
+        every symbol is one group unless `correlation_groups` says otherwise (conservative: assume everything moves together)."""
         now = now or utcnow()
         with self.db.tx() as c:
             self._roll(c, scope, now)
             r = c.execute("SELECT * FROM risk_state WHERE scope=?", (scope,)).fetchone()
-            pos = c.execute("SELECT COUNT(*) n, COALESCE(SUM(quantity*COALESCE(average_price,entry_price,0)),0) notional FROM positions "
-                            "WHERE bot_id=? AND environment=? AND status<>'CLOSED'", (bot_id, environment)).fetchone()
+            pos = [dict(p) for p in c.execute("SELECT symbol, quantity, average_price, entry_price, stop_loss FROM positions "
+                                              "WHERE environment=? AND status<>'CLOSED'", (environment,))]
         eq = r["current_equity"]
         daily = (eq - r["day_start_equity"]) / r["day_start_equity"] * 100
         dd = (r["peak_equity"] - eq) / r["peak_equity"] * 100 if r["peak_equity"] else 0.0
-        return RiskContext(equity=eq, daily_pnl_pct=daily, drawdown_pct=max(dd, 0.0), open_positions=pos["n"],
-                           exposure_pct=pos["notional"] / eq * 100 if eq else 100.0, consecutive_losses=r["consecutive_losses"],
+        notional = sum(p["quantity"] * (p["average_price"] or p["entry_price"] or 0.0) for p in pos)
+        group = self.correlation_groups.get(symbol) if symbol else None
+        at_risk = 0.0
+        for p in pos:
+            if group is not None and self.correlation_groups.get(p["symbol"]) != group:
+                continue
+            px = p["average_price"] or p["entry_price"] or 0.0
+            risk_per_unit = (px - p["stop_loss"]) if p["stop_loss"] is not None else px      # no stop recorded: count the whole notional
+            at_risk += p["quantity"] * max(risk_per_unit, 0.0)
+        return RiskContext(equity=eq, daily_pnl_pct=daily, drawdown_pct=max(dd, 0.0), open_positions=len(pos),
+                           exposure_pct=notional / eq * 100 if eq else 100.0, correlated_risk_pct=at_risk / eq * 100 if eq else 100.0,
+                           consecutive_losses=r["consecutive_losses"],
                            last_loss_at=datetime.fromisoformat(r["last_loss_at"]) if r["last_loss_at"] else None, now=now)
