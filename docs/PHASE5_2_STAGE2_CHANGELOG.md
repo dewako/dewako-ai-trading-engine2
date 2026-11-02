@@ -28,3 +28,21 @@ Behaviour now:
 
 Files: `runtime/workers.py` (+ tests `test_stage2_wp4_readiness.py`, 8 tests; CI `--require` +3 names).
 Evidence: hosted CI run 41413833110 on `0ae200a4` (covers WP5 + WP4), all 9 jobs green, PG16 546 tests, 0 skipped, gate 50/50; SQLite 546 tests, 3 allowed skips, gate 38/38; local SQLite 507 passed, PG16 510 passed, 0 failed.
+
+## WP1 - Executable-price-aware risk sizing (branch `stage2-wp1-risk-sizing`, stacked on WP4)
+
+Moved into the Risk Engine, as the Stage 2 brief requires (the Stage 1.1 version lived in the execution layer):
+- `risk/sizing.py` (new, pure arithmetic): `executable_entry_quantity` scales the approved quantity by (reference - stop) / (executable - stop), never up; every invalid or inconsistent input raises `SizingError`.
+- `RiskEngine.size_for_executable_entry(decision, executable_price=...)`: final sizing approval from the executable price (the execution engine supplies the validated quote; the Risk Engine does no I/O). Returns a refused decision with reasons instead of raising; audited as `executable_sizing`.
+- `RiskEngine.final_entry_problem(...)`: the last gate before an order exists. After exchange rounding, the quantity must not exceed the approved quantity and its loss at the stop must not exceed the approved loss. Found and fixed during testing: the first version let NaN/infinity through (every comparison with NaN is False); all figures are now checked finite first.
+- `ExecutionEngine` takes an optional `risk_engine` and calls both methods for BUY ENTRY only; exits are untouched. `execution/validation.executable_risk_quantity` remains as a thin compatible wrapper.
+- Behaviour is unchanged for valid entries (all 507 existing tests pass unmodified); the new guarantee is the final gate and the fail-closed handling.
+
+Already handled elsewhere and verified, not duplicated: quote staleness / invalid / unavailable quotes (quote guard), quantity step rounding (rounds DOWN), minimum/maximum quantity and minimum notional (`validate_order`, from the exchange's market rules), hard exposure/position caps under the reservation lock.
+
+**95 % headroom (`SIZING_HEADROOM`) - reassessment, decision: KEEP, document.** Grid evidence (`test_loss_at_the_stop_and_notional_never_exceed_what_was_approved`, over 4 reference prices x 41 ask premiums x 5 stop distances): after scaling, the notional at the executable price is never above the notional the Risk Engine sized from the reference price, so the ask premium alone can no longer breach the position cap; the headroom's original reason is now covered by the scaling. It is not removed because (a) removing it changes sizing for every entry and several verified limit tests rely on it, and (b) it still gives a 5 % margin for fees and balance rounding. Removing it is a separate, explicit change if wanted.
+
+Known limitations: `RiskEngine.audit` is an in-memory list; the engine's instance grows by one record per entry for the life of the process (same pattern as the bot runner's instance). Equity-based position caps are still enforced by the reservation backstop at the executable price, not inside `size_for_executable_entry`.
+
+Files: `risk/sizing.py` (new), `risk/engine.py`, `execution/engine.py`, `execution/validation.py`; tests `test_stage2_wp1_risk_sizing.py` (15); CI `--require` +3 names.
+Local: SQLite 522 passed / 0 failed / 39 skipped; PG16 525 passed / 0 failed / 36 skipped; mutation check (sizing returns the unscaled quantity) fails 9 tests. Hosted CI: pending.

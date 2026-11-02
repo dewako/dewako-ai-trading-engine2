@@ -24,12 +24,12 @@ from dewako.exchanges.base import (ExchangeAdapter, ExchangeError, InsufficientB
 from dewako.exchanges.contract import ORDER_ENVIRONMENTS_ENABLED, redact, refusals_for_submission
 from dewako.execution.order_store import OrderStore, StaleState
 from dewako.execution.positions import PositionError, PositionStore
-from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price, executable_risk_quantity,
+from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price,
                                          validate_executable_quote,
                                          validate_order)
 from dewako.execution.state_machine import OrderState as S
 from dewako.execution import reservations as rsv
-from dewako.risk.engine import RiskLimits
+from dewako.risk.engine import RiskEngine, RiskLimits
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import Database, now_iso
 from dewako.risk.state import RiskStateStore
@@ -95,12 +95,13 @@ class ExecutionEngine:
                  audit: Optional[AuditLog] = None, risk_state: Optional[RiskStateStore] = None,
                  exchange_ids: Optional[dict[str, int]] = None, limits: Optional[RiskLimits] = None,
                  submit_authorized=None, quote_guard: Optional[QuoteGuardConfig] = None,
-                 clock=utcnow):
+                 clock=utcnow, risk_engine: Optional[RiskEngine] = None):
         """`adapters` maps exchange name -> adapter. Live exchange ids come from `exchange_ids` (exchanges table).
         `limits` are the hard caps enforced under the reservation lock (default: the platform's default RiskLimits, never 'unlimited').
         `submit_authorized` is a callable returning (ok, reason); the application sets it so a worker that has been stopped or has
         lost its authorization cannot send an order that was created before that happened."""
         self.limits = limits or RiskLimits()
+        self.risk_engine = risk_engine or RiskEngine(self.limits)      # final, executable-price sizing approval for entries (no I/O)
         self.submit_authorized = submit_authorized
         self.db, self.safety = db, safety
         self.audit = audit or AuditLog(db)
@@ -163,13 +164,21 @@ class ExecutionEngine:
             if sig.side is Side.BUY and intent == "ENTRY":
                 # The Risk Engine sized this from the reference price. The order can fill at the executable ask, so the loss at the stop is
                 # measured from that price; the quantity is scaled down (never up) so it cannot exceed the approved risk.
-                order_quantity = executable_risk_quantity(decision.quantity, reference_price=sig.entry_price, risk_price=risk_price,
-                                                          stop_price=sig.stop_price)
+                sized = self.risk_engine.size_for_executable_entry(decision, executable_price=risk_price)
+                if not sized.approved:
+                    raise QuoteGuardError("; ".join(sized.reasons))
+                order_quantity = sized.quantity
                 if order_quantity < decision.quantity:
                     sized_from = decision.quantity
             v = validate_order(markets, balances, symbol=sig.symbol, side=sig.side.value,
                                quantity=order_quantity, price=risk_price)
-            problems = v.problems
+            problems = list(v.problems)
+            if not problems and sig.side is Side.BUY and intent == "ENTRY":
+                # last gate before an order exists: after exchange rounding the quantity and its loss at the stop must still be within
+                # what the Risk Engine approved
+                final = self.risk_engine.final_entry_problem(decision, quantity=v.quantity, executable_price=risk_price)
+                if final:
+                    problems.append(final)
         except QuoteGuardError as e:
             problems = [str(e)]
         except NotImplementedForExchange as e:
