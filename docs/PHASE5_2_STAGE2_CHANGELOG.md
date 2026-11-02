@@ -46,3 +46,14 @@ Known limitations: `RiskEngine.audit` is an in-memory list; the engine's instanc
 
 Files: `risk/sizing.py` (new), `risk/engine.py`, `execution/engine.py`, `execution/validation.py`; tests `test_stage2_wp1_risk_sizing.py` (15); CI `--require` +3 names.
 Local: SQLite 522 passed / 0 failed / 39 skipped; PG16 525 passed / 0 failed / 36 skipped; mutation check (sizing returns the unscaled quantity) fails 9 tests. Hosted CI: run 41438701345 on `fa1c5f07` (WP5 + WP4 + WP1), all 9 jobs green; PG16 561 tests, 0 skipped, gate 53/53; SQLite 561 tests, 3 allowed skips, gate 41/41.
+
+## WP2 - Reliable stop-loss and take-profit exit handling (branch `stage2-wp2-exit-spread`, stacked on WP1)
+
+Stage 1.1 had already implemented the policy (separate exit-spread tolerance `DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT`, deferral with a CRITICAL incident, entries blocked, no fabricated fill). WP2 adds what the Stage 2 brief still required: the test matrix and the documentation. **No application code changed.**
+
+- Tests (`test_stage2_wp2_exit_spread.py`, 10 tests, 7 sub-cases): normal, abnormal and extreme spreads; the boundary just inside and outside the tolerance; no tolerance configured; take-profit; malformed quotes (crossed, zero, negative, NaN, infinite, missing bid/ask: no order, no guessed price, entries blocked); a gap through the stop fills at the quoted bid (not the stop price); nothing closed before the fill; recovery clears the incident once and entries resume. All 7 malformed-quote cases already failed closed: no defect found.
+- Docs: `docs/PAPER_VS_LIVE.md` now has "Stop-loss and take-profit exits: paper behaviour versus real-market guarantees".
+- Mutation check: ignoring the tolerance in the exit monitor fails 5 tests.
+
+Decision recorded, not changed: the exit tolerance applies to every trigger including take-profit and time stop. A less urgent trigger could reasonably wait for a tighter spread; that would be a policy change and is not made here.
+Local and hosted evidence: pending.
