@@ -16,3 +16,15 @@ Consequence to know: to change the time stop you must restart with no open posit
 Files: `runtime/time_stop.py` (new), `runtime/application.py`, `risk/controls.py`, `api/main.py`, tests `test_stage2_wp5_time_stop.py` (8) and one assertion added to `test_stage1_http.py`; CI `--require` list +3 names.
 
 Evidence so far (local, not hosted): SQLite 499 passed / 0 failed / 39 skipped (36 HTTP not runnable in the sandbox + 3 PG-only); PostgreSQL 16 502 passed / 0 failed / 36 skipped (all HTTP). Mutation check: removing the open-position guard makes the two restart-refusal tests fail. Hosted CI: pending.
+
+## WP4 - Worker health and public readiness (branch `stage2-wp4-heartbeat-readiness`, stacked on WP5)
+
+Correction to the Stage 2 plan: heartbeat freshness WAS already part of readiness (`WorkerSupervisor.status()` marks a heartbeat older than 3 x interval + 5 s as FAILED). The real defect was different: `run_once` wrote HEALTHY (with a heartbeat) at the **start** of every iteration, so a critical worker that had never completed an iteration in this process counted as healthy, and `/health` could report READY before the exit monitor had proven anything.
+
+Behaviour now:
+- A worker stays `STARTING` until an iteration has completed in this process; after failures it stays `DEGRADED` until an iteration succeeds. Only a completed iteration earns `HEALTHY`.
+- Consequence: `/health` is 503 `SYSTEM_DEGRADED` until every critical worker has completed its first iteration after a start or restart (normally within the first cycle). A healthy-looking row left by a previous process never counts.
+- Unchanged: critical vs non-critical (`worker_health.critical`), heartbeat expiry, `/health/live` independent of readiness, `/health/detailed` content.
+
+Files: `runtime/workers.py` (+ tests `test_stage2_wp4_readiness.py`, 8 tests; CI `--require` +3 names).
+Evidence so far: see the run recorded below once hosted CI completes.

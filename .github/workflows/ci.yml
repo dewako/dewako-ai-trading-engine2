@@ -71,6 +71,9 @@ jobs:
           --require test_enabling_the_time_stop_on_restart_with_an_open_position_is_refused
           --require test_disabling_the_time_stop_on_restart_with_an_open_position_is_refused_too
           --require test_with_nothing_open_a_changed_configuration_is_adopted_and_audited
+          --require test_a_worker_inside_its_first_iteration_is_starting_not_healthy
+          --require test_a_silent_critical_worker_becomes_failed_and_recovers_on_its_next_success
+          --require test_a_critical_failure_is_unhealthy_and_only_a_successful_iteration_recovers_it
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -146,6 +149,9 @@ jobs:
           --require test_enabling_the_time_stop_on_restart_with_an_open_position_is_refused
           --require test_disabling_the_time_stop_on_restart_with_an_open_position_is_refused_too
           --require test_with_nothing_open_a_changed_configuration_is_adopted_and_audited
+          --require test_a_worker_inside_its_first_iteration_is_starting_not_healthy
+          --require test_a_silent_critical_worker_becomes_failed_and_recovers_on_its_next_success
+          --require test_a_critical_failure_is_unhealthy_and_only_a_successful_iteration_recovers_it
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
