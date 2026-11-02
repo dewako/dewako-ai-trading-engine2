@@ -62,7 +62,7 @@ jobs:
           --require test_concurrent_first_user_requests_create_exactly_one_admin
           --require test_unset_workers_healthy_blocks_the_gate
           --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
-          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_a_triggered_take_profit_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
           --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
           --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
           --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
@@ -80,6 +80,9 @@ jobs:
           --require test_an_extreme_spread_beyond_the_tolerance_is_deferred_recorded_and_blocks_entries
           --require test_a_malformed_quote_never_produces_an_order_a_guessed_price_or_a_closed_position
           --require test_a_gap_through_the_stop_fills_at_the_quoted_bid_not_at_the_stop_price
+          --require test_through_any_spread_and_with_no_tolerance_configured_the_stop_is_sent_at_once
+          --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
+          --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -146,7 +149,7 @@ jobs:
           --require test_concurrent_first_user_requests_create_exactly_one_admin
           --require test_unset_workers_healthy_blocks_the_gate
           --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
-          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_a_triggered_take_profit_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
           --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
           --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
           --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
@@ -164,6 +167,9 @@ jobs:
           --require test_an_extreme_spread_beyond_the_tolerance_is_deferred_recorded_and_blocks_entries
           --require test_a_malformed_quote_never_produces_an_order_a_guessed_price_or_a_closed_position
           --require test_a_gap_through_the_stop_fills_at_the_quoted_bid_not_at_the_stop_price
+          --require test_through_any_spread_and_with_no_tolerance_configured_the_stop_is_sent_at_once
+          --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
+          --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}

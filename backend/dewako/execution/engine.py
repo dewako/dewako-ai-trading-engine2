@@ -118,10 +118,13 @@ class ExecutionEngine:
     # ------------------------------------------------------------------ entry point
     async def execute(self, decision: RiskDecision, *, bot_id: str, environment: str, exchange: str,
                       intent: str = "ENTRY", correlation_id: str = "", market_type: str = "SPOT",
-                      risk_scope: Optional[str] = None, emergency_max_spread_pct: Optional[float] = None) -> ExecResult:
+                      risk_scope: Optional[str] = None, emergency_max_spread_pct: Optional[float] = None,
+                      spread_exempt: bool = False) -> ExecResult:
         """`emergency_max_spread_pct` is honoured ONLY for a SELL EXIT: it raises that order's spread limit (never lowers it) so a triggered
         stop/target can still leave through a wide spread. Everything else about the quote (fresh, positive, uncrossed) is still enforced.
-        The caller owns the policy; without it a wide spread blocks the exit exactly as before."""
+        The caller owns the policy; without it a wide spread blocks the exit exactly as before.
+        `spread_exempt` (also SELL EXIT only) removes the spread limit for that one order: a triggered STOP-LOSS must not wait for a tighter
+        spread. The quote must still be present, positive, uncrossed and fresh; nothing else about the quote guard is relaxed."""
         cid = correlation_id or uuid.uuid4().hex
         sig = decision.signal
         reasons = self._refusals(decision, environment, exchange, market_type)
@@ -143,7 +146,9 @@ class ExecutionEngine:
             return ExecResult("BLOCKED", detail="; ".join(reasons))
 
         guard = self.quote_guard
-        if emergency_max_spread_pct is not None and sig.side is Side.SELL and intent == "EXIT":
+        if spread_exempt and sig.side is Side.SELL and intent == "EXIT":
+            guard = dataclasses.replace(self.quote_guard, enforce_spread=False)
+        elif emergency_max_spread_pct is not None and sig.side is Side.SELL and intent == "EXIT":
             try:
                 guard = dataclasses.replace(self.quote_guard, max_spread_pct=max(self.quote_guard.max_spread_pct, float(emergency_max_spread_pct)))
             except (TypeError, ValueError):

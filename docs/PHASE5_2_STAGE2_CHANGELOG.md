@@ -57,3 +57,19 @@ Stage 1.1 had already implemented the policy (separate exit-spread tolerance `DE
 
 Decision recorded, not changed: the exit tolerance applies to every trigger including take-profit and time stop. A less urgent trigger could reasonably wait for a tighter spread; that would be a policy change and is not made here.
 Evidence: local SQLite 532 passed / PG16 535 passed, 0 failed; hosted CI run 41445224976 (WP5 + WP4 + WP1 + WP2), all 9 jobs green on `35f1c921`; PG16 571 tests, 0 skipped, gate 56/56; SQLite 571 tests, 3 allowed skips, gate 44/44.
+
+## WP2b - Stop-loss and take-profit exit policy split (branch `stage2-wp2b-stop-immediate`, stacked on WP2) - POLICY CHANGE, requested by the owner
+
+Owner decision: a stop-loss exits at market with zero wait; a take-profit keeps the bounded tolerance and may wait for a favourable spread.
+
+Behaviour change (this REVERSES the Stage 1.1 rule that a stop in a wide spread is deferred):
+- **STOP:** never deferred for spread. `ExitMonitor` sends it at once; `ExecutionEngine.execute(..., spread_exempt=True)` (SELL EXIT only) sets `QuoteGuardConfig.enforce_spread=False` for that one order. Audited as `EMERGENCY_EXIT_WIDE_SPREAD` with `policy=STOP_LOSS_IMMEDIATE`, `emergency_limit=None`. No `EXIT_BLOCKED_WIDE_SPREAD` incident can arise for a stop.
+- **TAKE_PROFIT and MAX_HOLD (time stop):** unchanged (normal limit, then `DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT`, else deferred with a CRITICAL incident). The time stop was not named in the decision; it was left on the existing tolerance rules.
+- Still enforced for every exit, stops included: quote present, positive, finite, uncrossed and fresh. Unchanged: entries, the normal spread limit, price-deviation limit.
+- Env var name `DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT` is kept for compatibility although it no longer applies to the emergency (stop) exit; documented in `.env.example`, `Config` and `PAPER_VS_LIVE.md`. A rename is a possible later clean-up.
+
+Risk accepted with this policy (documented in `PAPER_VS_LIVE.md`): the stop triggers on the bid, and the spread check no longer filters a bad quote for stops, so a single bogus low bid tick (feed glitch) that is fresh, positive and uncrossed will sell the position at that bid. An optional hard ceiling on stop spreads was NOT added (it would contradict "zero wait"); it is a possible later safeguard.
+
+Tests: 11 tests failed when the policy changed because they encoded the old rule for STOP (5 in `test_stage1_1_p1.py`, 6 in `test_stage2_wp2_exit_spread.py`). They were moved to a take-profit trigger with the same assertions (6 Stage 1.1 tests converted, including one that still passed; one existing take-profit test became identical to a converted one and was removed, 29 -> 28; the 6 WP2 tests were converted). New `StopLossIsNeverDeferredForSpread` class (6 tests) covers 0.1 %-40 % spreads with no tolerance, audit record, tolerance not delaying a stop, no double sell, entries not blocked after, stale quote still blocks. Mutation checks: restoring stop deferral fails 7 tests; making take-profit immediate fails 11.
+Files: `execution/exit_monitor.py`, `execution/engine.py`, `execution/validation.py`, config comment, `.env.example`, docs, CI `--require` names (one renamed, three added).
+Evidence: pending.

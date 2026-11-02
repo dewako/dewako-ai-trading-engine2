@@ -103,13 +103,15 @@ class WideSpreadExits(unittest.TestCase):
         pa.set_price("BTC/USDT", price)
         return db, pa, eng, monitor(eng, **monitor_kw)
 
-    def test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident(self):
-        db, pa, eng, mon = self._open_then_gap(94.0, 0.01)      # 2 % spread, normal limit 0.25 %, bid 93.06 is below the 95 stop
+    # Stage 2 policy (WP2b): a STOP-LOSS is never deferred for spread (see test_stage2_wp2_exit_spread.py). A TAKE-PROFIT keeps the bounded
+    # tolerance below, so these deferral tests use a take-profit trigger: bid 118.8 is above the 110 target.
+    def test_a_triggered_take_profit_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident(self):
+        db, pa, eng, mon = self._open_then_gap(120.0, 0.01)     # 2 % spread, normal limit 0.25 %
         rep = run(mon.run_once())
         self.assertEqual(position(db)["status"], "OPEN")
         self.assertEqual(orders(db, "SELL"), [])
         self.assertEqual(rep.exits, [])
-        self.assertEqual([(w[0], w[1]) for w in rep.wide], [(position(db)["id"], "STOP")])
+        self.assertEqual([(w[0], w[1]) for w in rep.wide], [(position(db)["id"], "TAKE_PROFIT")])
         inc = incidents(db, WIDE_SPREAD_KIND)
         self.assertEqual([(i["severity"], i["status"]) for i in inc], [("CRITICAL", "OPEN")])
         self.assertIn("NOT sent", inc[0]["detail"])
@@ -117,7 +119,7 @@ class WideSpreadExits(unittest.TestCase):
             run(mon.worker_tick())                              # the worker cannot look healthy
 
     def test_new_entries_are_blocked_while_the_wide_spread_incident_is_open(self):
-        db, pa, eng, mon = self._open_then_gap(94.0, 0.01)
+        db, pa, eng, mon = self._open_then_gap(120.0, 0.01)
         run(mon.run_once())
         pa.slippage = 0.0005
         pa.set_price("BTC/USDT", 100.0)
@@ -126,28 +128,22 @@ class WideSpreadExits(unittest.TestCase):
         self.assertIn("unverified", r.detail.lower())
 
     def test_the_attempt_count_grows_each_cycle_and_the_streak_is_retried_every_cycle(self):
-        db, pa, eng, mon = self._open_then_gap(94.0, 0.01)
+        db, pa, eng, mon = self._open_then_gap(120.0, 0.01)
         attempts = [run(mon.run_once()).wide[0][3] for _ in range(3)]
         self.assertEqual(attempts, [1, 2, 3])
         self.assertEqual(orders(db, "SELL"), [])
 
-    def test_a_triggered_take_profit_is_handled_the_same_way(self):
-        db, pa, eng, mon = self._open_then_gap(120.0, 0.01)     # bid 118.8 is above the 110 target
-        rep = run(mon.run_once())
-        self.assertEqual([w[1] for w in rep.wide], ["TAKE_PROFIT"])
-        self.assertEqual(position(db)["status"], "OPEN")
-
     def test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited(self):
-        db, pa, eng, mon = self._open_then_gap(94.0, 0.01, emergency_exit_max_spread_pct=5.0)
+        db, pa, eng, mon = self._open_then_gap(120.0, 0.01, emergency_exit_max_spread_pct=5.0)
         rep = run(mon.run_once())
-        self.assertEqual([(e[1], e[2]) for e in rep.exits], [("STOP", "EXECUTED")])
+        self.assertEqual([(e[1], e[2]) for e in rep.exits], [("TAKE_PROFIT", "EXECUTED")])
         self.assertEqual(position(db)["status"], "CLOSED")
         self.assertEqual(len(orders(db, "SELL")), 1)
         with db.read() as c:
             self.assertEqual(c.execute("SELECT COUNT(*) FROM audit_log WHERE action='EMERGENCY_EXIT_WIDE_SPREAD'").fetchone()[0], 1)
 
     def test_a_spread_wider_than_the_emergency_limit_is_still_not_sent(self):
-        db, pa, eng, mon = self._open_then_gap(94.0, 0.01, emergency_exit_max_spread_pct=1.0)     # spread is 2 %
+        db, pa, eng, mon = self._open_then_gap(120.0, 0.01, emergency_exit_max_spread_pct=1.0)    # spread is 2 %
         rep = run(mon.run_once())
         self.assertEqual(rep.exits, [])
         self.assertEqual(position(db)["status"], "OPEN")
@@ -172,13 +168,13 @@ class WideSpreadExits(unittest.TestCase):
         self.assertEqual(incidents(db, WIDE_SPREAD_KIND), [])
 
     def test_when_the_spread_narrows_the_normal_exit_closes_it_once_and_the_incident_clears(self):
-        db, pa, eng, mon = self._open_then_gap(94.0, 0.01)
+        db, pa, eng, mon = self._open_then_gap(120.0, 0.01)
         run(mon.run_once())
         run(mon.run_once())
         pa.slippage = 0.0005                                    # the market recovers
-        pa.set_price("BTC/USDT", 94.0)
+        pa.set_price("BTC/USDT", 120.0)
         rep = run(mon.run_once())
-        self.assertEqual([e[1] for e in rep.exits], ["STOP"])
+        self.assertEqual([e[1] for e in rep.exits], ["TAKE_PROFIT"])
         self.assertEqual(position(db)["status"], "CLOSED")
         for _ in range(2):
             run(mon.run_once())

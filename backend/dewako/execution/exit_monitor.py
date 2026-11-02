@@ -148,7 +148,15 @@ class ExitMonitor:
             rep.pending.append(pid)
             return
         cap = None
-        if wide is not None:
+        immediate = False
+        if wide is not None and reason == "STOP":
+            # Stop-loss: never deferred for spread. It goes out at market now to limit the downside; the loss beyond the stop is real and is
+            # recorded at the quoted bid. (Take-profit and time stop keep the bounded tolerance below.)
+            immediate = True
+            self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
+                                     metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "policy": "STOP_LOSS_IMMEDIATE",
+                                               "emergency_limit": None})
+        elif wide is not None:
             cap = self.emergency_exit_max_spread_pct
             if cap is None or wide.spread_pct > cap:
                 n = self._wide_attempts[pid] = self._wide_attempts.get(pid, 0) + 1
@@ -171,7 +179,7 @@ class ExitMonitor:
             return
         res = await self.engine.execute(decision, bot_id=p["bot_id"], environment=p["environment"], exchange=p["exchange"],
                                         intent="EXIT", correlation_id=uuid.uuid4().hex, risk_scope=None,
-                                        emergency_max_spread_pct=cap)
+                                        emergency_max_spread_pct=cap, spread_exempt=immediate)
         rep.exits.append((pid, reason, res.outcome))
         if res.outcome in ("BLOCKED", "REJECTED", "FAILED"):
             rep.unverified.append((pid, f"{reason} exit could not be placed: {res.outcome} {res.detail[:120]}"))

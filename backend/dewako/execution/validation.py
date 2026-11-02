@@ -26,6 +26,7 @@ class QuoteGuardConfig:
     max_price_deviation_pct: float
     max_quote_age_seconds: float
     clock_skew_tolerance_seconds: float = 2.0
+    enforce_spread: bool = True          # False ONLY for a triggered stop-loss exit (see ExecutionEngine.execute); freshness/validity are still enforced
 
     def __post_init__(self) -> None:
         for name in ("max_spread_pct", "max_price_deviation_pct"):
@@ -127,7 +128,7 @@ def validate_executable_quote(ticker: dict[str, Any], *, side: str, reference_pr
 
     mid = (bid + ask) / 2
     spread_pct = (ask - bid) / mid * 100
-    if spread_pct > config.max_spread_pct:
+    if config.enforce_spread and spread_pct > config.max_spread_pct:
         raise WideSpreadError(
             f"spread {spread_pct:.6g}% exceeds configured maximum {config.max_spread_pct:.6g}%",
             bid=bid, ask=ask, spread_pct=spread_pct, timestamp=timestamp)

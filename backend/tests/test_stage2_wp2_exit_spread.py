@@ -1,5 +1,8 @@
-"""Stage 2 WP2: a triggered stop/target meets normal, abnormal and extreme market conditions.
+"""Stage 2 WP2 (+ WP2b policy split): a triggered exit meets normal, abnormal and extreme market conditions.
 
+STOP-LOSS: never deferred for spread. It is sent at once through any spread; only a missing, stale, crossed, non-positive or
+non-finite quote stops it (then protection is unverified, never a guessed price).
+TAKE-PROFIT and TIME STOP keep the bounded tolerance (DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT):
 * normal spread: exits through the ordinary path, no emergency record;
 * abnormal spread (above the normal limit, inside the configured exit tolerance): sent, and the emergency use is audited;
 * extreme spread (above the tolerance) or no tolerance configured: NOT sent, the position stays OPEN, a CRITICAL incident is raised,
@@ -22,6 +25,7 @@ from test_stage1_p0_exits import buy, make, monitor, orders, position, run  # no
 
 from dewako.execution.exit_monitor import INCIDENT_KIND, WIDE_SPREAD_KIND  # noqa: E402
 
+TP_PRICE = 120.0             # bid 118.8 at a 2 % spread: above the 110 take-profit
 NORMAL_LIMIT = 0.25          # TEST_QUOTE_GUARD.max_spread_pct (percent)
 TOLERANCE = 5.0              # the configured exit-spread tolerance for these tests (percent)
 
@@ -50,18 +54,18 @@ class SpreadMatrix(unittest.TestCase):
         self.assertEqual(incidents(db, WIDE_SPREAD_KIND), [])
 
     def test_an_abnormal_spread_inside_the_tolerance_is_sent_and_the_emergency_use_is_recorded(self):
-        db, pa, eng, mon = open_then_move(94.0, 0.01, emergency_exit_max_spread_pct=TOLERANCE)        # spread about 2 %
+        db, pa, eng, mon = open_then_move(TP_PRICE, 0.01, emergency_exit_max_spread_pct=TOLERANCE)    # spread about 2 %
         rep = run(mon.run_once())
-        self.assertEqual([(e[1], e[2]) for e in rep.exits], [("STOP", "EXECUTED")])
+        self.assertEqual([(e[1], e[2]) for e in rep.exits], [("TAKE_PROFIT", "EXECUTED")])
         self.assertEqual(position(db)["status"], "CLOSED")
         rows = audit_rows(db, "EMERGENCY_EXIT_WIDE_SPREAD")
         self.assertEqual(len(rows), 1)
         meta = json.loads(rows[0]["metadata"])
-        self.assertEqual((meta["reason"], meta["emergency_limit"]), ("STOP", TOLERANCE))
+        self.assertEqual((meta["reason"], meta["emergency_limit"]), ("TAKE_PROFIT", TOLERANCE))
         self.assertGreater(meta["spread_pct"], NORMAL_LIMIT)
 
     def test_an_extreme_spread_beyond_the_tolerance_is_deferred_recorded_and_blocks_entries(self):
-        db, pa, eng, mon = open_then_move(94.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)        # spread about 10 %
+        db, pa, eng, mon = open_then_move(117.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)       # spread about 10 %, bid 111.15 > 110
         rep = run(mon.run_once())
         self.assertEqual(rep.exits, [])
         self.assertEqual(position(db)["status"], "OPEN")                                               # not reported closed
@@ -71,32 +75,97 @@ class SpreadMatrix(unittest.TestCase):
         rows = audit_rows(db, "EXIT_BLOCKED_WIDE_SPREAD")
         self.assertEqual(len(rows), 1)
         meta = json.loads(rows[0]["metadata"])
-        self.assertEqual((meta["reason"], meta["emergency_limit"]), ("STOP", TOLERANCE))               # the reason and the limit are on record
+        self.assertEqual((meta["reason"], meta["emergency_limit"]), ("TAKE_PROFIT", TOLERANCE))        # the reason and the limit are on record
         self.assertGreater(meta["spread_pct"], TOLERANCE)
         pa.slippage = 0.0005
         pa.set_price("BTC/USDT", 100.0)
         self.assertEqual(buy(eng, sid="e2", bot="b2").outcome, "BLOCKED")                              # critical exit protection is degraded
 
     def test_without_a_configured_tolerance_even_a_modest_wide_spread_is_deferred(self):
-        db, pa, eng, mon = open_then_move(94.0, 0.01)                                                  # no emergency tolerance
+        db, pa, eng, mon = open_then_move(TP_PRICE, 0.01)                                              # no emergency tolerance
         rep = run(mon.run_once())
         self.assertEqual(rep.exits, [])
         self.assertEqual(position(db)["status"], "OPEN")
         self.assertEqual(len(incidents(db, WIDE_SPREAD_KIND)), 1)
 
     def test_the_boundary_a_spread_just_inside_and_just_outside_the_tolerance(self):
-        inside = open_then_move(94.0, 0.0245, emergency_exit_max_spread_pct=TOLERANCE)                # spread about 4.9 %
+        inside = open_then_move(TP_PRICE, 0.0245, emergency_exit_max_spread_pct=TOLERANCE)            # spread about 4.9 %
         self.assertEqual([e[2] for e in run(inside[3].run_once()).exits], ["EXECUTED"])
-        outside = open_then_move(94.0, 0.0255, emergency_exit_max_spread_pct=TOLERANCE)               # spread about 5.1 %
+        outside = open_then_move(TP_PRICE, 0.0255, emergency_exit_max_spread_pct=TOLERANCE)           # spread about 5.1 %
         self.assertEqual(run(outside[3].run_once()).exits, [])
         self.assertEqual(position(outside[0])["status"], "OPEN")
 
-    def test_a_take_profit_follows_the_same_policy(self):
-        db, pa, eng, mon = open_then_move(117.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)       # bid 111.15 is above the 110 target
+    def test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit(self):
+        from datetime import datetime, timedelta, timezone
+        db, _, pa, eng = make()
+        self.assertEqual(buy(eng).outcome, "EXECUTED")
+        later = datetime.now(timezone.utc) + timedelta(hours=2)
+        eng.clock = lambda: later
+        pa.slippage = 0.01
+        pa.set_price("BTC/USDT", 100.0, as_of=later)                                                   # bid 99: between stop 95 and target 110
+        mon = monitor(eng, max_hold_seconds=3600, clock=lambda: later)
         rep = run(mon.run_once())
         self.assertEqual(rep.exits, [])
-        self.assertEqual([w[1] for w in rep.wide], ["TAKE_PROFIT"])
+        self.assertEqual([w[1] for w in rep.wide], ["MAX_HOLD"])                                       # deferred: no tolerance configured
         self.assertEqual(position(db)["status"], "OPEN")
+
+
+class StopLossIsNeverDeferredForSpread(unittest.TestCase):
+    """The Stage 2 policy: a stop-loss exits at market now, through any spread, and the loss beyond the stop is recorded honestly."""
+
+    def test_through_any_spread_and_with_no_tolerance_configured_the_stop_is_sent_at_once(self):
+        for slippage in (0.0005, 0.01, 0.05, 0.2):                                                     # spreads of about 0.1 %, 2 %, 10 % and 40 %
+            with self.subTest(spread_pct=round(slippage * 200, 2)):
+                db, pa, eng, mon = open_then_move(94.0, slippage)                                      # NO exit tolerance configured at all
+                rep = run(mon.run_once())
+                self.assertEqual([(e[1], e[2]) for e in rep.exits], [("STOP", "EXECUTED")])
+                self.assertEqual(position(db)["status"], "CLOSED")
+                self.assertEqual(len(orders(db, "SELL")), 1)
+                self.assertEqual(incidents(db, WIDE_SPREAD_KIND), [])                                  # nothing was deferred
+                self.assertEqual(audit_rows(db, "EXIT_BLOCKED_WIDE_SPREAD"), [])
+                with db.read() as c:
+                    fill = c.execute("SELECT price FROM trades WHERE side='SELL'").fetchone()[0]
+                self.assertAlmostEqual(fill, 94.0 * (1 - slippage), places=6)                          # the quoted bid, not the stop price
+
+    def test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit(self):
+        db, pa, eng, mon = open_then_move(94.0, 0.05)
+        run(mon.run_once())
+        rows = audit_rows(db, "EMERGENCY_EXIT_WIDE_SPREAD")
+        self.assertEqual(len(rows), 1)
+        meta = json.loads(rows[0]["metadata"])
+        self.assertEqual((meta["reason"], meta["policy"], meta["emergency_limit"]), ("STOP", "STOP_LOSS_IMMEDIATE", None))
+        self.assertGreater(meta["spread_pct"], NORMAL_LIMIT)
+
+    def test_a_configured_tolerance_does_not_delay_a_stop_either(self):
+        db, pa, eng, mon = open_then_move(94.0, 0.2, emergency_exit_max_spread_pct=TOLERANCE)          # 40 % spread, far beyond the tolerance
+        rep = run(mon.run_once())
+        self.assertEqual([(e[1], e[2]) for e in rep.exits], [("STOP", "EXECUTED")])
+        self.assertEqual(position(db)["status"], "CLOSED")
+
+    def test_a_stop_is_sent_once_and_a_second_cycle_does_not_sell_again(self):
+        db, pa, eng, mon = open_then_move(94.0, 0.05)
+        run(mon.run_once())
+        run(mon.run_once())
+        self.assertEqual(len(orders(db, "SELL")), 1)
+        self.assertEqual(position(db)["quantity"], 0)
+
+    def test_new_entries_are_not_blocked_after_an_immediate_stop_exit(self):
+        db, pa, eng, mon = open_then_move(94.0, 0.05)
+        run(mon.run_once())
+        run(mon.run_once())
+        pa.slippage = 0.0005
+        pa.set_price("BTC/USDT", 100.0)
+        self.assertEqual(buy(eng, sid="e5", bot="b5").outcome, "EXECUTED")
+
+    def test_a_stale_quote_still_stops_a_stop_exit_and_a_price_is_never_guessed(self):
+        from datetime import datetime, timedelta, timezone
+        db, pa, eng, mon = open_then_move(94.0, 0.05)
+        pa.set_price("BTC/USDT", 94.0, as_of=datetime.now(timezone.utc) - timedelta(minutes=10))
+        rep = run(mon.run_once())
+        self.assertEqual(rep.exits, [])
+        self.assertEqual(orders(db, "SELL"), [])
+        self.assertEqual(position(db)["status"], "OPEN")
+        self.assertEqual([i["status"] for i in incidents(db, INCIDENT_KIND)], ["OPEN"])
 
 
 class MalformedQuotes(unittest.TestCase):
@@ -147,7 +216,7 @@ class NoFabricatedFill(unittest.TestCase):
         self.assertLess(position(db)["realized_pnl"], 0)
 
     def test_nothing_is_closed_before_the_exit_has_filled(self):
-        db, pa, eng, mon = open_then_move(94.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)        # exit deferred
+        db, pa, eng, mon = open_then_move(117.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)       # take-profit deferred
         run(mon.run_once())
         p = position(db)
         self.assertEqual((p["status"], p["quantity"]), ("OPEN", 1.0))
@@ -158,12 +227,12 @@ class NoFabricatedFill(unittest.TestCase):
 
 class RecoveryAfterDeferral(unittest.TestCase):
     def test_when_the_spread_normalises_the_exit_goes_once_the_incident_clears_and_entries_resume(self):
-        db, pa, eng, mon = open_then_move(94.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)
+        db, pa, eng, mon = open_then_move(117.0, 0.05, emergency_exit_max_spread_pct=TOLERANCE)
         run(mon.run_once())
         run(mon.run_once())                                                                            # still deferred: one audit record per streak
         self.assertEqual(len(audit_rows(db, "EXIT_BLOCKED_WIDE_SPREAD")), 1)
         pa.slippage = 0.0005
-        pa.set_price("BTC/USDT", 94.0)
+        pa.set_price("BTC/USDT", 117.0)
         rep = run(mon.run_once())
         self.assertEqual([e[2] for e in rep.exits], ["EXECUTED"])
         self.assertEqual(len(orders(db, "SELL")), 1)

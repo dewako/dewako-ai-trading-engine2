@@ -66,7 +66,7 @@ class Config:
     paper_balance: float = 10_000.0
     market_data: str = "none"            # "public" = the MarketDataHub's public REST providers (no credentials); "none" = nothing configured
     max_hold_seconds: Optional[float] = None                 # time stop; None = DISABLED (no implicit default is ever invented)
-    emergency_exit_max_spread_pct: Optional[float] = None    # None = a triggered exit is NOT sent through a spread wider than the normal limit
+    emergency_exit_max_spread_pct: Optional[float] = None    # take-profit / time-stop tolerance; None = they wait for a normal spread. A STOP-LOSS ignores it
 
     def __post_init__(self) -> None:
         for name, upper in (("max_hold_seconds", None), ("emergency_exit_max_spread_pct", 100.0)):
