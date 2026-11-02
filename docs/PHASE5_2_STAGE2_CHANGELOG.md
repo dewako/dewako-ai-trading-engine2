@@ -27,4 +27,4 @@ Behaviour now:
 - Unchanged: critical vs non-critical (`worker_health.critical`), heartbeat expiry, `/health/live` independent of readiness, `/health/detailed` content.
 
 Files: `runtime/workers.py` (+ tests `test_stage2_wp4_readiness.py`, 8 tests; CI `--require` +3 names).
-Evidence so far: see the run recorded below once hosted CI completes.
+Evidence: hosted CI run 41413833110 on `0ae200a4` (covers WP5 + WP4), all 9 jobs green, PG16 546 tests, 0 skipped, gate 50/50; SQLite 546 tests, 3 allowed skips, gate 38/38; local SQLite 507 passed, PG16 510 passed, 0 failed.
