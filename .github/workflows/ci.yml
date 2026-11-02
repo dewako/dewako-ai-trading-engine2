@@ -68,6 +68,9 @@ jobs:
           --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
           --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
           --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
+          --require test_enabling_the_time_stop_on_restart_with_an_open_position_is_refused
+          --require test_disabling_the_time_stop_on_restart_with_an_open_position_is_refused_too
+          --require test_with_nothing_open_a_changed_configuration_is_adopted_and_audited
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -140,6 +143,9 @@ jobs:
           --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
           --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
           --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
+          --require test_enabling_the_time_stop_on_restart_with_an_open_position_is_refused
+          --require test_disabling_the_time_stop_on_restart_with_an_open_position_is_refused_too
+          --require test_with_nothing_open_a_changed_configuration_is_adopted_and_audited
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}

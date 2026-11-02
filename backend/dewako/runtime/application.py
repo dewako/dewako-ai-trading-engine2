@@ -189,7 +189,9 @@ class Application:
         self.engine.submit_authorized = self.lease.check            # checked against the database immediately before every LIVE send
         self.limits_store = RiskLimitsStore(db, self.rt.audit)
         self.engine.limits = self.limits_store.hard_caps()                 # the durable, operator-set caps; defaults only when none were ever set
-        self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.config.max_hold_seconds,
+        from dewako.runtime.time_stop import resolve_time_stop
+        self.time_stop = resolve_time_stop(db, self.rt.audit, self.config.max_hold_seconds)     # durable: a restart never silently changes it
+        self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.time_stop["max_hold_seconds"],
                                         emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct)
         # No new entry unless the exit monitor is verified running: a position that nothing is watching must not be created.
         self.engine.entry_guard = self._protection_ok

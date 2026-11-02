@@ -7,10 +7,18 @@ the reason. No control silently falls back to a safe-looking default.
 from __future__ import annotations
 
 
-def control_status(*, equity_feed_ok: bool, news_feed: bool = False, live_account_feed: bool = False) -> dict[str, dict]:
+def control_status(*, equity_feed_ok: bool, news_feed: bool = False, live_account_feed: bool = False,
+                   time_stop: dict | None = None) -> dict[str, dict]:
     def c(ok: bool, why_not: str) -> dict:
         return {"status": "ENFORCED" if ok else "NOT_ENFORCED", "reason": "" if ok else why_not}
     equity_why = "no healthy mark-to-market equity worker is running"
+    ts = time_stop or {}
+    secs = ts.get("max_hold_seconds")
+    time_stop_ctl = c(secs is not None, "disabled by configuration (the default); no position is closed because of how long it has been held")
+    if secs is not None:
+        time_stop_ctl["max_hold_seconds"] = secs
+    if ts.get("refused"):
+        time_stop_ctl["pending_change_refused"] = {"configured": ts.get("configured"), "reason": "the setting does not change while positions are open"}
     return {
         "stop_loss_required": c(True, ""),
         "risk_per_trade": c(True, ""),
@@ -25,5 +33,6 @@ def control_status(*, equity_feed_ok: bool, news_feed: bool = False, live_accoun
         "max_drawdown": c(equity_feed_ok, equity_why),
         "high_impact_news_blackout": c(news_feed, "no news/event calendar source is configured (Stage 4); this control does nothing today"),
         "live_realised_pnl": c(live_account_feed, "no LIVE account equity feed exists; live trading is locked"),
+        "time_stop": time_stop_ctl,
         "max_leverage": {"status": "NOT_APPLICABLE", "reason": "spot only; leverage and margin are not implemented"},
     }
