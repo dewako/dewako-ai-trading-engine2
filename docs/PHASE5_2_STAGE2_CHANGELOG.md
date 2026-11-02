@@ -45,4 +45,4 @@ Already handled elsewhere and verified, not duplicated: quote staleness / invali
 Known limitations: `RiskEngine.audit` is an in-memory list; the engine's instance grows by one record per entry for the life of the process (same pattern as the bot runner's instance). Equity-based position caps are still enforced by the reservation backstop at the executable price, not inside `size_for_executable_entry`.
 
 Files: `risk/sizing.py` (new), `risk/engine.py`, `execution/engine.py`, `execution/validation.py`; tests `test_stage2_wp1_risk_sizing.py` (15); CI `--require` +3 names.
-Local: SQLite 522 passed / 0 failed / 39 skipped; PG16 525 passed / 0 failed / 36 skipped; mutation check (sizing returns the unscaled quantity) fails 9 tests. Hosted CI: pending.
+Local: SQLite 522 passed / 0 failed / 39 skipped; PG16 525 passed / 0 failed / 36 skipped; mutation check (sizing returns the unscaled quantity) fails 9 tests. Hosted CI: run 41438701345 on `fa1c5f07` (WP5 + WP4 + WP1), all 9 jobs green; PG16 561 tests, 0 skipped, gate 53/53; SQLite 561 tests, 3 allowed skips, gate 41/41.
