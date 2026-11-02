@@ -1,7 +1,7 @@
 # NOTE (Stage 1.1): added the seven Stage 1.1 required tests (executable-price sizing, wide-spread exits, time stop, current-state readiness).
 # NOTE (Stage 1): added the Stage 1 required tests (exit monitor, SELL-while-flat, application lifecycle, HTTP lifecycle, bootstrap race) and raised --min-tests to 450.
 #   THIS WORKFLOW HAS STILL NEVER BEEN EXECUTED ON A HOSTED RUNNER; no hosted result exists.
-# NOTE (Phase 4.5): added the e2e-real-app job, pinned test constraints and the Phase 4.4/4.5 required tests. STILL NEVER EXECUTED.
+# NOTE (Phase 4.5): added the e2e-real-app job, pinned test constraints and the Phase 4.4/4.5 required tests. Executed on GitHub Actions: see docs/STAGE1_BASELINE_VERIFICATION.md for run URLs.
 # NOTE: this workflow has NOT been executed by the author (no CI runner / Docker daemon / package index was available).
 # It was checked structurally (YAML parse, paths, report names). The first real run is the verification of the workflow itself.
 name: ci

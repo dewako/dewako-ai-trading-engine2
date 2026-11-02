@@ -4,7 +4,7 @@ Base: `649700099d802eb544a07b99d821dea87dff9cdb` (branch `ci/stage1-g1-fixes`). 
 
 ## Status
 
-**Implemented and locally tested; NOT verified on hosted CI.** The HTTP tests could not run in the build sandbox (FastAPI cannot be installed there), so the one new HTTP test and the two edited HTTP tests are unexecuted until the hosted run. Everything else ran on SQLite and PostgreSQL 16.
+**Implemented, tested locally and verified on hosted CI** (run 41370530401 at `608cc8d9`, run 41372146491 on `main`; see `STAGE1_BASELINE_VERIFICATION.md`). The HTTP tests could not run in the build sandbox; they first ran on hosted CI, where one edited test had a wrong premise and was corrected (`608cc8d`).
 
 | Run (sandbox) | Result |
 |---|---|
