@@ -47,11 +47,13 @@ class MonitorReport:
     unverified: list = field(default_factory=list)     # (position_id, why)
     pending: list = field(default_factory=list)        # position ids with an exit already in flight
     wide: list = field(default_factory=list)           # (position_id, reason, spread_pct, attempts): triggered but blocked by a wide spread
+    waiting: list = field(default_factory=list)        # (position_id, reason, spread_pct, cycles): take-profit / time stop waiting for a fair spread
 
 
 class ExitMonitor:
     def __init__(self, engine, risk, *, max_hold_seconds: Optional[float] = None, clock: Callable[[], datetime] = utcnow,
-                 clean_cycles_to_clear: int = 2, emergency_exit_max_spread_pct: Optional[float] = None):
+                 clean_cycles_to_clear: int = 2, emergency_exit_max_spread_pct: Optional[float] = None,
+                 stop_suspect_spread_pct: Optional[float] = 10.0, stop_suspect_confirm_cycles: int = 3):
         self.engine, self.risk = engine, risk
         for name, value, upper in (("max_hold_seconds", max_hold_seconds, None), ("emergency_exit_max_spread_pct", emergency_exit_max_spread_pct, 100.0)):
             if value is None:
@@ -59,6 +61,14 @@ class ExitMonitor:
             if (isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0
                     or (upper is not None and value > upper)):
                 raise ValueError(f"{name} must be a finite positive number" + (f" not above {upper:g}" if upper else "") + " or unset")
+        if stop_suspect_spread_pct is not None and (isinstance(stop_suspect_spread_pct, bool) or not isinstance(stop_suspect_spread_pct, (int, float))
+                                                     or not math.isfinite(stop_suspect_spread_pct) or not 0 < stop_suspect_spread_pct <= 100):
+            raise ValueError("stop_suspect_spread_pct must be a finite number above 0 and not above 100, or None")
+        if isinstance(stop_suspect_confirm_cycles, bool) or not isinstance(stop_suspect_confirm_cycles, int) or stop_suspect_confirm_cycles < 1:
+            raise ValueError("stop_suspect_confirm_cycles must be an integer of at least 1")
+        self.stop_suspect_spread_pct = stop_suspect_spread_pct
+        self.stop_suspect_confirm_cycles = stop_suspect_confirm_cycles
+        self._waiting: dict[int, int] = {}
         self.max_hold_seconds = max_hold_seconds
         self.emergency_exit_max_spread_pct = emergency_exit_max_spread_pct
         self._wide_attempts: dict[int, int] = {}
@@ -88,6 +98,9 @@ class ExitMonitor:
         live = {p["id"] for p in positions}
         for pid in [k for k in self._wide_attempts if k not in live or (k not in wide_ids)]:
             self._wide_attempts.pop(pid, None)            # the streak ends when the trigger clears, the exit goes out, or the position closes
+        waiting_ids = {w[0] for w in rep.waiting}
+        for pid in [k for k in self._waiting if k not in live or k not in waiting_ids]:
+            self._waiting.pop(pid, None)                  # the wait ends when the trigger clears, the exit goes out, or the position closes
         if rep.unverified:
             self._clean = 0
         else:
@@ -150,23 +163,40 @@ class ExitMonitor:
         cap = None
         immediate = False
         if wide is not None and reason == "STOP":
-            # Stop-loss: never deferred for spread. It goes out at market now to limit the downside; the loss beyond the stop is real and is
-            # recorded at the quoted bid. (Take-profit and time stop keep the bounded tolerance below.)
+            # Stop-loss: goes out at market at once, through any spread a real market can show, to limit the downside. ONE exception: a
+            # spread above `stop_suspect_spread_pct` is far more likely a bad quote than a market, and selling on it can dump the position at a
+            # glitch price. Such a quote must persist for `stop_suspect_confirm_cycles` consecutive cycles before the stop is sent; until then
+            # protection is reported as not enforceable (CRITICAL incident, entries blocked) so the hold is never silent.
+            limit = self.stop_suspect_spread_pct
+            if limit is not None and wide.spread_pct > limit:
+                n = self._wide_attempts[pid] = self._wide_attempts.get(pid, 0) + 1
+                if n < self.stop_suspect_confirm_cycles:
+                    rep.wide.append((pid, reason, wide.spread_pct, n))
+                    rep.unverified.append((pid, f"STOP triggered at bid {price:g} but the spread {wide.spread_pct:.4g}% exceeds the suspect-quote "
+                                                f"limit {limit:g}%: confirming it persists ({n} of {self.stop_suspect_confirm_cycles} cycles) before selling"))
+                    if n == 1:
+                        self.engine.audit.record("EXIT_STOP_QUOTE_SUSPECT", "BLOCKED", "", resource=f"position:{pid}",
+                                                 metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "suspect_limit": limit,
+                                                           "confirm_cycles": self.stop_suspect_confirm_cycles})
+                    return
+                policy = "STOP_LOSS_CONFIRMED_WIDE"
+            else:
+                policy = "STOP_LOSS_IMMEDIATE"
             immediate = True
             self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
-                                     metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "policy": "STOP_LOSS_IMMEDIATE",
+                                     metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "policy": policy,
                                                "emergency_limit": None})
         elif wide is not None:
+            # Take-profit and time stop are not emergencies: they use the normal limit, then the explicit tolerance, and otherwise WAIT for a
+            # fair spread. Waiting is audited and reported but is not an unverified-protection event: the position's stop-loss is still
+            # enforced every cycle, so the worker stays healthy, no incident is opened and new entries are not blocked.
             cap = self.emergency_exit_max_spread_pct
             if cap is None or wide.spread_pct > cap:
-                n = self._wide_attempts[pid] = self._wide_attempts.get(pid, 0) + 1
-                limit = "no emergency spread limit is configured" if cap is None else f"it exceeds the emergency limit {cap:g}%"
-                rep.wide.append((pid, reason, wide.spread_pct, n))
-                rep.unverified.append((pid, f"{reason} triggered at bid {price:g} but the spread {wide.spread_pct:.4g}% exceeds the "
-                                            f"normal limit and {limit}: exit NOT sent, position remains OPEN (attempt {n}, retried every cycle)"))
+                n = self._waiting[pid] = self._waiting.get(pid, 0) + 1
+                rep.waiting.append((pid, reason, wide.spread_pct, n))
                 if n == 1:
-                    self.engine.audit.record("EXIT_BLOCKED_WIDE_SPREAD", "BLOCKED", "", resource=f"position:{pid}",
-                                             metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})
+                    self.engine.audit.record("EXIT_WAITING_WIDE_SPREAD", "WAITING", "", resource=f"position:{pid}",
+                                             metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "tolerance": cap})
                 return
             self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
                                      metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})

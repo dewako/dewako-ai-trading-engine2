@@ -103,35 +103,36 @@ class WideSpreadExits(unittest.TestCase):
         pa.set_price("BTC/USDT", price)
         return db, pa, eng, monitor(eng, **monitor_kw)
 
-    # Stage 2 policy (WP2b): a STOP-LOSS is never deferred for spread (see test_stage2_wp2_exit_spread.py). A TAKE-PROFIT keeps the bounded
-    # tolerance below, so these deferral tests use a take-profit trigger: bid 118.8 is above the 110 target.
-    def test_a_triggered_take_profit_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident(self):
+    # Stage 2 policy: a STOP-LOSS goes out at once (see test_stage2_wp2_exit_spread.py). A TAKE-PROFIT keeps the bounded tolerance and WAITS for a
+    # fair spread; waiting is audited and reported but is not an incident, does not make the worker unhealthy and does not block new entries.
+    # These tests use a take-profit trigger: bid 118.8 is above the 110 target.
+    def test_a_triggered_take_profit_in_a_wide_spread_waits_is_not_reported_closed_and_is_audited_without_an_incident(self):
         db, pa, eng, mon = self._open_then_gap(120.0, 0.01)     # 2 % spread, normal limit 0.25 %
         rep = run(mon.run_once())
         self.assertEqual(position(db)["status"], "OPEN")
         self.assertEqual(orders(db, "SELL"), [])
         self.assertEqual(rep.exits, [])
-        self.assertEqual([(w[0], w[1]) for w in rep.wide], [(position(db)["id"], "TAKE_PROFIT")])
-        inc = incidents(db, WIDE_SPREAD_KIND)
-        self.assertEqual([(i["severity"], i["status"]) for i in inc], [("CRITICAL", "OPEN")])
-        self.assertIn("NOT sent", inc[0]["detail"])
-        with self.assertRaises(RuntimeError):
-            run(mon.worker_tick())                              # the worker cannot look healthy
+        self.assertEqual([(w[0], w[1]) for w in rep.waiting], [(position(db)["id"], "TAKE_PROFIT")])
+        self.assertEqual((rep.wide, rep.unverified), ([], []))
+        self.assertEqual((incidents(db, WIDE_SPREAD_KIND), incidents(db, INCIDENT_KIND)), ([], []))
+        with db.read() as c:
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM audit_log WHERE action='EXIT_WAITING_WIDE_SPREAD'").fetchone()[0], 1)
+        run(mon.worker_tick())                                  # the worker stays healthy: the stop-loss is still being enforced
 
-    def test_new_entries_are_blocked_while_the_wide_spread_incident_is_open(self):
+    def test_new_entries_are_not_blocked_while_a_take_profit_waits_for_a_fair_spread(self):
         db, pa, eng, mon = self._open_then_gap(120.0, 0.01)
         run(mon.run_once())
         pa.slippage = 0.0005
         pa.set_price("BTC/USDT", 100.0)
-        r = buy(eng, sid="e2", bot="b2")
-        self.assertEqual(r.outcome, "BLOCKED")
-        self.assertIn("unverified", r.detail.lower())
+        self.assertEqual(buy(eng, sid="e2", bot="b2").outcome, "EXECUTED")
 
-    def test_the_attempt_count_grows_each_cycle_and_the_streak_is_retried_every_cycle(self):
+    def test_the_wait_count_grows_each_cycle_with_one_audit_record_per_streak(self):
         db, pa, eng, mon = self._open_then_gap(120.0, 0.01)
-        attempts = [run(mon.run_once()).wide[0][3] for _ in range(3)]
+        attempts = [run(mon.run_once()).waiting[0][3] for _ in range(3)]
         self.assertEqual(attempts, [1, 2, 3])
         self.assertEqual(orders(db, "SELL"), [])
+        with db.read() as c:
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM audit_log WHERE action='EXIT_WAITING_WIDE_SPREAD'").fetchone()[0], 1)
 
     def test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited(self):
         db, pa, eng, mon = self._open_then_gap(120.0, 0.01, emergency_exit_max_spread_pct=5.0)
@@ -147,7 +148,7 @@ class WideSpreadExits(unittest.TestCase):
         rep = run(mon.run_once())
         self.assertEqual(rep.exits, [])
         self.assertEqual(position(db)["status"], "OPEN")
-        self.assertEqual(len(rep.wide), 1)
+        self.assertEqual((len(rep.waiting), rep.wide), (1, []))
 
     def test_a_stale_quote_is_not_rescued_by_the_emergency_limit(self):
         db, pa, eng, mon = self._open_then_gap(94.0, 0.01, emergency_exit_max_spread_pct=5.0)
@@ -167,7 +168,7 @@ class WideSpreadExits(unittest.TestCase):
         self.assertEqual(len(incidents(db, INCIDENT_KIND)), 1)
         self.assertEqual(incidents(db, WIDE_SPREAD_KIND), [])
 
-    def test_when_the_spread_narrows_the_normal_exit_closes_it_once_and_the_incident_clears(self):
+    def test_when_the_spread_narrows_the_normal_exit_closes_it_once_and_the_wait_ends(self):
         db, pa, eng, mon = self._open_then_gap(120.0, 0.01)
         run(mon.run_once())
         run(mon.run_once())
@@ -178,9 +179,9 @@ class WideSpreadExits(unittest.TestCase):
         self.assertEqual(position(db)["status"], "CLOSED")
         for _ in range(2):
             run(mon.run_once())
-        self.assertEqual([i["status"] for i in incidents(db, WIDE_SPREAD_KIND)], ["RESOLVED"])
+        self.assertEqual(incidents(db), [])                     # a wait never opened an incident
         self.assertEqual(len(orders(db, "SELL")), 1)            # no duplicate exit
-        self.assertEqual(mon._wide_attempts, {})
+        self.assertEqual((mon._wide_attempts, mon._waiting), ({}, {}))
 
     def test_the_override_is_ignored_for_an_entry(self):
         db, _, pa, eng = make()

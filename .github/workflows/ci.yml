@@ -80,6 +80,9 @@ jobs:
           --require test_an_extreme_spread_beyond_the_tolerance_is_deferred_recorded_and_blocks_entries
           --require test_a_malformed_quote_never_produces_an_order_a_guessed_price_or_a_closed_position
           --require test_a_gap_through_the_stop_fills_at_the_quoted_bid_not_at_the_stop_price
+          --require test_the_stop_is_held_for_two_cycles_loudly_then_sent_on_the_third
+          --require test_a_glitch_that_clears_before_confirmation_never_sells_at_the_glitch_price
+          --require test_new_entries_are_not_blocked_while_a_take_profit_waits_for_a_fair_spread
           --require test_through_any_spread_and_with_no_tolerance_configured_the_stop_is_sent_at_once
           --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
           --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
@@ -167,6 +170,9 @@ jobs:
           --require test_an_extreme_spread_beyond_the_tolerance_is_deferred_recorded_and_blocks_entries
           --require test_a_malformed_quote_never_produces_an_order_a_guessed_price_or_a_closed_position
           --require test_a_gap_through_the_stop_fills_at_the_quoted_bid_not_at_the_stop_price
+          --require test_the_stop_is_held_for_two_cycles_loudly_then_sent_on_the_third
+          --require test_a_glitch_that_clears_before_confirmation_never_sells_at_the_glitch_price
+          --require test_new_entries_are_not_blocked_while_a_take_profit_waits_for_a_fair_spread
           --require test_through_any_spread_and_with_no_tolerance_configured_the_stop_is_sent_at_once
           --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
           --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit

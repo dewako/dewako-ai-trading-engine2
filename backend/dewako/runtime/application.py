@@ -66,9 +66,17 @@ class Config:
     paper_balance: float = 10_000.0
     market_data: str = "none"            # "public" = the MarketDataHub's public REST providers (no credentials); "none" = nothing configured
     max_hold_seconds: Optional[float] = None                 # time stop; None = DISABLED (no implicit default is ever invented)
+    stop_suspect_spread_pct: Optional[float] = 10.0          # a STOP seeing a spread above this is treated as a suspect quote: confirmed before selling; None = off
+    stop_suspect_confirm_cycles: int = 3                     # consecutive cycles a suspect quote must persist before the stop is sent (1 = no wait)
     emergency_exit_max_spread_pct: Optional[float] = None    # take-profit / time-stop tolerance; None = they wait for a normal spread. A STOP-LOSS ignores it
 
     def __post_init__(self) -> None:
+        v = self.stop_suspect_spread_pct
+        if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 < v <= 100):
+            raise ValueError("stop_suspect_spread_pct must be a number above 0 and not above 100, or off; refusing to start")
+        c = self.stop_suspect_confirm_cycles
+        if isinstance(c, bool) or not isinstance(c, int) or c < 1:
+            raise ValueError("stop_suspect_confirm_cycles must be an integer of at least 1; refusing to start")
         for name, upper in (("max_hold_seconds", None), ("emergency_exit_max_spread_pct", 100.0)):
             v = getattr(self, name)
             if v is None:
@@ -86,7 +94,30 @@ class Config:
                    market_data=e.get("DEWAKO_MARKET_DATA", "public").strip().lower(),
                    recon_interval=float(e.get("DEWAKO_RECON_INTERVAL", "60")), bot_interval=float(e.get("DEWAKO_BOT_INTERVAL", "30")),
                    max_hold_seconds=_optional_number(e, "DEWAKO_MAX_HOLD_SECONDS"),
-                   emergency_exit_max_spread_pct=_optional_number(e, "DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT"))
+                   emergency_exit_max_spread_pct=_optional_number(e, "DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT"),
+                   stop_suspect_spread_pct=_suspect_limit(e), stop_suspect_confirm_cycles=_confirm_cycles(e))
+
+
+def _suspect_limit(env) -> Optional[float]:
+    raw = (env.get("DEWAKO_STOP_SUSPECT_SPREAD_PCT") or "").strip().lower()
+    if raw == "":
+        return 10.0                                   # protective default; "off" is the only way to remove it
+    if raw in ("off", "none", "disabled"):
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        raise ValueError("DEWAKO_STOP_SUSPECT_SPREAD_PCT must be a number or 'off'; refusing to start") from None
+
+
+def _confirm_cycles(env) -> int:
+    raw = (env.get("DEWAKO_STOP_SUSPECT_CONFIRM_CYCLES") or "").strip()
+    if raw == "":
+        return 3
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError("DEWAKO_STOP_SUSPECT_CONFIRM_CYCLES must be a whole number; refusing to start") from None
 
 
 def _optional_number(env, key: str) -> Optional[float]:
@@ -192,7 +223,9 @@ class Application:
         from dewako.runtime.time_stop import resolve_time_stop
         self.time_stop = resolve_time_stop(db, self.rt.audit, self.config.max_hold_seconds)     # durable: a restart never silently changes it
         self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.time_stop["max_hold_seconds"],
-                                        emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct)
+                                        emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct,
+                                        stop_suspect_spread_pct=self.config.stop_suspect_spread_pct,
+                                        stop_suspect_confirm_cycles=self.config.stop_suspect_confirm_cycles)
         # No new entry unless the exit monitor is verified running: a position that nothing is watching must not be created.
         self.engine.entry_guard = self._protection_ok
         self.bot_service = BotService(db, self.adapters, RiskStateStore(db), self.rt.audit)
