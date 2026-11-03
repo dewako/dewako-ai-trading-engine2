@@ -1,4 +1,10 @@
-# Phase 4 Re-qualification - Plan (DRAFT v2, awaiting approval; no code changed)
+# Phase 5.2 Stage 3 - Paper Trading Qualification and Performance Validation - Plan (DRAFT v3, awaiting approval; no code changed)
+
+Paper research only. Live trading stays LOCKED. Source briefs: "Phase 5 - Stage 1-10 roadmap" (Stage 3) and "Phase 3 & Phase 4 brief".
+
+## 0. Decision: Stage 3 and the Phase 4 re-qualification are ONE piece of work
+Stage 3 asks for a historical replay engine, realistic simulated execution, walk-forward validation, regime analysis and strategy comparison. The Phase 4 re-qualification I drafted earlier asks for the same things (replay through the real pipeline, honest fills, validation, comparison). Building both would create two overlapping engines. This plan therefore merges them: Stage 3 is delivered as specified, and its evidence is ALSO submitted as the re-qualification of roadmap Phase 4 (Phase 4 completion criteria: reproducible tests, realistic execution assumptions, reliable reports). Sections 1-7 below are the earlier Phase 4 plan and still apply; section 8 maps it onto Stage 3 and lists the conflicts found.
+
 
 Paper research only. Live trading stays LOCKED. This plan reopens Phase 4 (Backtesting) of the 10-phase roadmap as its own milestone with its own acceptance criteria. It does not change Phase 5 scope. Proposed position: after Phase 5.2 Stage 3, before Phase 6.
 
@@ -80,3 +86,35 @@ Honest limits to state in the final audit: candles cannot show real spreads or o
 2. Promotion thresholds: who sets them and the starting values (suggested: minimum trade count, maximum drawdown, positive result at 2x costs, out-of-sample result not below a fraction of in-sample). Values are human-set only.
 3. Data source for history (existing public providers via `CandleStore`) and the period to use for BTC/USDT.
 4. Whether the promotion gate should also apply to strategies already in `PAPER_ELIGIBLE`.
+
+## 8. Merge into Stage 3 (v3)
+
+### 8.1 Stage 3 scope item -> work package
+| Stage 3 item | Work package |
+|---|---|
+| 1 Realistic paper execution (bid/ask, spread, slippage, fees, precision, partial fills, rejects, delays, outages) | B1 simulated adapter, used both by paper mode and by replay (one component, not two) |
+| 2 Historical replay (1m / 5m, chronological, deterministic, missing-candle validation, no look-ahead) | B3 datasets + B2 replay harness |
+| 3 Performance evaluation (win rate, P&L, profit factor, expectancy, drawdown, holding time, consecutive losses, costs, exposure) | B4 metrics (adds holding time, exposure; Phase 4 brief adds risk/reward) |
+| 4 Regime analysis (trend, range, high / low volatility) | new B8: regime labelling on the dataset and per-regime metrics (labels computed from past data only) |
+| 5 Out-of-sample (walk-forward, separation, reproducible config, version fingerprints) | B4 validation + B5 run records |
+| 6 Comparison under identical assumptions, weaknesses, recommendations, NO automatic promotion | B4 comparison; B5 gate only allows a human to promote, with evidence attached |
+| 7 Monitoring (execution quality, positions, metrics, health) | B6 read-only report screen; full dashboards stay Stage 8 |
+| 8 Failure scenarios (execution failures, data interruptions, worker failures, restart, duplicate prevention) | B1 outage / reject / delay modes + reuse Stage 2 WP7 kill tests against the replay stack |
+| 9 Performance and resource testing | B9: latency, CPU, memory, replay throughput and a bounded soak run; long-running proof stays Stage 9 |
+
+### 8.2 Proposed split to keep each stage verifiable
+Stage 3 is large. Proposed: **3A** = B3, B1, B2 (data, execution realism, replay through the real pipeline) with its own audit; **3B** = B4, B8, B5, B6, B9 (evaluation, regimes, validation, gate, report, resource tests) with its own audit. 3B must not start before 3A passes.
+
+### 8.3 Conflicts and risks found in the briefs (need a decision)
+1. **Instrument.** Stage 3 names XAUUSD 1m / 5m. Earlier instruction: BTC/USDT for now, multi-asset design. The existing public data providers are crypto exchanges; gold spot is not guaranteed there (a gold-tracking crypto pair would be a different instrument). Need: which instrument, which data source, and who supplies the history. Without a trustworthy gold source Stage 3 cannot honestly claim XAUUSD results.
+2. **Optimization placement.** Stage 5 has automated parameter optimization inside Phase 5, while the 10-phase roadmap puts optimization and controlled self-improvement in Phase 10. Acceptable only if candidates are never promoted automatically (Stage 5 itself says so) and the evaluator from Stage 3 is accepted first. Stage 5 must not start before Stage 3B passes.
+3. **Overlaps.** Stage 3 regime analysis overlaps Stage 6; Stage 3 failure/resource tests overlap Stage 7 and 9; Stage 3 "strategy comparison" overlaps Stage 4. Proposal: Stage 3 builds the engines and a minimal report; Stages 4, 6, 7, 9 reuse them and add dashboards, scale and long runs. Otherwise the same feature is accepted twice.
+4. **Stage 2 status wording.** The roadmap says Stage 2 is "reported complete; independent acceptance should be based on reviewable evidence". Stage 2 evidence now exists (FINAL_AUDIT, three green hosted CI runs on `efa1de2`), but the branches are not merged and nothing has been independently audited by anyone other than me. The final status I recorded is my own assessment.
+5. **Paper-vs-real labelling.** Roadmap rule "all simulated execution must be distinguishable from real execution": replay and paper orders must carry an explicit simulated marker in records and reports (check whether the environment column already does this for replay runs; a separate `SIMULATED` source tag is proposed).
+
+### 8.4 Updated decisions needed from the owner
+1. Approve merging Stage 3 and the Phase 4 re-qualification as described, and the 3A / 3B split.
+2. Instrument and data source for Stage 3 (XAUUSD vs BTC/USDT first), and the history period.
+3. Promotion thresholds (human-set only) and whether the gate also applies to strategies already PAPER_ELIGIBLE.
+4. Decide on merging the Stage 2 branches into main before 3A starts.
+5. Confirm the overlap rule in 8.3 (3) so features are not accepted twice.
