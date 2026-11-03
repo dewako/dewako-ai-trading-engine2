@@ -125,4 +125,4 @@ Existing coverage found first: `test_crash_matrix.py` (kill at ten order boundar
 - Mutation checks (each fails tests, code restored): stop never fires (5), take-profit never fires (1), restart quarantines known partial exit (1; the first version of the test did NOT catch this, so an assertion after startup recovery was added).
 - CI: the file runs in the `crash-repeat` job (SQLite and PG16, three fresh processes each) and in `windows-crash`; the three kill tests are `--require`d.
 - Limits: the exchange is modelled by the paper adapter plus a fake; no power loss, disk failure or real exchange; database interruption is simulated by making the transaction call fail, not by stopping a PostgreSQL server; the Windows 3.14 hang (run 41311105233) is still unexplained.
-- Evidence (local): SQLite 588 passed, PG16 591 passed, 0 failed. Hosted CI recorded below.
+- Evidence (local): SQLite 588 passed, PG16 591 passed, 0 failed. Hosted CI run 41636194642 on `1d07673`: all jobs green, including windows-crash 3.13 and 3.14 with the kill tests.
