@@ -1,4 +1,4 @@
-# Phase 4 Re-qualification - Plan (DRAFT, awaiting approval; no code changed)
+# Phase 4 Re-qualification - Plan (DRAFT v2, awaiting approval; no code changed)
 
 Paper research only. Live trading stays LOCKED. This plan reopens Phase 4 (Backtesting) of the 10-phase roadmap as its own milestone with its own acceptance criteria. It does not change Phase 5 scope. Proposed position: after Phase 5.2 Stage 3, before Phase 6.
 
@@ -15,6 +15,23 @@ Paper research only. Live trading stays LOCKED. This plan reopens Phase 4 (Backt
 | F8 | 3 tests (reproducible, costs reduce profit, no look-ahead); no CI evidence of fill realism | weak proof |
 Not yet checked: whether Phase 4 was formally accepted earlier; whether Phase 5.2 Stage 3 already covers part of this (brief not seen).
 
+## 1b. Mapping to the owner's Phase 3 & 4 brief (received 2026-11-04)
+Source: "Phase 3 & Phase 4 - Development Brief". Its own principles: strategies must not bypass the Risk Engine; backtesting uses deterministic, reproducible execution assumptions; AI must not modify parameters or promote strategies without an approved validation process; results are not proof of future profitability. Phase 4 is complete only with "realistic execution assumptions and reliable performance reports".
+
+| Brief item | Current state (checked in code) | Gap |
+|---|---|---|
+| Import historical data, multiple instruments and timeframes | `CandleStore` exists (point-in-time, gap finder); backtester takes a raw candle list for one symbol | not wired; no dataset identity |
+| Validate missing AND incorrect candles | gaps only | no check for bad OHLC (high < low, zero/negative, spikes), duplicates, non-monotonic time |
+| Stop-loss and take-profit processing | stop only, filled at the stop price | no take-profit, no time stop, wrong gap fills (F1) |
+| Historical position and order records | trades list only | no order/position records |
+| Spread and slippage, fees, sizing, realistic execution | fixed slippage and fee, own sizing | no spread; sizing bypasses the Risk Engine (violates the brief's own principle) |
+| Metrics: P&L, win rate, profit factor, expectancy, max drawdown, risk/reward, consecutive wins/losses | P&L, win rate, profit factor, avg trade, drawdown (understated), Sharpe per bar | risk/reward and consecutive streaks missing; drawdown wrong (F2) |
+| Strategy comparison (strategies, parameter sets, timeframes, weaknesses) | none in the engine | missing |
+| Visual analytics | GUI page exists but is a DEMO: it does not run any strategy; it draws random trades from a seeded generator with hard-coded win rates per strategy, on synthetic candles. The page is labelled demo | no real results reach the GUI |
+| No look-ahead, no leakage, reproducible, out-of-sample | next-bar-open entry, reproducible record; no out-of-sample or walk-forward in the engine | leakage and out-of-sample controls missing |
+
+Consequence: the GUI backtest page is a third, unrelated implementation. It stays labelled demo until B6 replaces it with real run results; no number on it may be used as evidence.
+
 ## 2. Principles
 1. What is backtested is the code that trades: the real Strategy, Risk Engine, ExecutionEngine and ExitMonitor run on replayed data; only the adapter and clock are simulated.
 2. A backtest result is evidence only together with its costs, its data identity and the number of variants tried.
@@ -29,10 +46,10 @@ Not adopted: NautilusTrader or VectorBT as the core (would test a different syst
 |---|---|---|---|
 | B1 | Simulated exchange adapter and virtual clock | adapter with fee, spread, volatility-scaled slippage, latency, partial fills, gap fills at the quoted price; deterministic | `backtesting/sim_adapter.py`, `backtesting/clock.py` |
 | B2 | Replay harness | feeds candles through real Strategy -> Risk Engine -> ExecutionEngine -> ExitMonitor in an isolated database; mark-to-market equity every bar; replaces `engine.run` (old API kept as a thin wrapper, deprecated) | `backtesting/replay.py`, `backtesting/engine.py` (edit) |
-| B3 | Dataset layer | versioned dataset from `CandleStore` (point-in-time, gap and duplicate report, content hash, source recorded); refuses a dataset with unexplained gaps | `backtesting/datasets.py` |
-| B4 | Validation | walk-forward and out-of-sample splits; cost stress at 1x/2x/3x; parameter-stability map; variant counter; trade-order Monte Carlo for the drawdown range; plain-language warnings | `backtesting/validation.py` |
+| B3 | Dataset layer | versioned dataset from `CandleStore` for any instrument and timeframe (point-in-time; gap, duplicate, ordering and bad-OHLC/spike report; content hash; source recorded); refuses a dataset with unexplained gaps or invalid candles | `backtesting/datasets.py` |
+| B4 | Validation and comparison | metrics completed (expectancy, risk/reward, consecutive wins/losses, correct drawdown); strategy, parameter-set and timeframe comparison with a weakness report; walk-forward and out-of-sample splits; cost stress at 1x/2x/3x; parameter-stability map; variant counter; trade-order Monte Carlo for the drawdown range; plain-language warnings | `backtesting/validation.py` |
 | B5 | Run records and promotion gate | additive migration `backtest_runs` (dataset hash, commit, parameters, assumptions, metrics, status); `PAPER_ELIGIBLE` transition requires a PASSED run for that exact strategy version, with thresholds set by a human; every decision audited | migration 11, `strategy_packages/manager.py` (edit), `backtesting/gate.py` |
-| B6 | Report and GUI | per-run report (equity, drawdown, trades, costs paid, warnings); read-only screen; no setting that changes live behaviour | API route (read-only) + prototype screen |
+| B6 | Report and GUI | per-run report (equity, drawdown, entries/exits on the chart, trades, costs paid, warnings); API route (read-only); the demo backtest page is replaced by real run results (or stays labelled demo) | API route + prototype screen |
 | B7 | Evidence | tests per WP, mutation checks, SQLite and PG16 suites, hosted CI x3 on a recorded SHA, JUnit and raw logs, final audit | `docs/PHASE4_REQUALIFICATION_*` |
 
 Order: B3 -> B1 -> B2 -> B4 -> B5 -> B6 -> B7 (data and fill realism before anything is judged on results).
