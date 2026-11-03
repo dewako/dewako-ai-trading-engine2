@@ -179,7 +179,7 @@ class SuspectStopQuote(unittest.TestCase):
     price. It must persist for the confirmation cycles first; the hold is never silent."""
     GLITCH = 0.2                                                  # half-spread 20 %: spread about 40 %
 
-    def test_the_stop_is_held_for_two_cycles_loudly_then_sent_on_the_third(self):
+    def test_the_stop_is_held_for_two_cycles_loudly_and_entries_are_blocked(self):
         db, pa, eng, mon = open_then_move(94.0, self.GLITCH)
         for cycle in (1, 2):
             rep = run(mon.run_once())
