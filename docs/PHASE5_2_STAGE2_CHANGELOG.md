@@ -114,3 +114,15 @@ Probed first (unmodified code): a partial exit already reduced the position corr
 - Tests: `tests/test_stage2_wp3_partial_exits.py`, 15. Mutation checks (each fails tests): transitions not tracked (8), never REDUCING (4), restart quarantines known partial (1), no stall detection (1), never back to OPEN (1).
 - Limits: paper adapter fills instantly, so partials are produced by a test adapter, not observed on a real exchange; stalled exits need a human or order recovery; an exit tracking row for a position closed by another path keeps its last status.
 - Evidence (local): SQLite 581 passed, PG16 584 passed, 0 failed; ruff real-error check clean. Hosted CI run 41634609424 on `abfbe37`: all jobs green.
+
+## WP7 - Lifecycle and crash recovery with real process termination (branch `stage2-wp7-lifecycle`, stacked on WP3)
+
+Existing coverage found first: `test_crash_matrix.py` (kill at ten order boundaries, DB outage, exchange timeouts, hung worker) and one stop-after-SIGKILL test. Added `tests/test_stage2_wp7_lifecycle.py` (7 tests); no production code changed.
+
+- **Real kills:** a child process opens the position (or a partial exit), prints READY and is killed with `Popen.kill()` (SIGKILL on Linux, TerminateProcess on Windows; the test asserts the abrupt return code, so a graceful exit fails it). A brand-new engine on the same database is the restart.
+- Covered: take-profit enforced by a fresh process; pending partial exit survives a kill, stays REDUCING through startup recovery, is finished from the exchange report with exactly one sell order; remainder still stopped after the exit order is cancelled (second sale is only the remainder); three kill/restart cycles change nothing and sell nothing, then one stop sells once.
+- In-process failure injection: market-data failure (reported, entries blocked, no order from bad data, stop fires when data returns); database failure mid-cycle (nothing sent, next cycle recovers); critical worker failure makes the system unhealthy and one good cycle restores it.
+- Mutation checks (each fails tests, code restored): stop never fires (5), take-profit never fires (1), restart quarantines known partial exit (1; the first version of the test did NOT catch this, so an assertion after startup recovery was added).
+- CI: the file runs in the `crash-repeat` job (SQLite and PG16, three fresh processes each) and in `windows-crash`; the three kill tests are `--require`d.
+- Limits: the exchange is modelled by the paper adapter plus a fake; no power loss, disk failure or real exchange; database interruption is simulated by making the transaction call fail, not by stopping a PostgreSQL server; the Windows 3.14 hang (run 41311105233) is still unexplained.
+- Evidence (local): SQLite 588 passed, PG16 591 passed, 0 failed. Hosted CI recorded below.

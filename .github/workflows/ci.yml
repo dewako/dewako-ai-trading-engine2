@@ -236,12 +236,12 @@ jobs:
         run: |
           set -euo pipefail
           for i in 1 2 3; do
-            python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py -k "not pg_" --junitxml=../../crash-sqlite-$i.xml
-            DEWAKO_TEST_DB=postgres python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py --junitxml=../../crash-pg-$i.xml
+            python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py test_stage2_wp7_lifecycle.py -k "not pg_" --junitxml=../../crash-sqlite-$i.xml
+            DEWAKO_TEST_DB=postgres python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py test_stage2_wp7_lifecycle.py --junitxml=../../crash-pg-$i.xml
           done
       - run: |
           set -euo pipefail
-          for f in crash-sqlite-1 crash-sqlite-2 crash-sqlite-3 crash-pg-1 crash-pg-2 crash-pg-3; do python scripts/assert_no_skips.py $f.xml --min-tests 15; done
+          for f in crash-sqlite-1 crash-sqlite-2 crash-sqlite-3 crash-pg-1 crash-pg-2 crash-pg-3; do python scripts/assert_no_skips.py $f.xml --min-tests 22 --require test_a_pending_partial_exit_survives_a_kill_and_the_exchange_report_finishes_it_without_a_second_sale --require test_repeated_kill_restart_cycles_change_nothing_and_sell_nothing --require test_take_profit_is_enforced_by_a_fresh_process_after_a_kill; done
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: crash-junit, path: "crash-*.xml"}
@@ -262,10 +262,10 @@ jobs:
         run: |
           set -euo pipefail
           for i in 1 2 3; do
-            python -m pytest -q -p no:cacheprovider -v --timeout=300 --timeout-method=thread -o faulthandler_timeout=240 test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
+            python -m pytest -q -p no:cacheprovider -v --timeout=300 --timeout-method=thread -o faulthandler_timeout=240 test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py test_stage2_wp7_lifecycle.py --junitxml=../../win-crash-$i.xml
           done
       - run: |
-          foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
+          foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only" --require test_a_pending_partial_exit_survives_a_kill_and_the_exchange_report_finishes_it_without_a_second_sale --require test_repeated_kill_restart_cycles_change_nothing_and_sell_nothing --require test_take_profit_is_enforced_by_a_fresh_process_after_a_kill; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
         shell: pwsh
       - uses: actions/upload-artifact@v4
         if: always()
