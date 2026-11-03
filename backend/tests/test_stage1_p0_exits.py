@@ -180,8 +180,8 @@ class MonitorEnforcesExits(unittest.TestCase):
         buy(eng)
         pa.set_price("BTC/USDT", 94.0)
         run(monitor(eng).run_once())
-        p = position(db)
-        self.assertEqual(p["status"], "OPEN")
+        p = position(db)       # Stage 2 WP3: a partly sold position is REDUCING while its exit is still active
+        self.assertEqual(p["status"], "REDUCING")
         self.assertAlmostEqual(p["quantity"], 0.5)
         self.assertEqual((p["stop_loss"], p["take_profit"]), (95.0, 110.0))
 

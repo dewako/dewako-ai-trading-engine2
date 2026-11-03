@@ -84,9 +84,11 @@ class PositionStore:
                       (pnl, ts, ts, row["id"]))
             self._event(c, row["id"], "POSITION_CLOSED", row["status"], "CLOSED", quantity, price, order_id, correlation_id)
             return row["id"], pnl, True
-        c.execute("UPDATE positions SET quantity=?, status='OPEN', realized_pnl=realized_pnl+?, updated_at=? WHERE id=?",
-                  (left, pnl, ts, row["id"]))
-        self._event(c, row["id"], "POSITION_REDUCED", row["status"], "OPEN", quantity, price, order_id, correlation_id)
+        from dewako.execution.exit_tracking import has_active_exit
+        new_status = "REDUCING" if has_active_exit(c, row["id"], partial_only=True) else "OPEN"     # still being sold, or not
+        c.execute("UPDATE positions SET quantity=?, status=?, realized_pnl=realized_pnl+?, updated_at=? WHERE id=?",
+                  (left, new_status, pnl, ts, row["id"]))
+        self._event(c, row["id"], "POSITION_REDUCED", row["status"], new_status, quantity, price, order_id, correlation_id)
         return row["id"], pnl, False
 
     @staticmethod
@@ -117,7 +119,12 @@ class PositionStore:
         RECONCILING; the reconciliation run decides what they really are. Nothing is closed or opened here."""
         n = 0
         with self.db.tx() as c:
+            from dewako.execution.exit_tracking import active_exits
             for r in c.execute("SELECT id, status FROM positions WHERE status IN ('OPENING','REDUCING','CLOSING','UNKNOWN')").fetchall():
+                if r["status"] == "REDUCING":
+                    ex = active_exits(c, r["id"])
+                    if ex and all(e["status"] == "PARTIAL" for e in ex):
+                        continue          # its exit order was re-synced with the exchange at startup and is a known, active partial fill
                 if r["status"] != "UNKNOWN":
                     c.execute("UPDATE positions SET status='UNKNOWN', updated_at=? WHERE id=?", (now_iso(), r["id"]))
                     self._event(c, r["id"], "RECOVERY_UNCERTAIN", r["status"], "UNKNOWN", None, None, None, "")

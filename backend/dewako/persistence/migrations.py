@@ -326,6 +326,20 @@ CREATE TABLE risk_limits (
   created_at TEXT NOT NULL
 );
 """),
+    (10, "position_exits", """
+CREATE TABLE position_exits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id INTEGER NOT NULL UNIQUE REFERENCES orders(id),
+  position_id INTEGER REFERENCES positions(id),
+  bot_id TEXT NOT NULL, exchange TEXT NOT NULL, environment TEXT NOT NULL, symbol TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  requested_quantity REAL NOT NULL, filled_quantity REAL NOT NULL DEFAULT 0, remaining_quantity REAL NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('PENDING','PARTIAL','COMPLETE','CANCELLED','FAILED','UNKNOWN')),
+  reconciliation_status TEXT NOT NULL CHECK (reconciliation_status IN ('CLEAR','REQUIRED')),
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, last_progress_at TEXT NOT NULL
+);
+CREATE INDEX position_exits_position ON position_exits(position_id, status);
+"""),
 ]
 
 # Statements that differ by dialect (triggers/functions contain semicolons and cannot be translated). They run inside the same

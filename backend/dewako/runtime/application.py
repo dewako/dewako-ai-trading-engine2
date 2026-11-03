@@ -67,6 +67,7 @@ class Config:
     market_data: str = "none"            # "public" = the MarketDataHub's public REST providers (no credentials); "none" = nothing configured
     max_hold_seconds: Optional[float] = None                 # time stop; None = DISABLED (no implicit default is ever invented)
     stop_suspect_spread_pct: Optional[float] = 10.0          # a STOP seeing a spread above this is treated as a suspect quote: confirmed before selling; None = off
+    exit_stall_seconds: Optional[float] = 120.0              # an exit order with no fill progress for this long is reported as unprotected; None = off
     stop_suspect_confirm_cycles: int = 3                     # consecutive cycles a suspect quote must persist before the stop is sent (1 = no wait)
     emergency_exit_max_spread_pct: Optional[float] = None    # take-profit / time-stop tolerance; None = they wait for a normal spread. A STOP-LOSS ignores it
 
@@ -95,7 +96,7 @@ class Config:
                    recon_interval=float(e.get("DEWAKO_RECON_INTERVAL", "60")), bot_interval=float(e.get("DEWAKO_BOT_INTERVAL", "30")),
                    max_hold_seconds=_optional_number(e, "DEWAKO_MAX_HOLD_SECONDS"),
                    emergency_exit_max_spread_pct=_optional_number(e, "DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT"),
-                   stop_suspect_spread_pct=_suspect_limit(e), stop_suspect_confirm_cycles=_confirm_cycles(e))
+                   stop_suspect_spread_pct=_suspect_limit(e), stop_suspect_confirm_cycles=_confirm_cycles(e), exit_stall_seconds=_stall_seconds(e))
 
 
 def _suspect_limit(env) -> Optional[float]:
@@ -108,6 +109,21 @@ def _suspect_limit(env) -> Optional[float]:
         return float(raw)
     except ValueError:
         raise ValueError("DEWAKO_STOP_SUSPECT_SPREAD_PCT must be a number or 'off'; refusing to start") from None
+
+
+def _stall_seconds(env) -> Optional[float]:
+    raw = (env.get("DEWAKO_EXIT_STALL_SECONDS") or "").strip().lower()
+    if raw == "":
+        return 120.0
+    if raw in ("off", "none", "disabled"):
+        return None
+    try:
+        v = float(raw)
+    except ValueError:
+        raise ValueError("DEWAKO_EXIT_STALL_SECONDS must be a positive number or 'off'; refusing to start") from None
+    if not (v > 0):
+        raise ValueError("DEWAKO_EXIT_STALL_SECONDS must be a positive number or 'off'; refusing to start")
+    return v
 
 
 def _confirm_cycles(env) -> int:
@@ -225,7 +241,8 @@ class Application:
         self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.time_stop["max_hold_seconds"],
                                         emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct,
                                         stop_suspect_spread_pct=self.config.stop_suspect_spread_pct,
-                                        stop_suspect_confirm_cycles=self.config.stop_suspect_confirm_cycles)
+                                        stop_suspect_confirm_cycles=self.config.stop_suspect_confirm_cycles,
+                                        exit_stall_seconds=self.config.exit_stall_seconds)
         # No new entry unless the exit monitor is verified running: a position that nothing is watching must not be created.
         self.engine.entry_guard = self._protection_ok
         self.bot_service = BotService(db, self.adapters, RiskStateStore(db), self.rt.audit)

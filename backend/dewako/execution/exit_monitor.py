@@ -53,8 +53,12 @@ class MonitorReport:
 class ExitMonitor:
     def __init__(self, engine, risk, *, max_hold_seconds: Optional[float] = None, clock: Callable[[], datetime] = utcnow,
                  clean_cycles_to_clear: int = 2, emergency_exit_max_spread_pct: Optional[float] = None,
-                 stop_suspect_spread_pct: Optional[float] = 10.0, stop_suspect_confirm_cycles: int = 3):
+                 stop_suspect_spread_pct: Optional[float] = 10.0, stop_suspect_confirm_cycles: int = 3,
+                 exit_stall_seconds: Optional[float] = 120.0):
         self.engine, self.risk = engine, risk
+        if exit_stall_seconds is not None and not (exit_stall_seconds > 0):
+            raise ValueError("exit_stall_seconds must be positive or None")
+        self.exit_stall_seconds = exit_stall_seconds
         for name, value, upper in (("max_hold_seconds", max_hold_seconds, None), ("emergency_exit_max_spread_pct", emergency_exit_max_spread_pct, 100.0)):
             if value is None:
                 continue
@@ -119,7 +123,15 @@ class ExitMonitor:
     # ------------------------------------------------------------------ one position
     async def _check(self, p: dict, rep: MonitorReport) -> None:
         pid = p["id"]
-        if p["status"] != "OPEN":
+        if p["status"] == "REDUCING":
+            # partly sold: the remainder is still protected by this monitor, but only while an exit is actually tracked for it
+            with self.engine.db.read() as c:
+                from dewako.execution.exit_tracking import active_exits
+                tracked = active_exits(c, pid)
+            if not tracked:
+                rep.unverified.append((pid, "position is REDUCING but no exit is tracked for it; it cannot be treated as protected until reconciled"))
+                return
+        elif p["status"] != "OPEN":
             rep.unverified.append((pid, f"position status is {p['status']}; protection cannot be verified until it is reconciled"))
             return
         if p["side"] != "BUY":
@@ -146,6 +158,9 @@ class ExitMonitor:
         except Exception as e:
             rep.unverified.append((pid, f"quote unavailable ({type(e).__name__})"))
             return
+        stalled = self._stalled_exit(p)
+        if stalled is not None:
+            rep.unverified.append((pid, stalled))
         reason = None
         if price <= p["stop_loss"]:
             reason = "STOP"
@@ -221,6 +236,29 @@ class ExitMonitor:
         if opened.tzinfo is None:
             opened = opened.replace(tzinfo=timezone.utc)
         return (self.clock() - opened).total_seconds()
+
+    def _stalled_exit(self, p: dict) -> Optional[str]:
+        """An exit order that has made no fill progress for `exit_stall_seconds` leaves its remaining quantity unprotected in practice. It is
+        reported as unverified protection (incident, entries blocked, CRITICAL alert). Nothing is cancelled or resent from here: a second
+        sell on top of an unknown first one is the bigger risk, so a human or the order-recovery worker decides."""
+        if self.exit_stall_seconds is None:
+            return None
+        from dewako.execution.exit_tracking import active_exits
+        with self.engine.db.read() as c:
+            rows = active_exits(c, p["id"])
+        now = self.clock()
+        for r in rows:
+            t = datetime.fromisoformat(r["last_progress_at"]) if isinstance(r["last_progress_at"], str) else r["last_progress_at"]
+            if t.tzinfo is None:
+                t = t.replace(tzinfo=timezone.utc)
+            age = (now - t).total_seconds()
+            if age > self.exit_stall_seconds:
+                self.engine.audit.record_safely("EXIT_STALLED", "BLOCKED", "", resource=f"order:{r['order_id']}",
+                                                metadata={"position": p["id"], "reason": r["reason"], "remaining": r["remaining_quantity"],
+                                                          "status": r["status"], "seconds_without_progress": round(age, 1)})
+                return (f"{r['reason']} exit order {r['order_id']} ({r['status']}, {r['remaining_quantity']:g} left) has made no progress for "
+                        f"{age:.0f}s (limit {self.exit_stall_seconds:g}s); the remaining quantity is not being sold")
+        return None
 
     def _exit_in_flight(self, p: dict) -> bool:
         marks = ",".join("?" * len(_PENDING_STATES))
