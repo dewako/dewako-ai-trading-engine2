@@ -72,7 +72,7 @@ Risk accepted with this policy (documented in `PAPER_VS_LIVE.md`): the stop trig
 
 Tests: 11 tests failed when the policy changed because they encoded the old rule for STOP (5 in `test_stage1_1_p1.py`, 6 in `test_stage2_wp2_exit_spread.py`). They were moved to a take-profit trigger with the same assertions (6 Stage 1.1 tests converted, including one that still passed; one existing take-profit test became identical to a converted one and was removed, 29 -> 28; the 6 WP2 tests were converted). New `StopLossIsNeverDeferredForSpread` class (6 tests) covers 0.1 %-40 % spreads with no tolerance, audit record, tolerance not delaying a stop, no double sell, entries not blocked after, stale quote still blocks. Mutation checks: restoring stop deferral fails 7 tests; making take-profit immediate fails 11.
 Files: `execution/exit_monitor.py`, `execution/engine.py`, `execution/validation.py`, config comment, `.env.example`, docs, CI `--require` names (one renamed, three added).
-Evidence: pending.
+Evidence: local SQLite 549 passed / PG16 552 passed, 0 failed. Hosted CI run 41594490033 (WP5 + WP4 + WP1 + WP2 + WP2b + WP2c), all 9 jobs green on `8413da2a`: PG16 588 tests, 0 skipped, gate 62/62; SQLite 588 tests, 3 allowed skips, gate 50/50. The first run (41593881022) failed only the skip gate: three required test names had been renamed; the requirement list was updated to the new names (none dropped).
 
 ## WP2c - Exit policy: stop-loss at once, take-profit waits, time stop like take-profit (branch `stage2-wp2c-exit-policy`, stacked on WP2b)
 
@@ -85,4 +85,4 @@ Your decisions (2026-11-03): decouple stop-loss from take-profit; protect capita
 - New settings are in `.env.example` and `docs/PAPER_VS_LIVE.md`.
 
 Trade-offs you accepted or should re-check: a real flash crash also shows a wide spread, so a genuine stop can be delayed by up to two cycles (about 10 s at the default interval) when the spread is above 10 %; BTC/USDT's normal spread is a tiny fraction of a percent, so 10 % is already an extreme reading. Phase 9 note: all of these limits are human-set configuration; nothing here lets an AI change them.
-Evidence: pending.
+Evidence: local SQLite 549 passed / PG16 552 passed, 0 failed. Hosted CI run 41594490033 (WP5 + WP4 + WP1 + WP2 + WP2b + WP2c), all 9 jobs green on `8413da2a`: PG16 588 tests, 0 skipped, gate 62/62; SQLite 588 tests, 3 allowed skips, gate 50/50. The first run (41593881022) failed only the skip gate: three required test names had been renamed; the requirement list was updated to the new names (none dropped).
