@@ -175,7 +175,7 @@ class ExitMonitor:
                     rep.unverified.append((pid, f"STOP triggered at bid {price:g} but the spread {wide.spread_pct:.4g}% exceeds the suspect-quote "
                                                 f"limit {limit:g}%: confirming it persists ({n} of {self.stop_suspect_confirm_cycles} cycles) before selling"))
                     if n == 1:
-                        self.engine.audit.record("EXIT_STOP_QUOTE_SUSPECT", "BLOCKED", "", resource=f"position:{pid}",
+                        self.engine.audit.record_safely("EXIT_STOP_QUOTE_SUSPECT", "BLOCKED", "", resource=f"position:{pid}",
                                                  metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "suspect_limit": limit,
                                                            "confirm_cycles": self.stop_suspect_confirm_cycles})
                     return
@@ -183,7 +183,7 @@ class ExitMonitor:
             else:
                 policy = "STOP_LOSS_IMMEDIATE"
             immediate = True
-            self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
+            self.engine.audit.record_safely("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
                                      metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "policy": policy,
                                                "emergency_limit": None})
         elif wide is not None:
@@ -195,10 +195,10 @@ class ExitMonitor:
                 n = self._waiting[pid] = self._waiting.get(pid, 0) + 1
                 rep.waiting.append((pid, reason, wide.spread_pct, n))
                 if n == 1:
-                    self.engine.audit.record("EXIT_WAITING_WIDE_SPREAD", "WAITING", "", resource=f"position:{pid}",
+                    self.engine.audit.record_safely("EXIT_WAITING_WIDE_SPREAD", "WAITING", "", resource=f"position:{pid}",
                                              metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "tolerance": cap})
                 return
-            self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
+            self.engine.audit.record_safely("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
                                      metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})
         sig = Signal(symbol=p["symbol"], side=Side.SELL, confidence=1.0, strategy="ExitMonitor", strategy_version="1",
                      signal_id=self._signal_id(pid, reason), reason=[f"{reason} trigger at {price:g}"], entry_price=price,

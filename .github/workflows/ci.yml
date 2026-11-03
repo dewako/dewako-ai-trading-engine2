@@ -86,6 +86,14 @@ jobs:
           --require test_through_any_spread_up_to_the_suspect_limit_and_with_no_tolerance_the_stop_is_sent_at_once
           --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
           --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
+          --require test_a_failed_write_is_held_logged_critical_and_keeps_the_original_exception
+          --require test_held_events_are_written_in_order_exactly_once_as_late_writes_with_a_recovery_marker
+          --require test_overflow_loses_the_oldest_says_so_and_stays_degraded_until_a_human_acknowledges
+          --require test_an_audit_failure_after_the_exchange_ack_does_not_stop_the_fill_being_applied
+          --require test_an_audit_failure_at_an_unknown_outcome_does_not_skip_the_reconciliation_flag
+          --require test_an_audit_failure_before_a_wide_spread_stop_does_not_stop_the_stop_loss
+          --require test_while_audit_is_degraded_entries_are_blocked_but_exits_are_not_and_recovery_reopens_entries
+          --require test_readiness_health_and_the_health_worker_follow_audit_persistence
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -176,6 +184,14 @@ jobs:
           --require test_through_any_spread_up_to_the_suspect_limit_and_with_no_tolerance_the_stop_is_sent_at_once
           --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
           --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
+          --require test_a_failed_write_is_held_logged_critical_and_keeps_the_original_exception
+          --require test_held_events_are_written_in_order_exactly_once_as_late_writes_with_a_recovery_marker
+          --require test_overflow_loses_the_oldest_says_so_and_stays_degraded_until_a_human_acknowledges
+          --require test_an_audit_failure_after_the_exchange_ack_does_not_stop_the_fill_being_applied
+          --require test_an_audit_failure_at_an_unknown_outcome_does_not_skip_the_reconciliation_flag
+          --require test_an_audit_failure_before_a_wide_spread_stop_does_not_stop_the_stop_loss
+          --require test_while_audit_is_degraded_entries_are_blocked_but_exits_are_not_and_recovery_reopens_entries
+          --require test_readiness_health_and_the_health_worker_follow_audit_persistence
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}

@@ -263,6 +263,10 @@ class ExecutionEngine:
             why.append("entry needs a stop below the entry price; an unprotected position cannot be created")
         elif sig.take_profit_price is not None and sig.take_profit_price <= px:
             why.append("take-profit must be above the entry price for a long")
+        degraded = getattr(self.audit, "degraded", None)
+        if degraded is not None and degraded():
+            # Audit persistence is failing: new risk is not taken while its record cannot be guaranteed. Exits are never blocked by this.
+            why.append("audit persistence is degraded; new risk-increasing orders are blocked until the audit log is written again")
         if self.entry_guard is not None:
             try:
                 ok, reason = self.entry_guard()
@@ -392,7 +396,7 @@ class ExecutionEngine:
             reason = _safe_error(e)
             self.orders.transition(order_id, S.SUBMITTING, S.REJECTED, "EXCHANGE_REJECTED", correlation_id=cid, error=reason)
             self._signal_status(o, "FAILED")
-            self.audit.record("ORDER_REJECTED", "REJECTED", cid, resource=f"order:{order_id}", metadata={"error": reason})
+            self.audit.record_safely("ORDER_REJECTED", "REJECTED", cid, resource=f"order:{order_id}", metadata={"error": reason})
             return ExecResult("REJECTED", order_id, S.REJECTED.value, reason)
         except NotImplementedForExchange as e:  # the adapter says the capability does not exist: nothing was sent
             reason = _safe_error(e)
@@ -406,7 +410,7 @@ class ExecutionEngine:
             return await self._unknown(order_id, adapter, f"malformed response: {bad}", risk_scope)
         self.orders.transition(order_id, S.SUBMITTING, S.SUBMITTED, "EXCHANGE_ACK", correlation_id=cid,
                                exchange_order_id=res.exchange_order_id)
-        self.audit.record("ORDER_SUBMITTED", "OK", cid, resource=f"order:{order_id}", metadata={"exchange_order_id": res.exchange_order_id})
+        self.audit.record_safely("ORDER_SUBMITTED", "OK", cid, resource=f"order:{order_id}", metadata={"exchange_order_id": res.exchange_order_id})
         return self._apply_exchange_order(order_id, S.SUBMITTED, res, risk_scope, adapter)
 
     async def _sell_rules_problem(self, o: dict, adapter: ExchangeAdapter, fresh) -> Optional[str]:
@@ -478,7 +482,7 @@ class ExecutionEngine:
         o = self.orders.get(order_id)
         cid = o["correlation_id"]
         self.orders.transition(order_id, S(o["state"]), S.UNKNOWN, "OUTCOME_UNKNOWN", correlation_id=cid, error=why)
-        self.audit.record("ORDER_UNKNOWN", "UNKNOWN", cid, resource=f"order:{order_id}", metadata={"why": why})
+        self.audit.record_safely("ORDER_UNKNOWN", "UNKNOWN", cid, resource=f"order:{order_id}", metadata={"why": why})
         self.safety.set_reconciliation_required(True, f"order {order_id} outcome unknown", by="execution", correlation_id=cid)
         return await self.reconcile_order(order_id, adapter, risk_scope)
 

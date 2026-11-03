@@ -300,11 +300,9 @@ class Application:
         if not crit_ok:
             safety.block_live("startup verification failed")
         self.status = ("READY" if not missing else "NOT_CONFIGURED") if crit_ok else "READY_LIVE_BLOCKED"
-        try:      # persisted so the Live Activity feed can show engine start-ups (and a degraded one) after a restart
-            self.rt.audit.record("ENGINE_STARTUP", "OK" if crit_ok else "DEGRADED", "startup",
-                                 metadata={"status": self.status, "failed_steps": [s.name for s in self.steps if not s.ok][:20]})
-        except Exception:
-            pass
+        # persisted so the Live Activity feed can show engine start-ups (and a degraded one) after a restart; a failure is held and reported
+        self.rt.audit.record_safely("ENGINE_STARTUP", "OK" if crit_ok else "DEGRADED", "startup",
+                                    metadata={"status": self.status, "failed_steps": [s.name for s in self.steps if not s.ok][:20]})
         self.accepting = True
         self.events.append(f"startup:{self.status}")
         return self.status
@@ -341,6 +339,8 @@ class Application:
 
         async def health_monitor():
             sup.recompute_degraded()
+            if rt.audit.degraded():
+                rt.audit.flush_pending()           # storage may be back: write the held audit events (idempotent)
 
         async def market_data():
             if self.state_provider is None:
@@ -459,10 +459,7 @@ class Application:
                 report.setdefault("adapter_errors", []).append(name)
         self.events.append("shutdown:adapters_closed")
         if self.rt is not None:
-            try:
-                self.rt.audit.record("ENGINE_SHUTDOWN", "OK", "shutdown", metadata={"adapter_errors": report.get("adapter_errors", [])})
-            except Exception:
-                pass
+            self.rt.audit.record_safely("ENGINE_SHUTDOWN", "OK", "shutdown", metadata={"adapter_errors": report.get("adapter_errors", [])})
         if self.rt is not None:                                   # 7. close the database
             self.rt.db.close()
         self.events.append("shutdown:database_closed")
@@ -480,13 +477,15 @@ class Application:
         try:
             ok, _ = self.supervisor.healthy()
             protected, _ = self._protection_ok()
+            audit_ok = not (self.rt is not None and self.rt.audit.degraded())    # events that could not be persisted are not "audited"
         except Exception:
             return False, "SYSTEM_DEGRADED"
-        return (True, self.status) if (ok and protected) else (False, "SYSTEM_DEGRADED")
+        return (True, self.status) if (ok and protected and audit_ok) else (False, "SYSTEM_DEGRADED")
 
     def health(self) -> dict:
         if self.rt is None:
             return {"database": "unhealthy", "live_trading": "blocked", "kill_switch": True}
         h = health_report(self.rt.db, self.rt.safety, self.supervisor, self.vault, self.market_ok,
                           startup={"status": self.status, "steps": [{"name": s.name, "ok": s.ok} for s in self.steps]})
+        h["audit_persistence"] = self.rt.audit.status()
         return h
