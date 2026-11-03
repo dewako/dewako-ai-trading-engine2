@@ -1,6 +1,6 @@
 # Phase 5.2 Stage 2 - Changelog
 
-Paper trading only. Live trading stays LOCKED. Status of Stage 2 as a whole: **IN PROGRESS** (not passed). Each work package is recorded here with its evidence; nothing is counted done without a hosted CI run on a recorded SHA.
+Paper trading only. Live trading stays LOCKED. Status of Stage 2 as a whole: **STAGE 2 PASSED (paper trading scope)** - see PHASE5_2_STAGE2_FINAL_AUDIT.md for the evidence and the limits. Each work package below is recorded with its evidence; nothing is counted done without a hosted CI run on a recorded SHA.
 
 ## WP5 - Time-based exit protection (branch `stage2-wp5-time-stop`)
 
