@@ -113,4 +113,4 @@ Probed first (unmodified code): a partial exit already reduced the position corr
 - **Finding, unchanged:** an exchange report of FILLED with filled < quantity is treated as untrusted by existing code (order UNKNOWN, incident, nothing applied). WP3 test pins this.
 - Tests: `tests/test_stage2_wp3_partial_exits.py`, 15. Mutation checks (each fails tests): transitions not tracked (8), never REDUCING (4), restart quarantines known partial (1), no stall detection (1), never back to OPEN (1).
 - Limits: paper adapter fills instantly, so partials are produced by a test adapter, not observed on a real exchange; stalled exits need a human or order recovery; an exit tracking row for a position closed by another path keeps its last status.
-- Evidence (local): SQLite 581 passed, PG16 584 passed, 0 failed; ruff real-error check clean. Hosted CI recorded below.
+- Evidence (local): SQLite 581 passed, PG16 584 passed, 0 failed; ruff real-error check clean. Hosted CI run 41634609424 on `abfbe37`: all jobs green.
