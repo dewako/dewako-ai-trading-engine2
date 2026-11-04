@@ -62,12 +62,46 @@ jobs:
           --require test_concurrent_first_user_requests_create_exactly_one_admin
           --require test_unset_workers_healthy_blocks_the_gate
           --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
-          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_a_triggered_take_profit_in_a_wide_spread_waits_is_not_reported_closed_and_is_audited_without_an_incident
           --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
           --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
           --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
           --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
           --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
+          --require test_enabling_the_time_stop_on_restart_with_an_open_position_is_refused
+          --require test_disabling_the_time_stop_on_restart_with_an_open_position_is_refused_too
+          --require test_with_nothing_open_a_changed_configuration_is_adopted_and_audited
+          --require test_a_worker_inside_its_first_iteration_is_starting_not_healthy
+          --require test_a_silent_critical_worker_becomes_failed_and_recovers_on_its_next_success
+          --require test_a_critical_failure_is_unhealthy_and_only_a_successful_iteration_recovers_it
+          --require test_loss_at_the_stop_and_notional_never_exceed_what_was_approved
+          --require test_the_last_gate_stops_an_oversized_quantity_even_if_sizing_misbehaves
+          --require test_the_final_gate
+          --require test_an_extreme_spread_beyond_the_tolerance_makes_a_take_profit_wait_audited_and_without_blocking_entries
+          --require test_a_malformed_quote_never_produces_an_order_a_guessed_price_or_a_closed_position
+          --require test_a_gap_through_the_stop_fills_at_the_quoted_bid_not_at_the_stop_price
+          --require test_the_stop_is_held_for_two_cycles_loudly_and_entries_are_blocked
+          --require test_a_glitch_that_clears_before_confirmation_never_sells_at_the_glitch_price
+          --require test_new_entries_are_not_blocked_while_a_take_profit_waits_for_a_fair_spread
+          --require test_through_any_spread_up_to_the_suspect_limit_and_with_no_tolerance_the_stop_is_sent_at_once
+          --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
+          --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
+          --require test_a_failed_write_is_held_logged_critical_and_keeps_the_original_exception
+          --require test_held_events_are_written_in_order_exactly_once_as_late_writes_with_a_recovery_marker
+          --require test_overflow_loses_the_oldest_says_so_and_stays_degraded_until_a_human_acknowledges
+          --require test_an_audit_failure_after_the_exchange_ack_does_not_stop_the_fill_being_applied
+          --require test_an_audit_failure_at_an_unknown_outcome_does_not_skip_the_reconciliation_flag
+          --require test_an_audit_failure_before_a_wide_spread_stop_does_not_stop_the_stop_loss
+          --require test_while_audit_is_degraded_entries_are_blocked_but_exits_are_not_and_recovery_reopens_entries
+          --require test_readiness_health_and_the_health_worker_follow_audit_persistence
+          --require test_a_partial_exit_records_reason_quantities_order_and_reconciliation_status
+          --require test_the_remainder_fills_in_stages_and_a_replayed_report_changes_nothing
+          --require test_an_inconsistent_filled_report_is_not_trusted_and_never_closes_the_position
+          --require test_a_cancelled_remainder_returns_to_open_and_the_next_exit_sells_only_what_is_left
+          --require test_a_second_exit_request_while_one_is_pending_is_refused_and_a_replay_is_a_duplicate
+          --require test_a_pending_partial_exit_survives_a_restart_and_is_finished_from_the_exchange_report
+          --require test_a_reducing_position_whose_exit_outcome_is_unknown_is_quarantined_for_reconciliation
+          --require test_an_exit_with_no_progress_is_reported_opens_an_incident_blocks_entries_and_is_not_resent
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -134,12 +168,46 @@ jobs:
           --require test_concurrent_first_user_requests_create_exactly_one_admin
           --require test_unset_workers_healthy_blocks_the_gate
           --require test_an_adverse_ask_keeps_the_loss_at_the_stop_within_the_approved_risk
-          --require test_a_triggered_stop_in_a_wide_spread_is_not_sent_is_not_reported_closed_and_raises_a_critical_incident
+          --require test_a_triggered_take_profit_in_a_wide_spread_waits_is_not_reported_closed_and_is_audited_without_an_incident
           --require test_with_an_explicit_emergency_limit_the_exit_is_sent_and_audited
           --require test_an_explicit_limit_exits_at_or_after_the_threshold_and_not_before
           --require test_the_configured_limit_reaches_the_monitor_and_closes_an_aged_position
           --require test_a_failed_exit_monitor_makes_it_not_ready_and_recovery_makes_it_ready_again
           --require test_readiness_follows_the_current_worker_state_over_http_and_liveness_does_not
+          --require test_enabling_the_time_stop_on_restart_with_an_open_position_is_refused
+          --require test_disabling_the_time_stop_on_restart_with_an_open_position_is_refused_too
+          --require test_with_nothing_open_a_changed_configuration_is_adopted_and_audited
+          --require test_a_worker_inside_its_first_iteration_is_starting_not_healthy
+          --require test_a_silent_critical_worker_becomes_failed_and_recovers_on_its_next_success
+          --require test_a_critical_failure_is_unhealthy_and_only_a_successful_iteration_recovers_it
+          --require test_loss_at_the_stop_and_notional_never_exceed_what_was_approved
+          --require test_the_last_gate_stops_an_oversized_quantity_even_if_sizing_misbehaves
+          --require test_the_final_gate
+          --require test_an_extreme_spread_beyond_the_tolerance_makes_a_take_profit_wait_audited_and_without_blocking_entries
+          --require test_a_malformed_quote_never_produces_an_order_a_guessed_price_or_a_closed_position
+          --require test_a_gap_through_the_stop_fills_at_the_quoted_bid_not_at_the_stop_price
+          --require test_the_stop_is_held_for_two_cycles_loudly_and_entries_are_blocked
+          --require test_a_glitch_that_clears_before_confirmation_never_sells_at_the_glitch_price
+          --require test_new_entries_are_not_blocked_while_a_take_profit_waits_for_a_fair_spread
+          --require test_through_any_spread_up_to_the_suspect_limit_and_with_no_tolerance_the_stop_is_sent_at_once
+          --require test_a_wide_spread_stop_is_audited_as_an_immediate_stop_loss_exit
+          --require test_a_time_stop_keeps_the_tolerance_policy_like_a_take_profit
+          --require test_a_failed_write_is_held_logged_critical_and_keeps_the_original_exception
+          --require test_held_events_are_written_in_order_exactly_once_as_late_writes_with_a_recovery_marker
+          --require test_overflow_loses_the_oldest_says_so_and_stays_degraded_until_a_human_acknowledges
+          --require test_an_audit_failure_after_the_exchange_ack_does_not_stop_the_fill_being_applied
+          --require test_an_audit_failure_at_an_unknown_outcome_does_not_skip_the_reconciliation_flag
+          --require test_an_audit_failure_before_a_wide_spread_stop_does_not_stop_the_stop_loss
+          --require test_while_audit_is_degraded_entries_are_blocked_but_exits_are_not_and_recovery_reopens_entries
+          --require test_readiness_health_and_the_health_worker_follow_audit_persistence
+          --require test_a_partial_exit_records_reason_quantities_order_and_reconciliation_status
+          --require test_the_remainder_fills_in_stages_and_a_replayed_report_changes_nothing
+          --require test_an_inconsistent_filled_report_is_not_trusted_and_never_closes_the_position
+          --require test_a_cancelled_remainder_returns_to_open_and_the_next_exit_sells_only_what_is_left
+          --require test_a_second_exit_request_while_one_is_pending_is_refused_and_a_replay_is_a_duplicate
+          --require test_a_pending_partial_exit_survives_a_restart_and_is_finished_from_the_exchange_report
+          --require test_a_reducing_position_whose_exit_outcome_is_unknown_is_quarantined_for_reconciliation
+          --require test_an_exit_with_no_progress_is_reported_opens_an_incident_blocks_entries_and_is_not_resent
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
@@ -168,12 +236,12 @@ jobs:
         run: |
           set -euo pipefail
           for i in 1 2 3; do
-            python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py -k "not pg_" --junitxml=../../crash-sqlite-$i.xml
-            DEWAKO_TEST_DB=postgres python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py --junitxml=../../crash-pg-$i.xml
+            python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py test_stage2_wp7_lifecycle.py -k "not pg_" --junitxml=../../crash-sqlite-$i.xml
+            DEWAKO_TEST_DB=postgres python -m pytest -q -p no:cacheprovider test_crash_matrix.py test_crash_and_recon.py test_stage2_wp7_lifecycle.py --junitxml=../../crash-pg-$i.xml
           done
       - run: |
           set -euo pipefail
-          for f in crash-sqlite-1 crash-sqlite-2 crash-sqlite-3 crash-pg-1 crash-pg-2 crash-pg-3; do python scripts/assert_no_skips.py $f.xml --min-tests 15; done
+          for f in crash-sqlite-1 crash-sqlite-2 crash-sqlite-3 crash-pg-1 crash-pg-2 crash-pg-3; do python scripts/assert_no_skips.py $f.xml --min-tests 22 --require test_a_pending_partial_exit_survives_a_kill_and_the_exchange_report_finishes_it_without_a_second_sale --require test_repeated_kill_restart_cycles_change_nothing_and_sell_nothing --require test_take_profit_is_enforced_by_a_fresh_process_after_a_kill; done
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: crash-junit, path: "crash-*.xml"}
@@ -194,10 +262,10 @@ jobs:
         run: |
           set -euo pipefail
           for i in 1 2 3; do
-            python -m pytest -q -p no:cacheprovider -v --timeout=300 --timeout-method=thread -o faulthandler_timeout=240 test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py --junitxml=../../win-crash-$i.xml
+            python -m pytest -q -p no:cacheprovider -v --timeout=300 --timeout-method=thread -o faulthandler_timeout=240 test_process_cleanup.py test_crash_matrix.py test_crash_and_recon.py test_stage2_wp7_lifecycle.py --junitxml=../../win-crash-$i.xml
           done
       - run: |
-          foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
+          foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 25 --allow-skip "PostgreSQL-only" --require test_a_pending_partial_exit_survives_a_kill_and_the_exchange_report_finishes_it_without_a_second_sale --require test_repeated_kill_restart_cycles_change_nothing_and_sell_nothing --require test_take_profit_is_enforced_by_a_fresh_process_after_a_kill; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
         shell: pwsh
       - uses: actions/upload-artifact@v4
         if: always()

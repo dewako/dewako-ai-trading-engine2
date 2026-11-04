@@ -66,9 +66,18 @@ class Config:
     paper_balance: float = 10_000.0
     market_data: str = "none"            # "public" = the MarketDataHub's public REST providers (no credentials); "none" = nothing configured
     max_hold_seconds: Optional[float] = None                 # time stop; None = DISABLED (no implicit default is ever invented)
-    emergency_exit_max_spread_pct: Optional[float] = None    # None = a triggered exit is NOT sent through a spread wider than the normal limit
+    stop_suspect_spread_pct: Optional[float] = 10.0          # a STOP seeing a spread above this is treated as a suspect quote: confirmed before selling; None = off
+    exit_stall_seconds: Optional[float] = 120.0              # an exit order with no fill progress for this long is reported as unprotected; None = off
+    stop_suspect_confirm_cycles: int = 3                     # consecutive cycles a suspect quote must persist before the stop is sent (1 = no wait)
+    emergency_exit_max_spread_pct: Optional[float] = None    # take-profit / time-stop tolerance; None = they wait for a normal spread. A STOP-LOSS ignores it
 
     def __post_init__(self) -> None:
+        v = self.stop_suspect_spread_pct
+        if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 < v <= 100):
+            raise ValueError("stop_suspect_spread_pct must be a number above 0 and not above 100, or off; refusing to start")
+        c = self.stop_suspect_confirm_cycles
+        if isinstance(c, bool) or not isinstance(c, int) or c < 1:
+            raise ValueError("stop_suspect_confirm_cycles must be an integer of at least 1; refusing to start")
         for name, upper in (("max_hold_seconds", None), ("emergency_exit_max_spread_pct", 100.0)):
             v = getattr(self, name)
             if v is None:
@@ -86,7 +95,45 @@ class Config:
                    market_data=e.get("DEWAKO_MARKET_DATA", "public").strip().lower(),
                    recon_interval=float(e.get("DEWAKO_RECON_INTERVAL", "60")), bot_interval=float(e.get("DEWAKO_BOT_INTERVAL", "30")),
                    max_hold_seconds=_optional_number(e, "DEWAKO_MAX_HOLD_SECONDS"),
-                   emergency_exit_max_spread_pct=_optional_number(e, "DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT"))
+                   emergency_exit_max_spread_pct=_optional_number(e, "DEWAKO_EMERGENCY_EXIT_MAX_SPREAD_PCT"),
+                   stop_suspect_spread_pct=_suspect_limit(e), stop_suspect_confirm_cycles=_confirm_cycles(e), exit_stall_seconds=_stall_seconds(e))
+
+
+def _suspect_limit(env) -> Optional[float]:
+    raw = (env.get("DEWAKO_STOP_SUSPECT_SPREAD_PCT") or "").strip().lower()
+    if raw == "":
+        return 10.0                                   # protective default; "off" is the only way to remove it
+    if raw in ("off", "none", "disabled"):
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        raise ValueError("DEWAKO_STOP_SUSPECT_SPREAD_PCT must be a number or 'off'; refusing to start") from None
+
+
+def _stall_seconds(env) -> Optional[float]:
+    raw = (env.get("DEWAKO_EXIT_STALL_SECONDS") or "").strip().lower()
+    if raw == "":
+        return 120.0
+    if raw in ("off", "none", "disabled"):
+        return None
+    try:
+        v = float(raw)
+    except ValueError:
+        raise ValueError("DEWAKO_EXIT_STALL_SECONDS must be a positive number or 'off'; refusing to start") from None
+    if not (v > 0):
+        raise ValueError("DEWAKO_EXIT_STALL_SECONDS must be a positive number or 'off'; refusing to start")
+    return v
+
+
+def _confirm_cycles(env) -> int:
+    raw = (env.get("DEWAKO_STOP_SUSPECT_CONFIRM_CYCLES") or "").strip()
+    if raw == "":
+        return 3
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError("DEWAKO_STOP_SUSPECT_CONFIRM_CYCLES must be a whole number; refusing to start") from None
 
 
 def _optional_number(env, key: str) -> Optional[float]:
@@ -189,8 +236,13 @@ class Application:
         self.engine.submit_authorized = self.lease.check            # checked against the database immediately before every LIVE send
         self.limits_store = RiskLimitsStore(db, self.rt.audit)
         self.engine.limits = self.limits_store.hard_caps()                 # the durable, operator-set caps; defaults only when none were ever set
-        self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.config.max_hold_seconds,
-                                        emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct)
+        from dewako.runtime.time_stop import resolve_time_stop
+        self.time_stop = resolve_time_stop(db, self.rt.audit, self.config.max_hold_seconds)     # durable: a restart never silently changes it
+        self.exit_monitor = ExitMonitor(self.engine, RiskEngine(), clock=self.clock, max_hold_seconds=self.time_stop["max_hold_seconds"],
+                                        emergency_exit_max_spread_pct=self.config.emergency_exit_max_spread_pct,
+                                        stop_suspect_spread_pct=self.config.stop_suspect_spread_pct,
+                                        stop_suspect_confirm_cycles=self.config.stop_suspect_confirm_cycles,
+                                        exit_stall_seconds=self.config.exit_stall_seconds)
         # No new entry unless the exit monitor is verified running: a position that nothing is watching must not be created.
         self.engine.entry_guard = self._protection_ok
         self.bot_service = BotService(db, self.adapters, RiskStateStore(db), self.rt.audit)
@@ -265,11 +317,9 @@ class Application:
         if not crit_ok:
             safety.block_live("startup verification failed")
         self.status = ("READY" if not missing else "NOT_CONFIGURED") if crit_ok else "READY_LIVE_BLOCKED"
-        try:      # persisted so the Live Activity feed can show engine start-ups (and a degraded one) after a restart
-            self.rt.audit.record("ENGINE_STARTUP", "OK" if crit_ok else "DEGRADED", "startup",
-                                 metadata={"status": self.status, "failed_steps": [s.name for s in self.steps if not s.ok][:20]})
-        except Exception:
-            pass
+        # persisted so the Live Activity feed can show engine start-ups (and a degraded one) after a restart; a failure is held and reported
+        self.rt.audit.record_safely("ENGINE_STARTUP", "OK" if crit_ok else "DEGRADED", "startup",
+                                    metadata={"status": self.status, "failed_steps": [s.name for s in self.steps if not s.ok][:20]})
         self.accepting = True
         self.events.append(f"startup:{self.status}")
         return self.status
@@ -306,6 +356,8 @@ class Application:
 
         async def health_monitor():
             sup.recompute_degraded()
+            if rt.audit.degraded():
+                rt.audit.flush_pending()           # storage may be back: write the held audit events (idempotent)
 
         async def market_data():
             if self.state_provider is None:
@@ -424,10 +476,7 @@ class Application:
                 report.setdefault("adapter_errors", []).append(name)
         self.events.append("shutdown:adapters_closed")
         if self.rt is not None:
-            try:
-                self.rt.audit.record("ENGINE_SHUTDOWN", "OK", "shutdown", metadata={"adapter_errors": report.get("adapter_errors", [])})
-            except Exception:
-                pass
+            self.rt.audit.record_safely("ENGINE_SHUTDOWN", "OK", "shutdown", metadata={"adapter_errors": report.get("adapter_errors", [])})
         if self.rt is not None:                                   # 7. close the database
             self.rt.db.close()
         self.events.append("shutdown:database_closed")
@@ -445,13 +494,15 @@ class Application:
         try:
             ok, _ = self.supervisor.healthy()
             protected, _ = self._protection_ok()
+            audit_ok = not (self.rt is not None and self.rt.audit.degraded())    # events that could not be persisted are not "audited"
         except Exception:
             return False, "SYSTEM_DEGRADED"
-        return (True, self.status) if (ok and protected) else (False, "SYSTEM_DEGRADED")
+        return (True, self.status) if (ok and protected and audit_ok) else (False, "SYSTEM_DEGRADED")
 
     def health(self) -> dict:
         if self.rt is None:
             return {"database": "unhealthy", "live_trading": "blocked", "kill_switch": True}
         h = health_report(self.rt.db, self.rt.safety, self.supervisor, self.vault, self.market_ok,
                           startup={"status": self.status, "steps": [{"name": s.name, "ok": s.ok} for s in self.steps]})
+        h["audit_persistence"] = self.rt.audit.status()
         return h

@@ -24,12 +24,12 @@ from dewako.exchanges.base import (ExchangeAdapter, ExchangeError, InsufficientB
 from dewako.exchanges.contract import ORDER_ENVIRONMENTS_ENABLED, redact, refusals_for_submission
 from dewako.execution.order_store import OrderStore, StaleState
 from dewako.execution.positions import PositionError, PositionStore
-from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price, executable_risk_quantity,
+from dewako.execution.validation import (QuoteGuardConfig, QuoteGuardError, conservative_risk_price,
                                          validate_executable_quote,
                                          validate_order)
 from dewako.execution.state_machine import OrderState as S
 from dewako.execution import reservations as rsv
-from dewako.risk.engine import RiskLimits
+from dewako.risk.engine import RiskEngine, RiskLimits
 from dewako.persistence.audit import AuditLog
 from dewako.persistence.db import Database, now_iso
 from dewako.risk.state import RiskStateStore
@@ -95,12 +95,13 @@ class ExecutionEngine:
                  audit: Optional[AuditLog] = None, risk_state: Optional[RiskStateStore] = None,
                  exchange_ids: Optional[dict[str, int]] = None, limits: Optional[RiskLimits] = None,
                  submit_authorized=None, quote_guard: Optional[QuoteGuardConfig] = None,
-                 clock=utcnow):
+                 clock=utcnow, risk_engine: Optional[RiskEngine] = None):
         """`adapters` maps exchange name -> adapter. Live exchange ids come from `exchange_ids` (exchanges table).
         `limits` are the hard caps enforced under the reservation lock (default: the platform's default RiskLimits, never 'unlimited').
         `submit_authorized` is a callable returning (ok, reason); the application sets it so a worker that has been stopped or has
         lost its authorization cannot send an order that was created before that happened."""
         self.limits = limits or RiskLimits()
+        self.risk_engine = risk_engine or RiskEngine(self.limits)      # final, executable-price sizing approval for entries (no I/O)
         self.submit_authorized = submit_authorized
         self.db, self.safety = db, safety
         self.audit = audit or AuditLog(db)
@@ -117,10 +118,13 @@ class ExecutionEngine:
     # ------------------------------------------------------------------ entry point
     async def execute(self, decision: RiskDecision, *, bot_id: str, environment: str, exchange: str,
                       intent: str = "ENTRY", correlation_id: str = "", market_type: str = "SPOT",
-                      risk_scope: Optional[str] = None, emergency_max_spread_pct: Optional[float] = None) -> ExecResult:
+                      risk_scope: Optional[str] = None, emergency_max_spread_pct: Optional[float] = None,
+                      spread_exempt: bool = False) -> ExecResult:
         """`emergency_max_spread_pct` is honoured ONLY for a SELL EXIT: it raises that order's spread limit (never lowers it) so a triggered
         stop/target can still leave through a wide spread. Everything else about the quote (fresh, positive, uncrossed) is still enforced.
-        The caller owns the policy; without it a wide spread blocks the exit exactly as before."""
+        The caller owns the policy; without it a wide spread blocks the exit exactly as before.
+        `spread_exempt` (also SELL EXIT only) removes the spread limit for that one order: a triggered STOP-LOSS must not wait for a tighter
+        spread. The quote must still be present, positive, uncrossed and fresh; nothing else about the quote guard is relaxed."""
         cid = correlation_id or uuid.uuid4().hex
         sig = decision.signal
         reasons = self._refusals(decision, environment, exchange, market_type)
@@ -142,7 +146,9 @@ class ExecutionEngine:
             return ExecResult("BLOCKED", detail="; ".join(reasons))
 
         guard = self.quote_guard
-        if emergency_max_spread_pct is not None and sig.side is Side.SELL and intent == "EXIT":
+        if spread_exempt and sig.side is Side.SELL and intent == "EXIT":
+            guard = dataclasses.replace(self.quote_guard, enforce_spread=False)
+        elif emergency_max_spread_pct is not None and sig.side is Side.SELL and intent == "EXIT":
             try:
                 guard = dataclasses.replace(self.quote_guard, max_spread_pct=max(self.quote_guard.max_spread_pct, float(emergency_max_spread_pct)))
             except (TypeError, ValueError):
@@ -163,13 +169,21 @@ class ExecutionEngine:
             if sig.side is Side.BUY and intent == "ENTRY":
                 # The Risk Engine sized this from the reference price. The order can fill at the executable ask, so the loss at the stop is
                 # measured from that price; the quantity is scaled down (never up) so it cannot exceed the approved risk.
-                order_quantity = executable_risk_quantity(decision.quantity, reference_price=sig.entry_price, risk_price=risk_price,
-                                                          stop_price=sig.stop_price)
+                sized = self.risk_engine.size_for_executable_entry(decision, executable_price=risk_price)
+                if not sized.approved:
+                    raise QuoteGuardError("; ".join(sized.reasons))
+                order_quantity = sized.quantity
                 if order_quantity < decision.quantity:
                     sized_from = decision.quantity
             v = validate_order(markets, balances, symbol=sig.symbol, side=sig.side.value,
                                quantity=order_quantity, price=risk_price)
-            problems = v.problems
+            problems = list(v.problems)
+            if not problems and sig.side is Side.BUY and intent == "ENTRY":
+                # last gate before an order exists: after exchange rounding the quantity and its loss at the stop must still be within
+                # what the Risk Engine approved
+                final = self.risk_engine.final_entry_problem(decision, quantity=v.quantity, executable_price=risk_price)
+                if final:
+                    problems.append(final)
         except QuoteGuardError as e:
             problems = [str(e)]
         except NotImplementedForExchange as e:
@@ -249,6 +263,10 @@ class ExecutionEngine:
             why.append("entry needs a stop below the entry price; an unprotected position cannot be created")
         elif sig.take_profit_price is not None and sig.take_profit_price <= px:
             why.append("take-profit must be above the entry price for a long")
+        degraded = getattr(self.audit, "degraded", None)
+        if degraded is not None and degraded():
+            # Audit persistence is failing: new risk is not taken while its record cannot be guaranteed. Exits are never blocked by this.
+            why.append("audit persistence is degraded; new risk-increasing orders are blocked until the audit log is written again")
         if self.entry_guard is not None:
             try:
                 ok, reason = self.entry_guard()
@@ -378,7 +396,7 @@ class ExecutionEngine:
             reason = _safe_error(e)
             self.orders.transition(order_id, S.SUBMITTING, S.REJECTED, "EXCHANGE_REJECTED", correlation_id=cid, error=reason)
             self._signal_status(o, "FAILED")
-            self.audit.record("ORDER_REJECTED", "REJECTED", cid, resource=f"order:{order_id}", metadata={"error": reason})
+            self.audit.record_safely("ORDER_REJECTED", "REJECTED", cid, resource=f"order:{order_id}", metadata={"error": reason})
             return ExecResult("REJECTED", order_id, S.REJECTED.value, reason)
         except NotImplementedForExchange as e:  # the adapter says the capability does not exist: nothing was sent
             reason = _safe_error(e)
@@ -392,7 +410,7 @@ class ExecutionEngine:
             return await self._unknown(order_id, adapter, f"malformed response: {bad}", risk_scope)
         self.orders.transition(order_id, S.SUBMITTING, S.SUBMITTED, "EXCHANGE_ACK", correlation_id=cid,
                                exchange_order_id=res.exchange_order_id)
-        self.audit.record("ORDER_SUBMITTED", "OK", cid, resource=f"order:{order_id}", metadata={"exchange_order_id": res.exchange_order_id})
+        self.audit.record_safely("ORDER_SUBMITTED", "OK", cid, resource=f"order:{order_id}", metadata={"exchange_order_id": res.exchange_order_id})
         return self._apply_exchange_order(order_id, S.SUBMITTED, res, risk_scope, adapter)
 
     async def _sell_rules_problem(self, o: dict, adapter: ExchangeAdapter, fresh) -> Optional[str]:
@@ -464,7 +482,7 @@ class ExecutionEngine:
         o = self.orders.get(order_id)
         cid = o["correlation_id"]
         self.orders.transition(order_id, S(o["state"]), S.UNKNOWN, "OUTCOME_UNKNOWN", correlation_id=cid, error=why)
-        self.audit.record("ORDER_UNKNOWN", "UNKNOWN", cid, resource=f"order:{order_id}", metadata={"why": why})
+        self.audit.record_safely("ORDER_UNKNOWN", "UNKNOWN", cid, resource=f"order:{order_id}", metadata={"why": why})
         self.safety.set_reconciliation_required(True, f"order {order_id} outcome unknown", by="execution", correlation_id=cid)
         return await self.reconcile_order(order_id, adapter, risk_scope)
 

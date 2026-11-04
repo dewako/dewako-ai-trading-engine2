@@ -47,18 +47,32 @@ class MonitorReport:
     unverified: list = field(default_factory=list)     # (position_id, why)
     pending: list = field(default_factory=list)        # position ids with an exit already in flight
     wide: list = field(default_factory=list)           # (position_id, reason, spread_pct, attempts): triggered but blocked by a wide spread
+    waiting: list = field(default_factory=list)        # (position_id, reason, spread_pct, cycles): take-profit / time stop waiting for a fair spread
 
 
 class ExitMonitor:
     def __init__(self, engine, risk, *, max_hold_seconds: Optional[float] = None, clock: Callable[[], datetime] = utcnow,
-                 clean_cycles_to_clear: int = 2, emergency_exit_max_spread_pct: Optional[float] = None):
+                 clean_cycles_to_clear: int = 2, emergency_exit_max_spread_pct: Optional[float] = None,
+                 stop_suspect_spread_pct: Optional[float] = 10.0, stop_suspect_confirm_cycles: int = 3,
+                 exit_stall_seconds: Optional[float] = 120.0):
         self.engine, self.risk = engine, risk
+        if exit_stall_seconds is not None and not (exit_stall_seconds > 0):
+            raise ValueError("exit_stall_seconds must be positive or None")
+        self.exit_stall_seconds = exit_stall_seconds
         for name, value, upper in (("max_hold_seconds", max_hold_seconds, None), ("emergency_exit_max_spread_pct", emergency_exit_max_spread_pct, 100.0)):
             if value is None:
                 continue
             if (isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0
                     or (upper is not None and value > upper)):
                 raise ValueError(f"{name} must be a finite positive number" + (f" not above {upper:g}" if upper else "") + " or unset")
+        if stop_suspect_spread_pct is not None and (isinstance(stop_suspect_spread_pct, bool) or not isinstance(stop_suspect_spread_pct, (int, float))
+                                                     or not math.isfinite(stop_suspect_spread_pct) or not 0 < stop_suspect_spread_pct <= 100):
+            raise ValueError("stop_suspect_spread_pct must be a finite number above 0 and not above 100, or None")
+        if isinstance(stop_suspect_confirm_cycles, bool) or not isinstance(stop_suspect_confirm_cycles, int) or stop_suspect_confirm_cycles < 1:
+            raise ValueError("stop_suspect_confirm_cycles must be an integer of at least 1")
+        self.stop_suspect_spread_pct = stop_suspect_spread_pct
+        self.stop_suspect_confirm_cycles = stop_suspect_confirm_cycles
+        self._waiting: dict[int, int] = {}
         self.max_hold_seconds = max_hold_seconds
         self.emergency_exit_max_spread_pct = emergency_exit_max_spread_pct
         self._wide_attempts: dict[int, int] = {}
@@ -88,6 +102,9 @@ class ExitMonitor:
         live = {p["id"] for p in positions}
         for pid in [k for k in self._wide_attempts if k not in live or (k not in wide_ids)]:
             self._wide_attempts.pop(pid, None)            # the streak ends when the trigger clears, the exit goes out, or the position closes
+        waiting_ids = {w[0] for w in rep.waiting}
+        for pid in [k for k in self._waiting if k not in live or k not in waiting_ids]:
+            self._waiting.pop(pid, None)                  # the wait ends when the trigger clears, the exit goes out, or the position closes
         if rep.unverified:
             self._clean = 0
         else:
@@ -106,7 +123,15 @@ class ExitMonitor:
     # ------------------------------------------------------------------ one position
     async def _check(self, p: dict, rep: MonitorReport) -> None:
         pid = p["id"]
-        if p["status"] != "OPEN":
+        if p["status"] == "REDUCING":
+            # partly sold: the remainder is still protected by this monitor, but only while an exit is actually tracked for it
+            with self.engine.db.read() as c:
+                from dewako.execution.exit_tracking import active_exits
+                tracked = active_exits(c, pid)
+            if not tracked:
+                rep.unverified.append((pid, "position is REDUCING but no exit is tracked for it; it cannot be treated as protected until reconciled"))
+                return
+        elif p["status"] != "OPEN":
             rep.unverified.append((pid, f"position status is {p['status']}; protection cannot be verified until it is reconciled"))
             return
         if p["side"] != "BUY":
@@ -133,6 +158,9 @@ class ExitMonitor:
         except Exception as e:
             rep.unverified.append((pid, f"quote unavailable ({type(e).__name__})"))
             return
+        stalled = self._stalled_exit(p)
+        if stalled is not None:
+            rep.unverified.append((pid, stalled))
         reason = None
         if price <= p["stop_loss"]:
             reason = "STOP"
@@ -148,19 +176,44 @@ class ExitMonitor:
             rep.pending.append(pid)
             return
         cap = None
-        if wide is not None:
+        immediate = False
+        if wide is not None and reason == "STOP":
+            # Stop-loss: goes out at market at once, through any spread a real market can show, to limit the downside. ONE exception: a
+            # spread above `stop_suspect_spread_pct` is far more likely a bad quote than a market, and selling on it can dump the position at a
+            # glitch price. Such a quote must persist for `stop_suspect_confirm_cycles` consecutive cycles before the stop is sent; until then
+            # protection is reported as not enforceable (CRITICAL incident, entries blocked) so the hold is never silent.
+            limit = self.stop_suspect_spread_pct
+            if limit is not None and wide.spread_pct > limit:
+                n = self._wide_attempts[pid] = self._wide_attempts.get(pid, 0) + 1
+                if n < self.stop_suspect_confirm_cycles:
+                    rep.wide.append((pid, reason, wide.spread_pct, n))
+                    rep.unverified.append((pid, f"STOP triggered at bid {price:g} but the spread {wide.spread_pct:.4g}% exceeds the suspect-quote "
+                                                f"limit {limit:g}%: confirming it persists ({n} of {self.stop_suspect_confirm_cycles} cycles) before selling"))
+                    if n == 1:
+                        self.engine.audit.record_safely("EXIT_STOP_QUOTE_SUSPECT", "BLOCKED", "", resource=f"position:{pid}",
+                                                 metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "suspect_limit": limit,
+                                                           "confirm_cycles": self.stop_suspect_confirm_cycles})
+                    return
+                policy = "STOP_LOSS_CONFIRMED_WIDE"
+            else:
+                policy = "STOP_LOSS_IMMEDIATE"
+            immediate = True
+            self.engine.audit.record_safely("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
+                                     metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "policy": policy,
+                                               "emergency_limit": None})
+        elif wide is not None:
+            # Take-profit and time stop are not emergencies: they use the normal limit, then the explicit tolerance, and otherwise WAIT for a
+            # fair spread. Waiting is audited and reported but is not an unverified-protection event: the position's stop-loss is still
+            # enforced every cycle, so the worker stays healthy, no incident is opened and new entries are not blocked.
             cap = self.emergency_exit_max_spread_pct
             if cap is None or wide.spread_pct > cap:
-                n = self._wide_attempts[pid] = self._wide_attempts.get(pid, 0) + 1
-                limit = "no emergency spread limit is configured" if cap is None else f"it exceeds the emergency limit {cap:g}%"
-                rep.wide.append((pid, reason, wide.spread_pct, n))
-                rep.unverified.append((pid, f"{reason} triggered at bid {price:g} but the spread {wide.spread_pct:.4g}% exceeds the "
-                                            f"normal limit and {limit}: exit NOT sent, position remains OPEN (attempt {n}, retried every cycle)"))
+                n = self._waiting[pid] = self._waiting.get(pid, 0) + 1
+                rep.waiting.append((pid, reason, wide.spread_pct, n))
                 if n == 1:
-                    self.engine.audit.record("EXIT_BLOCKED_WIDE_SPREAD", "BLOCKED", "", resource=f"position:{pid}",
-                                             metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})
+                    self.engine.audit.record_safely("EXIT_WAITING_WIDE_SPREAD", "WAITING", "", resource=f"position:{pid}",
+                                             metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "tolerance": cap})
                 return
-            self.engine.audit.record("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
+            self.engine.audit.record_safely("EMERGENCY_EXIT_WIDE_SPREAD", "OK", "", resource=f"position:{pid}",
                                      metadata={"reason": reason, "bid": price, "spread_pct": wide.spread_pct, "emergency_limit": cap})
         sig = Signal(symbol=p["symbol"], side=Side.SELL, confidence=1.0, strategy="ExitMonitor", strategy_version="1",
                      signal_id=self._signal_id(pid, reason), reason=[f"{reason} trigger at {price:g}"], entry_price=price,
@@ -171,7 +224,7 @@ class ExitMonitor:
             return
         res = await self.engine.execute(decision, bot_id=p["bot_id"], environment=p["environment"], exchange=p["exchange"],
                                         intent="EXIT", correlation_id=uuid.uuid4().hex, risk_scope=None,
-                                        emergency_max_spread_pct=cap)
+                                        emergency_max_spread_pct=cap, spread_exempt=immediate)
         rep.exits.append((pid, reason, res.outcome))
         if res.outcome in ("BLOCKED", "REJECTED", "FAILED"):
             rep.unverified.append((pid, f"{reason} exit could not be placed: {res.outcome} {res.detail[:120]}"))
@@ -183,6 +236,29 @@ class ExitMonitor:
         if opened.tzinfo is None:
             opened = opened.replace(tzinfo=timezone.utc)
         return (self.clock() - opened).total_seconds()
+
+    def _stalled_exit(self, p: dict) -> Optional[str]:
+        """An exit order that has made no fill progress for `exit_stall_seconds` leaves its remaining quantity unprotected in practice. It is
+        reported as unverified protection (incident, entries blocked, CRITICAL alert). Nothing is cancelled or resent from here: a second
+        sell on top of an unknown first one is the bigger risk, so a human or the order-recovery worker decides."""
+        if self.exit_stall_seconds is None:
+            return None
+        from dewako.execution.exit_tracking import active_exits
+        with self.engine.db.read() as c:
+            rows = active_exits(c, p["id"])
+        now = self.clock()
+        for r in rows:
+            t = datetime.fromisoformat(r["last_progress_at"]) if isinstance(r["last_progress_at"], str) else r["last_progress_at"]
+            if t.tzinfo is None:
+                t = t.replace(tzinfo=timezone.utc)
+            age = (now - t).total_seconds()
+            if age > self.exit_stall_seconds:
+                self.engine.audit.record_safely("EXIT_STALLED", "BLOCKED", "", resource=f"order:{r['order_id']}",
+                                                metadata={"position": p["id"], "reason": r["reason"], "remaining": r["remaining_quantity"],
+                                                          "status": r["status"], "seconds_without_progress": round(age, 1)})
+                return (f"{r['reason']} exit order {r['order_id']} ({r['status']}, {r['remaining_quantity']:g} left) has made no progress for "
+                        f"{age:.0f}s (limit {self.exit_stall_seconds:g}s); the remaining quantity is not being sold")
+        return None
 
     def _exit_in_flight(self, p: dict) -> bool:
         marks = ",".join("?" * len(_PENDING_STATES))

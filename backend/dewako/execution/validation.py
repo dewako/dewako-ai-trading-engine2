@@ -26,6 +26,7 @@ class QuoteGuardConfig:
     max_price_deviation_pct: float
     max_quote_age_seconds: float
     clock_skew_tolerance_seconds: float = 2.0
+    enforce_spread: bool = True          # False ONLY for a triggered stop-loss exit (see ExecutionEngine.execute); freshness/validity are still enforced
 
     def __post_init__(self) -> None:
         for name in ("max_spread_pct", "max_price_deviation_pct"):
@@ -127,7 +128,7 @@ def validate_executable_quote(ticker: dict[str, Any], *, side: str, reference_pr
 
     mid = (bid + ask) / 2
     spread_pct = (ask - bid) / mid * 100
-    if spread_pct > config.max_spread_pct:
+    if config.enforce_spread and spread_pct > config.max_spread_pct:
         raise WideSpreadError(
             f"spread {spread_pct:.6g}% exceeds configured maximum {config.max_spread_pct:.6g}%",
             bid=bid, ask=ask, spread_pct=spread_pct, timestamp=timestamp)
@@ -166,25 +167,13 @@ def conservative_risk_price(side: str, reference_price: float, check: QuoteCheck
 
 
 def executable_risk_quantity(quantity: float, *, reference_price: float, risk_price: float, stop_price: float) -> float:
-    """Scale an approved ENTRY quantity so the loss at the stop cannot exceed what the Risk Engine approved.
-
-    The Risk Engine sizes from the reference price: approved loss = quantity x (reference - stop). The order can fill at the executable
-    ask, so the real loss at the stop is quantity x (risk_price - stop). When the executable basis is higher the quantity is reduced in
-    proportion; it is never increased (a lower ask than the reference keeps the approved quantity: nothing is gained by sizing up).
-    A stop at or above the executable entry price, or any missing/non-finite figure, raises QuoteGuardError: the order is blocked."""
-    for label, value in (("approved quantity", quantity), ("reference price", reference_price), ("executable entry price", risk_price),
-                         ("stop price", stop_price)):
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
-            raise QuoteGuardError(f"{label} is missing, non-finite or not positive; entry risk cannot be verified")
-    if stop_price >= risk_price:
-        raise QuoteGuardError(f"stop {stop_price:g} is at or above the executable entry price {risk_price:g}; entry blocked")
-    reference_distance = reference_price - stop_price
-    if reference_distance <= 0:
-        raise QuoteGuardError(f"stop {stop_price:g} is at or above the reference price {reference_price:g}; entry blocked")
-    executable_distance = risk_price - stop_price
-    if executable_distance <= reference_distance * (1 + 1e-9):      # equal up to floating-point noise (1e-9 of the risk budget)
-        return float(quantity)
-    return float(quantity) * reference_distance / executable_distance
+    """Compatibility wrapper: the arithmetic now lives in the Risk Engine (`dewako.risk.sizing`). A sizing refusal is reported as a
+    QuoteGuardError so existing callers keep blocking the order."""
+    from dewako.risk.sizing import SizingError, executable_entry_quantity
+    try:
+        return executable_entry_quantity(quantity, reference_price=reference_price, executable_price=risk_price, stop_price=stop_price)
+    except SizingError as e:
+        raise QuoteGuardError(str(e)) from None
 
 
 def validate_order(markets: list[dict], balances: dict, *, symbol: str, side: str, quantity: float, price: float | None,

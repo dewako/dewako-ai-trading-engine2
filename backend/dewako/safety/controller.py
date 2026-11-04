@@ -157,7 +157,7 @@ class SafetyController:
         """Alert the user. This build records the alert in the audit log and the server log and calls any registered handler;
         e-mail/webhook delivery is NOT implemented."""
         log.error("ALERT: %s", message)
-        self.audit.record("ALERT", "RAISED", correlation_id, resource="alert", metadata={"message": message})
+        self.audit.record_safely("ALERT", "RAISED", correlation_id, resource="alert", metadata={"message": message})
         for h in list(self.alert_handlers):
             try:
                 h(message)

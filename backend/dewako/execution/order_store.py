@@ -70,6 +70,8 @@ class OrderStore:
             oid = cur.lastrowid
             c.execute("INSERT INTO order_events(order_id,event_type,previous_state,new_state,actor,correlation_id,created_at)"
                       " VALUES (?,?,?,?,?,?,?)", (oid, "ORDER_CREATED", None, OrderState.CREATED.value, actor, correlation_id, ts))
+            from dewako.execution.exit_tracking import sync
+            sync(c, oid)
             return CreatedOrder(oid, iid, cid, True)
 
         if conn is not None:
@@ -114,6 +116,8 @@ class OrderStore:
                       "correlation_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
                       (order_id, event_type, cur.value, new.value, exchange_order_id, resp, error and error[:500], actor,
                        correlation_id or row["correlation_id"], ts))
+            from dewako.execution.exit_tracking import sync
+            sync(c, order_id)
 
         if conn is not None:
             run(conn)

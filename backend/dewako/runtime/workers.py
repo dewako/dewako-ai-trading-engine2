@@ -6,6 +6,7 @@ last_error (exception class name only, never a message), restart_count, critical
 Policy
 - an iteration that raises marks the worker DEGRADED; `fail_after` consecutive failures mark it FAILED (it keeps retrying);
 - if the loop task itself dies it is restarted with a back-off up to `max_restarts`, then stays FAILED;
+- a worker is STARTING until its first iteration completes in this process, and DEGRADED after failures until one succeeds;
 - a heartbeat older than 3 x interval + 5 s is STALE and counts as unhealthy;
 - any unhealthy CRITICAL worker sets the system DEGRADED and makes the live gate refuse orders (`healthy()`);
 - shutdown never cancels an iteration that is running (it waits, up to `grace` seconds, so an order state transition is not cut in half).
@@ -42,6 +43,7 @@ class WorkerSupervisor:
         self._consecutive: dict[str, int] = {}
         self._restarts: dict[str, int] = {}
         self._inflight: dict[str, bool] = {}
+        self._succeeded: set[str] = set()      # workers that completed an iteration in THIS process: only they may report HEALTHY
 
     # ---- registration / durable state
     def add(self, name: str, fn: Callable[[], Awaitable[None]], interval: float, critical: bool = True, **kw) -> None:
@@ -75,9 +77,13 @@ class WorkerSupervisor:
     async def run_once(self, w: Worker) -> bool:
         self._inflight[w.name] = True
         try:
-            self._write(w.name, "HEALTHY" if self._consecutive.get(w.name, 0) == 0 else "DEGRADED", heartbeat=True)
+            # A worker is not healthy because it has started an iteration: until one has completed in this process it stays STARTING
+            # (and after failures it stays DEGRADED until an iteration succeeds). Readiness therefore needs a real success.
+            begin = "DEGRADED" if self._consecutive.get(w.name, 0) > 0 else ("HEALTHY" if w.name in self._succeeded else "STARTING")
+            self._write(w.name, begin, heartbeat=True)
             await w.fn()
             self._consecutive[w.name] = 0
+            self._succeeded.add(w.name)
             self._write(w.name, "HEALTHY", success=True, heartbeat=True)
             return True
         except asyncio.CancelledError:

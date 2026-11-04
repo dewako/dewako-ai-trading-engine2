@@ -7,12 +7,14 @@ Design rules enforced here:
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from dewako.core.types import RiskDecision, Signal, utcnow
+from dewako.risk.sizing import REL_TOL, SizingError, executable_entry_quantity, loss_at_stop
 
 NON_HUMAN_ACTORS = {"ai", "strategy", "bot", "system-ai"}
 
@@ -98,6 +100,45 @@ class RiskEngine:
         lev = min(leverage, lim.max_leverage)
         max_notional = equity * lim.max_position_pct / 100 * lev
         return max(0.0, min(qty, max_notional / entry))
+
+    def size_for_executable_entry(self, decision: RiskDecision, *, executable_price: float) -> RiskDecision:
+        """Final sizing approval for an ENTRY, made from the EXECUTABLE price the order can really cost (the caller supplies the validated
+        quote; the Risk Engine does no I/O). Returns the decision with a quantity that is never above the approved one and whose loss at the
+        stop is never above the approved loss. Anything that cannot be verified returns a NOT approved decision with the reasons."""
+        sig = decision.signal
+        if not decision.approved:
+            return decision
+        try:
+            qty = executable_entry_quantity(decision.quantity, reference_price=sig.entry_price, executable_price=executable_price,
+                                            stop_price=sig.stop_price)
+        except (SizingError, TypeError) as e:
+            out = RiskDecision(approved=False, signal=sig, quantity=0.0, reasons=[str(e)])
+            self.audit.append({"event": "executable_sizing", "approved": False, "reasons": out.reasons, "symbol": sig.symbol})
+            return out
+        out = decision.model_copy(update={"quantity": qty})
+        self.audit.append({"event": "executable_sizing", "approved": True, "symbol": sig.symbol, "approved_quantity": decision.quantity,
+                           "quantity": qty, "reference_price": sig.entry_price, "executable_price": executable_price})
+        return out
+
+    def final_entry_problem(self, decision: RiskDecision, *, quantity: float, executable_price: float) -> Optional[str]:
+        """The last check before an order exists: the quantity actually going out (after exchange rounding) must not exceed the quantity
+        the Risk Engine approved, and its loss at the stop must not exceed the approved loss. Returns the problem, or None."""
+        sig = decision.signal
+        try:
+            # NaN and infinity make every comparison below False, which would read as "no problem": every figure must be finite first.
+            for value in (quantity, executable_price, decision.quantity, sig.entry_price, sig.stop_price):
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                    return "final order risk cannot be verified (a figure is missing or not finite)"
+            if quantity <= 0 or executable_price <= 0:
+                return "final order quantity is invalid"
+            if quantity > decision.quantity * (1 + REL_TOL):
+                return f"order quantity {quantity:g} exceeds the approved quantity {decision.quantity:g}"
+            approved_loss = loss_at_stop(decision.quantity, sig.entry_price, sig.stop_price)
+            if loss_at_stop(quantity, executable_price, sig.stop_price) > approved_loss * (1 + REL_TOL):
+                return "loss at the stop would exceed the approved risk"
+        except (TypeError, ValueError):
+            return "final order risk cannot be verified"
+        return None
 
     def approve_exit(self, signal: Signal, position_qty: float, position_side: str) -> RiskDecision:
         """Exits reduce risk, so they skip entry limits, but they still go through the Risk Engine: the signal must be the

@@ -135,9 +135,7 @@ class AIProviderManager:
     def _audit(self, res: AIResult, schema: str, cid: str) -> None:
         if self.audit is None:
             return
-        try:
-            self.audit.record("AI_REQUEST", res.status, cid, resource=f"ai:{schema}",
-                              metadata={"provider": res.provider, "used_fallback": res.used_fallback, "attempts": res.attempts, "suspicious_input": res.suspicious_input,
-                                        "mode": self.config.mode})       # never the prompt or the response text
-        except Exception:
-            pass
+        # An audit-storage failure must not break the AI request, but it must not vanish either: record_safely holds and reports it.
+        self.audit.record_safely("AI_REQUEST", res.status, cid, resource=f"ai:{schema}",
+                                 metadata={"provider": res.provider, "used_fallback": res.used_fallback, "attempts": res.attempts, "suspicious_input": res.suspicious_input,
+                                           "mode": self.config.mode})       # never the prompt or the response text

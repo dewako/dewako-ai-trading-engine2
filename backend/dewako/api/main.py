@@ -459,7 +459,7 @@ def risk_limits(rt: Runtime = Depends(get_runtime), actor: dict = Depends(permis
     a = _application(rt)
     limits, meta = a.limits_store.current()
     equity_ok = (a.supervisor.status().get("risk_equity", {}).get("status") == "HEALTHY") if a.supervisor is not None else False
-    return {"limits": limits.model_dump(), **meta, "controls": control_status(equity_feed_ok=equity_ok)}
+    return {"limits": limits.model_dump(), **meta, "controls": control_status(equity_feed_ok=equity_ok, time_stop=getattr(a, "time_stop", None))}
 
 
 class RiskLimitsBody(BaseModel):

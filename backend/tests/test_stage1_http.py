@@ -209,6 +209,7 @@ class HttpReadinessAndRisk(unittest.TestCase):
                 g = c.get("/risk/limits", headers=h["viewer"]).json()
                 self.assertEqual(g["source"], "DEFAULT")
                 self.assertEqual(g["controls"]["high_impact_news_blackout"]["status"], "NOT_ENFORCED")
+                self.assertEqual(g["controls"]["time_stop"]["status"], "NOT_ENFORCED")             # Stage 2 WP5: disabled by default and said so
                 self.assertEqual(c.put("/risk/limits", json={"limits": {"max_drawdown_pct": 4}}, headers=h["trader"]).status_code, 403)
                 self.assertEqual(c.put("/risk/limits", json={"limits": {"max_position_pct": 900}}, headers=h["admin"]).status_code, 422)
                 self.assertEqual(c.put("/risk/limits", json={"limits": {"require_stop_loss": False}}, headers=h["admin"]).status_code, 422)
