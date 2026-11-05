@@ -114,6 +114,27 @@ jobs:
           --require test_the_real_execution_engine_trades_against_it_and_an_outage_leaves_an_unknown_order_not_a_guess
           --require test_a_lost_order_response_is_reconciled_from_the_exchange_and_never_sold_twice
           --require test_the_same_inputs_give_identical_fills_every_time
+          --require test_a_probe_buy_goes_through_risk_and_execution_and_fills_at_the_next_open_not_the_close_it_saw
+          --require test_the_strategy_only_ever_sees_candles_that_are_closed_at_the_moment_it_decides
+          --require test_the_result_says_it_is_simulated_and_records_the_data_and_settings_it_used
+          --require test_a_dataset_for_another_symbol_or_timeframe_is_refused
+          --require test_a_stop_crossed_inside_a_bar_fills_near_the_stop_not_at_the_bar_low
+          --require test_a_take_profit_crossed_inside_a_bar_fills_near_the_target_not_at_the_bar_high
+          --require test_when_one_bar_could_hit_both_the_stop_comes_first
+          --require test_a_gap_through_the_stop_fills_at_the_gapped_price_not_at_the_stop
+          --require test_a_strategy_exit_is_filled_at_the_next_open_and_labelled
+          --require test_a_time_stop_follows_the_virtual_clock_not_the_wall_clock
+          --require test_without_a_time_stop_a_flat_position_is_simply_still_open_at_the_end
+          --require test_an_entry_that_the_volume_cap_splits_over_several_bars_is_applied_to_the_position_as_it_fills
+          --require test_fees_and_costs_reduce_the_result_by_what_they_cost
+          --require test_equity_is_marked_to_market_at_the_bid_while_a_position_is_open
+          --require test_the_marked_equity_is_what_the_risk_state_sees
+          --require test_every_stored_timestamp_is_simulated_time_never_the_wall_clock
+          --require test_the_same_inputs_give_the_same_digest_and_a_changed_cost_changes_it
+          --require test_every_registered_strategy_replays_without_an_error_tick_and_without_incidents
+          --require test_virtual_time_is_off_after_a_replay_even_when_the_replay_fails
+          --require test_replays_cannot_nest_and_naive_virtual_time_is_refused
+          --require test_the_live_application_never_imports_virtual_time_or_the_replay
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -232,6 +253,27 @@ jobs:
           --require test_the_real_execution_engine_trades_against_it_and_an_outage_leaves_an_unknown_order_not_a_guess
           --require test_a_lost_order_response_is_reconciled_from_the_exchange_and_never_sold_twice
           --require test_the_same_inputs_give_identical_fills_every_time
+          --require test_a_probe_buy_goes_through_risk_and_execution_and_fills_at_the_next_open_not_the_close_it_saw
+          --require test_the_strategy_only_ever_sees_candles_that_are_closed_at_the_moment_it_decides
+          --require test_the_result_says_it_is_simulated_and_records_the_data_and_settings_it_used
+          --require test_a_dataset_for_another_symbol_or_timeframe_is_refused
+          --require test_a_stop_crossed_inside_a_bar_fills_near_the_stop_not_at_the_bar_low
+          --require test_a_take_profit_crossed_inside_a_bar_fills_near_the_target_not_at_the_bar_high
+          --require test_when_one_bar_could_hit_both_the_stop_comes_first
+          --require test_a_gap_through_the_stop_fills_at_the_gapped_price_not_at_the_stop
+          --require test_a_strategy_exit_is_filled_at_the_next_open_and_labelled
+          --require test_a_time_stop_follows_the_virtual_clock_not_the_wall_clock
+          --require test_without_a_time_stop_a_flat_position_is_simply_still_open_at_the_end
+          --require test_an_entry_that_the_volume_cap_splits_over_several_bars_is_applied_to_the_position_as_it_fills
+          --require test_fees_and_costs_reduce_the_result_by_what_they_cost
+          --require test_equity_is_marked_to_market_at_the_bid_while_a_position_is_open
+          --require test_the_marked_equity_is_what_the_risk_state_sees
+          --require test_every_stored_timestamp_is_simulated_time_never_the_wall_clock
+          --require test_the_same_inputs_give_the_same_digest_and_a_changed_cost_changes_it
+          --require test_every_registered_strategy_replays_without_an_error_tick_and_without_incidents
+          --require test_virtual_time_is_off_after_a_replay_even_when_the_replay_fails
+          --require test_replays_cannot_nest_and_naive_virtual_time_is_refused
+          --require test_the_live_application_never_imports_virtual_time_or_the_replay
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}

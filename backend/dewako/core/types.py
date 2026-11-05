@@ -5,7 +5,7 @@ formats are translated at the adapter boundary.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -13,7 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    from dewako.core import timesource
+    return timesource.now()
 
 
 class Side(str, Enum):

@@ -151,6 +151,10 @@ class SimulatedExchange(ExchangeAdapter):
     def _half_spread(self, bar: Candle) -> float:
         return max(self.cfg.min_half_spread, self.cfg.spread_range_factor * self._range_pct(bar))
 
+    def half_spread(self, bar: Candle) -> float:
+        """The half-spread this venue would quote for `bar` (the replay uses it to place price points where a bid-based trigger fires)."""
+        return self._half_spread(bar)
+
     def _in(self, windows: Iterable[tuple[datetime, datetime]]) -> bool:
         now = self.clock()
         return any(a <= now < b for a, b in windows)
