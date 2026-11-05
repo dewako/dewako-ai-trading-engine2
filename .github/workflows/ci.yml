@@ -108,6 +108,12 @@ jobs:
           --require test_a_suspect_spike_is_refused_unless_that_exact_candle_is_acknowledged
           --require test_a_correction_published_after_as_of_does_not_change_the_dataset
           --require test_explaining_a_gap_that_does_not_exist_is_refused
+          --require test_range_slippage_alone_makes_a_wild_bar_cost_more_by_exactly_the_configured_amount
+          --require test_when_volume_is_short_the_older_waiting_order_gets_it_not_the_newer_one
+          --require test_an_order_cannot_fill_before_the_latency_has_passed_and_fills_at_the_later_price
+          --require test_the_real_execution_engine_trades_against_it_and_an_outage_leaves_an_unknown_order_not_a_guess
+          --require test_a_lost_order_response_is_reconciled_from_the_exchange_and_never_sold_twice
+          --require test_the_same_inputs_give_identical_fills_every_time
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -220,6 +226,12 @@ jobs:
           --require test_a_suspect_spike_is_refused_unless_that_exact_candle_is_acknowledged
           --require test_a_correction_published_after_as_of_does_not_change_the_dataset
           --require test_explaining_a_gap_that_does_not_exist_is_refused
+          --require test_range_slippage_alone_makes_a_wild_bar_cost_more_by_exactly_the_configured_amount
+          --require test_when_volume_is_short_the_older_waiting_order_gets_it_not_the_newer_one
+          --require test_an_order_cannot_fill_before_the_latency_has_passed_and_fills_at_the_later_price
+          --require test_the_real_execution_engine_trades_against_it_and_an_outage_leaves_an_unknown_order_not_a_guess
+          --require test_a_lost_order_response_is_reconciled_from_the_exchange_and_never_sold_twice
+          --require test_the_same_inputs_give_identical_fills_every_time
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
