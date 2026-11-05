@@ -102,6 +102,12 @@ jobs:
           --require test_a_pending_partial_exit_survives_a_restart_and_is_finished_from_the_exchange_report
           --require test_a_reducing_position_whose_exit_outcome_is_unknown_is_quarantined_for_reconciliation
           --require test_an_exit_with_no_progress_is_reported_opens_an_incident_blocks_entries_and_is_not_resent
+          --require test_the_same_data_gives_the_same_hash_and_any_change_gives_another
+          --require test_every_field_of_every_candle_is_part_of_the_hash
+          --require test_a_missing_candle_is_refused_with_its_position_and_run_length
+          --require test_a_suspect_spike_is_refused_unless_that_exact_candle_is_acknowledged
+          --require test_a_correction_published_after_as_of_does_not_change_the_dataset
+          --require test_explaining_a_gap_that_does_not_exist_is_refused
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -208,6 +214,12 @@ jobs:
           --require test_a_pending_partial_exit_survives_a_restart_and_is_finished_from_the_exchange_report
           --require test_a_reducing_position_whose_exit_outcome_is_unknown_is_quarantined_for_reconciliation
           --require test_an_exit_with_no_progress_is_reported_opens_an_incident_blocks_entries_and_is_not_resent
+          --require test_the_same_data_gives_the_same_hash_and_any_change_gives_another
+          --require test_every_field_of_every_candle_is_part_of_the_hash
+          --require test_a_missing_candle_is_refused_with_its_position_and_run_length
+          --require test_a_suspect_spike_is_refused_unless_that_exact_candle_is_acknowledged
+          --require test_a_correction_published_after_as_of_does_not_change_the_dataset
+          --require test_explaining_a_gap_that_does_not_exist_is_refused
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
