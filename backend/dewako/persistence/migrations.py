@@ -340,11 +340,36 @@ CREATE TABLE position_exits (
 );
 CREATE INDEX position_exits_position ON position_exits(position_id, status);
 """),
+    (11, "backtest_runs", """
+CREATE TABLE backtest_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL, created_by TEXT NOT NULL,
+  strategy_name TEXT NOT NULL, strategy_version TEXT NOT NULL, strategy_fingerprint TEXT NOT NULL,
+  symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
+  dataset_hash TEXT NOT NULL, dataset TEXT NOT NULL,
+  config TEXT NOT NULL, run_digest TEXT NOT NULL, code_version TEXT NOT NULL,
+  metrics TEXT NOT NULL, validation TEXT NOT NULL,
+  verdict TEXT NOT NULL CHECK (verdict IN ('PASSED','FAILED')),
+  simulated INTEGER NOT NULL CHECK (simulated = 1)
+);
+CREATE INDEX backtest_runs_strategy ON backtest_runs(strategy_name, strategy_version, id);
+"""),
 ]
 
 # Statements that differ by dialect (triggers/functions contain semicolons and cannot be translated). They run inside the same
 # transaction as the migration. audit_log becomes append-only at the database level.
 MIGRATION_EXTRA: dict[int, dict[str, list[str]]] = {
+    11: {    # a run record is evidence: it can be added to, never edited or removed
+        "sqlite": [
+            "CREATE TRIGGER backtest_runs_no_update BEFORE UPDATE ON backtest_runs BEGIN SELECT RAISE(ABORT, 'backtest_runs is append-only'); END",
+            "CREATE TRIGGER backtest_runs_no_delete BEFORE DELETE ON backtest_runs BEGIN SELECT RAISE(ABORT, 'backtest_runs is append-only'); END",
+        ],
+        "postgres": [
+            "CREATE FUNCTION backtest_runs_immutable() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'backtest_runs is append-only'; END; $$",
+            "CREATE TRIGGER backtest_runs_no_mod BEFORE UPDATE OR DELETE ON backtest_runs FOR EACH ROW EXECUTE FUNCTION backtest_runs_immutable()",
+            "CREATE TRIGGER backtest_runs_no_truncate BEFORE TRUNCATE ON backtest_runs FOR EACH STATEMENT EXECUTE FUNCTION backtest_runs_immutable()",
+        ],
+    },
     5: {
         "sqlite": [
             "CREATE TRIGGER audit_log_no_update BEFORE UPDATE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END",

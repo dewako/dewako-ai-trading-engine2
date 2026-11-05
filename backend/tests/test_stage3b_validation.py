@@ -74,7 +74,7 @@ class Costs(unittest.TestCase):
 
     def test_the_same_strategy_that_wins_at_one_times_costs_loses_at_two(self):
         make_cycle("Cycle Cost")
-        v = validate_strategy(dataset(trending()), cfg("Cycle Cost", fee_rate=0.003), Thresholds(min_trades=5, is_placeholder=False), mc_runs=50)
+        v = validate_strategy(dataset(trending()), cfg("Cycle Cost", fee_rate=0.003), Thresholds(min_trades=5, approved_by="test"), mc_runs=50)
         self.assertGreater(v.stress[1.0].net_pnl, 0)
         self.assertLess(v.stress[2.0].net_pnl, 0)
         self.assertLess(v.stress[3.0].net_pnl, v.stress[2.0].net_pnl)
@@ -109,7 +109,7 @@ class Windows(unittest.TestCase):
     def test_in_sample_and_out_of_sample_do_not_overlap_and_together_cover_the_data(self):
         make_cycle("Cycle Split")
         ds = dataset(trending())
-        v = validate_strategy(ds, cfg("Cycle Split"), Thresholds(min_trades=5, is_placeholder=False), holdout_fraction=0.25, mc_runs=10)
+        v = validate_strategy(ds, cfg("Cycle Split"), Thresholds(min_trades=5, approved_by="test"), holdout_fraction=0.25, mc_runs=10)
         i, o = v.results["in_sample"], v.results["out_of_sample"]
         cut = ds.candles[120].t
         self.assertTrue(all(t.entry_time < cut for t in i.trades))
@@ -174,7 +174,7 @@ def base_metrics(**kw):
 
 class Checklist(unittest.TestCase):
     TH = Thresholds(min_trades=100, cost_factor_that_must_stay_positive=2.0, max_drawdown_pct=0.15, out_of_sample_vs_in_sample=0.5,
-                    min_profitable_period_share=0.5, is_placeholder=False)
+                    min_profitable_period_share=0.5, approved_by="test")
 
     def run_checks(self, full=None, s2=None, ins=None, oos=None, periods=None):
         full = full or base_metrics(trades=100, max_drawdown_pct=0.15)
@@ -208,13 +208,14 @@ class EndToEnd(unittest.TestCase):
     def test_a_steady_edge_passes_every_check_and_the_placeholder_warning_is_shown_until_a_human_sets_thresholds(self):
         make_cycle("Cycle Good")
         ds = dataset(trending(n=200, drift=0.003))
-        th = Thresholds(min_trades=10, max_drawdown_pct=0.15, is_placeholder=False)
-        v = validate_strategy(ds, cfg("Cycle Good", fee_rate=0.001), dataclasses.replace(th, is_placeholder=True), mc_runs=100)
+        th = Thresholds(min_trades=10, max_drawdown_pct=0.15, approved_by="test")
+        v = validate_strategy(ds, cfg("Cycle Good", fee_rate=0.001), dataclasses.replace(th, approved_by=""), mc_runs=100)
         self.assertTrue(v.passed, [c for c in v.checks if not c.ok])
         self.assertTrue(any("placeholder" in w for w in v.warnings))
         tiny = validate_strategy(dataset(trending(n=60)), cfg("Cycle Good", fee_rate=0.001), th, mc_runs=5)   # human-set: no such warning
         self.assertFalse(any("placeholder" in w for w in tiny.warnings))
-        self.assertTrue(Thresholds().is_placeholder)
+        self.assertFalse(Thresholds().is_placeholder)
+        self.assertTrue(Thresholds(approved_by="").is_placeholder)
 
     def test_default_thresholds_demand_a_hundred_trades(self):
         make_cycle("Cycle Few")
@@ -226,7 +227,7 @@ class EndToEnd(unittest.TestCase):
         make_cycle("Cycle A")
         make_cycle("Cycle B", buy_mod=12, sell_mod=6)
         ds = dataset(trending(n=90))
-        res = compare(ds, [cfg("Cycle B"), cfg("Cycle A")], Thresholds(min_trades=5, is_placeholder=False), mc_runs=10)
+        res = compare(ds, [cfg("Cycle B"), cfg("Cycle A")], Thresholds(min_trades=5, approved_by="test"), mc_runs=10)
         self.assertEqual([r.strategy for r in res], ["Cycle B", "Cycle A"])
         self.assertTrue(all(any("2 variants" in w for w in r.warnings) for r in res))
         self.assertFalse(hasattr(res[0], "rank"))

@@ -5,7 +5,8 @@ defaults), so "in-sample vs out-of-sample" here is a consistency check on one fi
 risk lives in how many variants a person tried: `VariantLedger` counts them and the report says so. Nothing in this module promotes
 anything: `evaluate` returns checks for a human to read.
 
-Every threshold below is a PLACEHOLDER chosen by the assistant, not by the owner, and only a human may change it.
+The threshold values were proposed by the assistant and ACCEPTED by the owner on 2026-11-05 (`approved_by`). Only a human may change
+them (a code change under review); a Thresholds object with no `approved_by` reports itself as a placeholder in every result.
 """
 from __future__ import annotations
 
@@ -19,18 +20,8 @@ from dewako.backtesting.datasets import Dataset
 from dewako.backtesting.metrics import Metrics, metrics_of
 from dewako.backtesting.replay import ReplayConfig, ReplayResult, replay
 from dewako.backtesting.sim_adapter import SimConfig
+from dewako.backtesting.thresholds import Check, Thresholds, evaluate  # noqa: F401  (re-exported)
 from dewako.market_data.timeframes import seconds as timeframe_seconds
-
-
-@dataclass(frozen=True)
-class Thresholds:
-    """PLACEHOLDER values (set by the assistant, to be replaced by the owner). `is_placeholder` stays True until a human sets them."""
-    min_trades: int = 100
-    cost_factor_that_must_stay_positive: float = 2.0
-    max_drawdown_pct: float = 0.15
-    out_of_sample_vs_in_sample: float = 0.5        # out-of-sample expectancy must be at least this share of in-sample expectancy
-    min_profitable_period_share: float = 0.5       # of equal consecutive periods
-    is_placeholder: bool = True
 
 
 def scale_costs(sim: SimConfig, k: float) -> SimConfig:
@@ -98,13 +89,6 @@ class VariantLedger:
         return None
 
 
-@dataclass(frozen=True)
-class Check:
-    name: str
-    ok: bool
-    detail: str
-
-
 @dataclass
 class StrategyValidation:
     strategy: str
@@ -118,35 +102,14 @@ class StrategyValidation:
     thresholds: Thresholds
     checks: list[Check]
     warnings: list[str]
+    holdout_fraction: float = 0.25
+    cost_factors: tuple = (1.0, 2.0, 3.0)
+    variants_tried: int = 1
     results: dict = field(default_factory=dict, repr=False)      # the raw replay results, keyed by label (for run records / reports)
 
     @property
     def passed(self) -> bool:
         return all(c.ok for c in self.checks)
-
-
-def evaluate(full: Metrics, stress: dict[float, Metrics], ins: Metrics, oos: Metrics, periods: Sequence[Metrics],
-             mc: Optional[dict], th: Thresholds) -> list[Check]:
-    out: list[Check] = []
-    out.append(Check("enough trades", full.trades >= th.min_trades, f"{full.trades} closed trades (need {th.min_trades})"))
-    k = th.cost_factor_that_must_stay_positive
-    sm = stress.get(k)
-    out.append(Check(f"positive at {k:g}x costs", sm is not None and sm.net_pnl > 0,
-                     "not run" if sm is None else f"net P&L {sm.net_pnl:.2f} at {k:g}x costs"))
-    out.append(Check("drawdown within limit", full.max_drawdown_pct <= th.max_drawdown_pct,
-                     f"max drawdown {full.max_drawdown_pct:.1%} (limit {th.max_drawdown_pct:.0%})"))
-    if ins.expectancy is None or ins.expectancy <= 0:
-        out.append(Check("out-of-sample holds up", False, "no positive in-sample expectancy to compare against"))
-    else:
-        o = oos.expectancy
-        out.append(Check("out-of-sample holds up", o is not None and o > 0 and o >= th.out_of_sample_vs_in_sample * ins.expectancy,
-                         f"out-of-sample expectancy {'n/a' if o is None else f'{o:.2f}'} vs in-sample {ins.expectancy:.2f} "
-                         f"(need >= {th.out_of_sample_vs_in_sample:.0%} of it, and positive)"))
-    good = sum(1 for p in periods if p.net_pnl > 0)
-    share = good / len(periods) if periods else 0.0
-    out.append(Check("consistent across periods", share >= th.min_profitable_period_share,
-                     f"{good} of {len(periods)} equal periods profitable (need {th.min_profitable_period_share:.0%})"))
-    return out
 
 
 def validate_strategy(ds: Dataset, cfg: ReplayConfig, th: Thresholds = Thresholds(), *, holdout_fraction: float = 0.25,
@@ -179,13 +142,15 @@ def validate_strategy(ds: Dataset, cfg: ReplayConfig, th: Thresholds = Threshold
     checks = evaluate(full, stress, ins, oos, per, mc, th)
     warn = list(full.warnings)
     if th.is_placeholder:
-        warn.append("Thresholds are the assistant's placeholders, not set by the owner.")
+        warn.append("Thresholds have no human approval recorded: treat them as placeholders.")
     if ledger and ledger.warning():
         warn.append(ledger.warning())
     if mc and mc["p95"] > full.max_drawdown_pct * 1.5 and mc["p95"] > th.max_drawdown_pct:
         warn.append(f"The same trades in a different order would have had a 95th-percentile drawdown of {mc['p95']:.1%} "
                     f"(this run saw {full.max_drawdown_pct:.1%}).")
-    return StrategyValidation(cfg.strategy, cfg.version, full, stress, ins, oos, per, mc, th, checks, warn, results)
+    return StrategyValidation(cfg.strategy, cfg.version, full, stress, ins, oos, per, mc, th, checks, warn,
+                              holdout_fraction=holdout_fraction, cost_factors=tuple(cost_factors),
+                              variants_tried=ledger.count if ledger else 1, results=results)
 
 
 def compare(ds: Dataset, cfgs: Sequence[ReplayConfig], th: Thresholds = Thresholds(), **kw) -> list[StrategyValidation]:

@@ -58,6 +58,12 @@ class Metrics:
     def as_dict(self) -> dict:
         return asdict(self)
 
+    @staticmethod
+    def from_dict(d: dict) -> "Metrics":
+        d = dict(d)
+        d["warnings"] = tuple(d.get("warnings", ()))
+        return Metrics(**d)
+
 
 def _streaks(pnls: Sequence[float]) -> tuple[int, int]:
     bw = bl = w = l = 0                    # noqa: E741
