@@ -58,6 +58,7 @@ class ReplayConfig:
     limits: Optional[RiskLimits] = None          # None = the platform default limits
     max_hold_seconds: Optional[float] = None     # time stop (None = off), as in the paper runtime
     # The runtime refuses to trade without explicit quote-guard limits, so a replay states its own. Recorded with the run.
+    trade_from: Optional[datetime] = None        # earlier candles are warm-up only: shown to the strategy, never traded, not in the equity curve
     quote_guard: QuoteGuardConfig = field(default_factory=lambda: QuoteGuardConfig(max_spread_pct=0.5, max_price_deviation_pct=2.0,
                                                                                     max_quote_age_seconds=30.0, clock_skew_tolerance_seconds=2.0))
 
@@ -70,6 +71,7 @@ class ReplayConfig:
     def record(self) -> dict[str, Any]:
         return {"strategy": self.strategy, "version": self.version, "symbol": self.symbol, "timeframe": self.timeframe,
                 "initial_cash": self.initial_cash, "lookback": self.lookback, "max_hold_seconds": self.max_hold_seconds,
+                "trade_from": self.trade_from.isoformat() if self.trade_from else None,
                 "sim": {k: (v if not isinstance(v, tuple) else [[a.isoformat(), b.isoformat()] for a, b in v])
                         for k, v in self.sim.__dict__.items()},
                 "quote_guard": dict(self.quote_guard.__dict__),
@@ -214,7 +216,8 @@ class _Run:
         for j, b in enumerate(self.candles):
             self._i = j                                                   # candles 0..j-1 are closed now
             await self._point(b, 0.0, b.o)                               # the open: waiting orders fill, gaps are exposed to the stops
-            if j > 0:
+            live = self.cfg.trade_from is None or b.t >= self.cfg.trade_from
+            if j > 0 and live:
                 had_position = bool(self._positions())
                 r = await self.runner.tick(self.bot)
                 self.ticks[r.outcome] = self.ticks.get(r.outcome, 0) + 1
@@ -228,7 +231,8 @@ class _Run:
                 for frac, mid in self._level_points(b, vs[k - 1], vs[k]):
                     await self._point(b, frac, mid)
                 await self._point(b, vs[k][0], vs[k][1])
-            await self._mark(b)
+            if live:
+                await self._mark(b)
         self._i = len(self.candles)
 
     async def _mark(self, b: Candle) -> None:

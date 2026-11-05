@@ -82,6 +82,17 @@ class Dataset:
     allowed_gaps: tuple[datetime, ...] = ()
     acknowledged_spikes: tuple[datetime, ...] = ()
 
+    def slice(self, start: datetime, end: datetime) -> "Dataset":
+        """A sub-period [start, end) as its own dataset: re-validated and re-hashed, so it is identified by its own data."""
+        part = [c for c in self.candles if start <= c.t < end]
+        gaps = tuple(g for g in self.allowed_gaps if start <= g < end)
+        spikes = tuple(x for x in self.acknowledged_spikes if start <= x < end)
+        report = validate_candles(part, self.timeframe, start, end, allowed_gaps=gaps, acknowledged_spikes=spikes)
+        if not report.ok:
+            raise DatasetRejected(report)
+        return Dataset(self.symbol, self.timeframe, self.source, start, end, self.as_of, tuple(part),
+                       content_hash(self.symbol, self.timeframe, self.source, part), report, gaps, spikes)
+
     def record(self) -> dict:
         """What a run record stores so the exact data can be identified again."""
         return {"symbol": self.symbol, "timeframe": self.timeframe, "source": self.source, "start": self.start.isoformat(),
