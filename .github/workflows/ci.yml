@@ -210,6 +210,15 @@ jobs:
           --require test_identical_results_for_every_built_in_strategy
           --require test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open
           --require test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar
+          --require test_every_built_in_strategy_declares_which_sides_it_signals
+          --require test_the_declared_sides_match_the_entries_written_in_each_strategys_source
+          --require test_labels_are_not_part_of_a_strategys_source_so_no_released_fingerprint_changes
+          --require test_spot_executes_only_the_long_side_and_says_so
+          --require test_futures_is_not_implemented_for_any_strategy_and_lists_what_is_missing
+          --require test_the_futures_label_matches_what_the_execution_engine_really_refuses
+          --require test_a_rule_built_strategy_is_labelled_from_its_spec
+          --require test_an_unlabelled_strategy_is_reported_as_undeclared_not_assumed_long_only
+          --require test_describe_carries_the_labels_to_the_api
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -424,6 +433,15 @@ jobs:
           --require test_identical_results_for_every_built_in_strategy
           --require test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open
           --require test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar
+          --require test_every_built_in_strategy_declares_which_sides_it_signals
+          --require test_the_declared_sides_match_the_entries_written_in_each_strategys_source
+          --require test_labels_are_not_part_of_a_strategys_source_so_no_released_fingerprint_changes
+          --require test_spot_executes_only_the_long_side_and_says_so
+          --require test_futures_is_not_implemented_for_any_strategy_and_lists_what_is_missing
+          --require test_the_futures_label_matches_what_the_execution_engine_really_refuses
+          --require test_a_rule_built_strategy_is_labelled_from_its_spec
+          --require test_an_unlabelled_strategy_is_reported_as_undeclared_not_assumed_long_only
+          --require test_describe_carries_the_labels_to_the_api
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}

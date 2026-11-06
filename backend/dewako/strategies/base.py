@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Optional
 
 from dewako.core.types import MarketState, Signal
+from dewako.strategies.labels import directions_of
 
 
 class StrategyParameterError(ValueError):
@@ -45,6 +46,18 @@ class Strategy(ABC):
         """Optionally return an exit/adjust signal for an open position."""
         return None
 
+    @classmethod
+    def market_support(cls) -> dict[str, dict[str, Any]]:
+        """Per market type: whether the platform can execute this strategy today and what is lost. Derived, never declared per strategy."""
+        d = directions_of(cls)
+        shorts, longs = "SHORT" in d, "LONG" in d
+        spot = ({"status": "UNDECLARED", "trades": [], "note": "the sides this strategy signals are not declared (strategies/labels.py)"} if not d else
+                {"status": "SUPPORTED" if longs else "NOTHING_TO_TRADE", "trades": ["LONG"] if longs else [],
+                 "note": "short entries are refused on spot and are not traded" if shorts and longs else
+                         "only short entries: spot refuses them, so nothing is traded" if shorts else "long-only"})
+        needs = ["short positions", "margin and liquidation", "funding", "instrument model"] + ([] if shorts else ["a short side (this strategy is long-only)"])
+        return {"SPOT": spot, "FUTURES": {"status": "NOT_IMPLEMENTED", "trades": [], "needs": needs}}
+
     def describe(self) -> dict[str, Any]:
         return {
             "name": self.name,
@@ -55,6 +68,8 @@ class Strategy(ABC):
             "parameters": self.parameters,
             "risk_profile": self.risk_profile,
             "experimental": self.experimental,
+            "directions": list(directions_of(type(self))),
+            "market_support": self.market_support(),
             "parameter_ranges": {k: list(v) for k, v in self.parameter_ranges.items()},
         }
 

@@ -125,6 +125,7 @@ def build_strategy_class(spec: RuleSpec, do_register: bool = True) -> type[Strat
         (Strategy,),
         {"name": spec.name, "version": spec.version, "description": spec.description or "User-built rule strategy",
          "risk_profile": spec.risk_profile, "default_parameters": {"atr_len": spec.atr_len, "atr_stop": spec.atr_stop},
-         "spec": spec, "generate_signal": generate_signal},
+         "spec": spec, "generate_signal": generate_signal,
+         "directions": tuple(d for d, on in (("LONG", longs), ("SHORT", shorts)) if on)},
     )
     return register(cls) if do_register else cls
