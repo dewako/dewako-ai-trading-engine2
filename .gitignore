@@ -7,3 +7,4 @@ dist/
 .venv/
 *.log
 *.db
+frontend/browser_tests/shots/
