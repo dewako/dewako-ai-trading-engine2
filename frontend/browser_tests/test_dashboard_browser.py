@@ -303,6 +303,36 @@ def t_simulated_pages_are_labelled_and_real_pages_are_not(br):
 
 
 @case
+def t_backtest_page_is_real_read_only_and_labelled_simulated(br):
+    from stage3b_evidence import record_run, m
+    ANALYST = {"user_id": 3, "username": "analyst", "role": "ANALYST"}
+    record_run(rt.packages.runs, ANALYST, "Browser BT", "1.0", "f" * 64)
+    record_run(rt.packages.runs, ANALYST, "Browser BT", "1.0", "f" * 64, full=m(trades=12, net_pnl=-3.0, max_drawdown_pct=0.3))
+    c, p, errs = open_page(br, "backtest")
+    expect(p.locator("#btList")).to_contain_text("Browser BT", timeout=8000)
+    assert p.locator("#view .demo-banner").count() == 0                       # it is real data now, not the old generator
+    assert "DEMO MODE" not in p.inner_text("#view") and "seeded generator" not in p.inner_text("#view")
+    rows = p.locator("#btList tr", has_text="Browser BT")
+    assert rows.count() == 2
+    assert "SIMULATED" in rows.first.inner_text() and "FAILED" in rows.first.inner_text() and "PASSED" in rows.nth(1).inner_text()
+    for forbidden in ("Run backtest", "Start", "Promote", "Delete", "Edit"):
+        assert p.locator("#view button", has_text=forbidden).count() == 0, forbidden
+    rows.first.locator("[data-bk=btdetail]").click()
+    expect(p.locator("#modalBox")).to_contain_text("Promotion gate", timeout=5000)
+    t = p.inner_text("#modalBox")
+    assert "NEWEST RUN: counts for promotion" in t and "SIMULATED" in t and "Does not meet the limits" in t and "No order was ever sent anywhere" in t
+    assert "owner, 2026-11-05" in t
+    p.screenshot(path=str(SHOTS / "backtest_report.png"))
+    p.keyboard.press("Escape")
+    rows.nth(1).locator("[data-bk=btdetail]").click()
+    expect(p.locator("#modalBox")).to_contain_text("older run: does not count", timeout=5000)
+    assert not errs, errs; c.close()
+    c, p, errs = open_page(br, "backtest", user="viewer")                      # a viewer lacks the backtests permission: a plain message, no data
+    expect(p.locator("#btList")).to_contain_text("Your role cannot view backtest records", timeout=8000)
+    assert "Browser BT" not in p.inner_text("#view"); c.close()
+
+
+@case
 def t_bad_login_and_logout(br):
     c = br.new_context(); c.route(lambda u: not u.startswith('http://127.0.0.1'), lambda r: r.abort()); p = c.new_page(); p.goto(URL); p.click('#nav button[data-p="activity"]')
     login(p, "admin", "wrong-password-xx")
@@ -345,7 +375,7 @@ if __name__ == "__main__":
         for t in (t_login_and_real_events_flow, t_unknown_order_prominent_and_no_controls, t_pause_resume_holds_events_but_never_hides_critical,
                   t_disconnect_shows_state_and_resumes_without_duplicates, t_filters_search_and_details, t_viewer_cannot_import_and_denied_states,
                   t_zip_import_valid_malicious_duplicate, t_zip_cancel_and_server_down, t_reduced_motion_disables_animation, t_csp_blocks_inline_script_and_headers_are_set,
-                  t_hostile_filename_is_inert, t_simulated_pages_are_labelled_and_real_pages_are_not, t_bad_login_and_logout,
+                  t_hostile_filename_is_inert, t_simulated_pages_are_labelled_and_real_pages_are_not, t_backtest_page_is_real_read_only_and_labelled_simulated, t_bad_login_and_logout,
                   t_empty_login_is_blocked_by_required_fields, t_document_is_standards_mode_with_viewport_and_relative_assets_load):
             t(br)
         br.close()

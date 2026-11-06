@@ -33,9 +33,14 @@ def check(store: RunStore, name: str, version: str, fingerprint: str, th: Thresh
     run = store.latest(name, version)
     if run is None:
         return GateResult(False, ["no backtest evidence has been recorded for this strategy"])
-    why: list[str] = []
     if run["strategy_fingerprint"] != fingerprint:
         return GateResult(False, ["the newest recorded backtest is for a different definition of this strategy (its rules changed since)"], run["id"])
+    return judge_run(run, th)
+
+
+def judge_run(run: dict, th: Thresholds = OFFICIAL_THRESHOLDS) -> GateResult:
+    """Apply the official limits to one stored run (its own stored verdict is ignored)."""
+    why: list[str] = []
     m, val, ds = run["metrics"], run["validation"], run["dataset"]
     try:
         stress = {float(k): Metrics.from_dict(v) for k, v in m["stress"].items()}

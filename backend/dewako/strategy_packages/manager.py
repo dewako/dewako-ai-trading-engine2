@@ -222,6 +222,16 @@ class PackageManager:
         self._sync_one(self._row(pid))
         return self.get(pid)
 
+    def evidence(self, pid: int) -> dict:
+        """What the promotion gate sees for this package right now (read-only)."""
+        from dewako.backtesting import report
+        r = self._row(pid)
+        g = backtest_gate.check(self.runs, r["name"], r["version"], r["fingerprint"])
+        run = self.runs.latest(r["name"], r["version"])
+        return {"package_id": pid, "name": r["name"], "version": r["version"], "state": r["state"],
+                "gate": {"ok": g.ok, "reasons": g.reasons, "notes": g.notes, "run_id": g.run_id},
+                "latest_run": report.summary(run) if run else None, "limits": list(report.LIMITS)}
+
     def review_existing(self, actor: dict, correlation_id: str = "") -> list[dict]:
         """Apply the evidence gate to packages that were promoted BEFORE it existed. A package at PAPER_ELIGIBLE or TESTNET_ELIGIBLE
         without passing evidence is demoted to BACKTEST_ELIGIBLE (never anywhere else), each one audited with the reasons.

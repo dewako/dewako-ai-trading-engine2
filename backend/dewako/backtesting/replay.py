@@ -178,12 +178,24 @@ class _Run:
         t = b.t + self.step * frac if frac < 1 else b.t + self.step
         self.clock.set(t)                                             # never backwards: the clock refuses, loudly
         self.sim.set_market(self.cfg.symbol, mid, self.clock(), b)
+        if self._idle():
+            return                                                        # flat, nothing resting: the sync and the monitor have nothing to do
         await self.engine.sync_active_orders("PAPER")                   # resting / partial orders: the exchange report is applied
         rep = await self.monitor.run_once()
         for _pid, reason, outcome in rep.exits:
             self.exits[reason] = self.exits.get(reason, 0) + 1
             self._reason = reason
         self._collect()
+
+    def _idle(self) -> bool:
+        """No open position and no order that could still move: the exit monitor and the order sync would do nothing. (Pure speed-up:
+        a test replays the same data with the shortcut off and requires an identical digest.)"""
+        if self.no_shortcut:
+            return False
+        with self.db.read() as c:
+            if c.execute("SELECT 1 FROM positions WHERE status<>'CLOSED' LIMIT 1").fetchone():
+                return False
+            return not c.execute("SELECT 1 FROM orders WHERE state IN ('SUBMITTED','OPEN','PARTIALLY_FILLED','CANCEL_REQUESTED') LIMIT 1").fetchone()
 
     def _collect(self) -> None:
         """Turn fills into round trips: a trade starts at the first buy from flat and ends when the holding is flat again."""
@@ -210,6 +222,7 @@ class _Run:
                     self._cur, self._reason = {}, None
 
     _seen = 0
+    no_shortcut = False
 
     # ------------------------------------------------------------------ main loop
     async def play(self) -> None:

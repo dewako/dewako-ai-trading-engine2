@@ -275,6 +275,93 @@ class BuiltInStrategies(unittest.TestCase):
                 self.assertTrue(r.simulated)
 
 
+class IdleShortcutIsOnlyASpeedUp(unittest.TestCase):
+    """When flat with nothing resting, the replay skips the order sync and the exit monitor. Replaying with the shortcut forced off must give the
+    identical digest, fills and cash in every situation where something could still move."""
+
+    def both(self, ds, config):
+        from dewako.backtesting import replay as rp
+        fast = replay(ds, config)
+        rp._Run.no_shortcut = True
+        try:
+            slow = replay(ds, config)
+        finally:
+            rp._Run.no_shortcut = False
+        self.assertEqual((fast.digest, fast.final_cash, len(fast.fills), len(fast.trades)), (slow.digest, slow.final_cash, len(slow.fills), len(slow.trades)))
+        return fast
+
+    def test_identical_results_for_stops_targets_gaps_strategy_exits_and_split_entries(self):
+        cases = {
+            "stop": [bar(i) for i in range(6)] + [bar(6, o=100, l=97.0), bar(7), bar(8)],
+            "target": [bar(i) for i in range(6)] + [bar(6, o=100, h=104.0), bar(7), bar(8)],
+            "gap": [bar(i) for i in range(6)] + [bar(6, o=90.0), bar(7, o=90.0), bar(8, o=90.0)],
+            "both": [bar(i) for i in range(6)] + [bar(6, o=100, h=104.0, l=96.0), bar(7), bar(8)],
+        }
+        for k, after in cases.items():
+            name = f"Probe Eq {k}"
+            make_probe(name, buy_at=5)
+            with self.subTest(case=k):
+                r = self.both(dataset(after), cfg(name))
+                self.assertTrue(r.fills)                                                   # the scenario really traded
+        make_probe("Probe Eq nofill", buy_at=5, tp_pct=0.5, stop_pct=0.3)                  # no volume on the bars after the decision: the order rests with no position
+        r = self.both(dataset([bar(i) for i in range(5)] + [bar(5, v=0.0), bar(6, v=0.0), bar(7, v=0.0)] + [bar(i) for i in range(8, 12)]), cfg("Probe Eq nofill"))
+        self.assertTrue(r.fills)                                                           # it filled once volume returned
+        make_probe("Probe Eq exit", buy_at=5, tp_pct=0.5, sell_at=8)
+        self.both(dataset([bar(i) for i in range(12)]), cfg("Probe Eq exit"))
+        make_probe("Probe Eq split", buy_at=5, tp_pct=0.5, stop_pct=0.3)
+        q = [f for f in replay(dataset([bar(i) for i in range(12)]), cfg("Probe Eq split")).fills if f.side == "BUY"][0].quantity
+        r = self.both(dataset([bar(i, v=q * 4) for i in range(12)]), cfg("Probe Eq split", sim=dict(max_participation=0.1)))
+        self.assertGreaterEqual(len([f for f in r.fills if f.side == "BUY"]), 3)
+
+    def test_identical_results_for_every_built_in_strategy(self):
+        import math
+        candles = []
+        for i in range(220):
+            m = 100 + i * 0.05 + 3 * math.sin(i / 9)
+            candles.append(Candle(t=T0 + M5 * i, o=m, h=m + 0.4, l=m - 0.4, c=m + 0.1 * math.sin(i), v=1000.0))
+        ds = dataset(candles)
+        for (name, version) in sorted(base._REGISTRY):
+            with self.subTest(strategy=name):
+                self.both(ds, ReplayConfig(strategy=name, version=version, symbol=SYM, timeframe=TF, lookback=120))
+
+    def test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open(self):
+        from dewako.backtesting import replay as rp
+        make_probe("Probe Skip", buy_at=5, tp_pct=0.5, sell_at=9)
+        ds = dataset([bar(i) for i in range(14)])
+        calls = []
+        orig = rp._Run._idle
+
+        def spy(self):
+            v = orig(self)
+            calls.append(v)
+            return v
+        rp._Run._idle = spy
+        try:
+            replay(ds, cfg("Probe Skip"))
+        finally:
+            rp._Run._idle = orig
+        self.assertTrue(any(calls) and not all(calls))                                     # flat stretches skipped, the open stretch is not
+
+
+class Resources(unittest.TestCase):
+    """B9: a replay has a known cost. Bounds are deliberately loose (shared CI machines); they catch a step change, not noise."""
+
+    def test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar(self):
+        import time
+        import tracemalloc
+        make_probe("Probe Idle", buy_at=10 ** 9)
+        ds = dataset([bar(i) for i in range(400)])
+        tracemalloc.start()
+        t0 = time.perf_counter()
+        r = replay(ds, cfg("Probe Idle"))
+        secs = time.perf_counter() - t0
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        self.assertEqual(sum(r.ticks.values()), 399)
+        self.assertLess(secs / 400, 0.1, f"{secs / 400 * 1000:.1f} ms per bar")             # measured around 10-15 ms per bar
+        self.assertLess(peak / 1e6, 150, f"peak {peak / 1e6:.0f} MB")
+
+
 class VirtualTimeIsContained(unittest.TestCase):
     def test_virtual_time_is_off_after_a_replay_even_when_the_replay_fails(self):
         make_probe("Probe Fail", buy_at=999)

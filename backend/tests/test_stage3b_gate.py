@@ -145,7 +145,7 @@ def test_an_unreadable_record_is_not_evidence():
     with db.tx() as c:
         c.execute("INSERT INTO backtest_runs(created_at,created_by,strategy_name,strategy_version,strategy_fingerprint,symbol,timeframe,"
                   "dataset_hash,dataset,config,run_digest,code_version,metrics,validation,verdict,simulated) "
-                  "VALUES ('t','x','S','1.0',?,'XAUUSD','5m','h','{}','{}','d','c','{}','{}','PASSED',1)", (FP,))
+                  "VALUES ('2026-01-01T00:00:00+00:00','x','S','1.0',?,'XAUUSD','5m','h','{}','{}','d','c','{}','{}','PASSED',1)", (FP,))
     g = gate.check(s, "S", "1.0", FP)
     assert not g.ok and "unreadable" in g.reasons[0]
 

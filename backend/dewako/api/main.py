@@ -649,6 +649,41 @@ def transition_strategy_package(package_id: int, body: PackageTransition, reques
         raise HTTPException(403 if "permission" in str(e) else 409, str(e))
 
 
+@app.get("/strategy-packages/{package_id}/evidence")
+def strategy_package_evidence(package_id: int, actor: dict = Depends(permission("strategies")), rt: Runtime = Depends(get_runtime)):
+    try:
+        return rt.packages.evidence(package_id)
+    except KeyError:
+        raise HTTPException(404, "no such package")
+
+
+@app.post("/strategy-packages/review-existing")
+def review_existing_packages(request: Request, actor: dict = Depends(permission("strategies")), rt: Runtime = Depends(get_runtime)):
+    """Human-triggered: demote packages promoted before the evidence gate existed and that have no passing evidence."""
+    try:
+        return {"demoted": rt.packages.review_existing(actor, correlation_id(request))}
+    except TransitionRefused as e:
+        raise HTTPException(403, str(e))
+
+
+# ---------------------------------------------------------------- Backtest run records: READ-ONLY. No route starts, edits or promotes a run, and none accepts metrics.
+@app.get("/backtests/runs")
+def list_backtest_runs(limit: int = 50, actor: dict = Depends(permission("backtests")), rt: Runtime = Depends(get_runtime)):
+    from dewako.backtesting import report
+    return [report.summary(r) for r in rt.packages.runs.list(max(1, min(int(limit), 200)))]
+
+
+@app.get("/backtests/runs/{run_id}")
+def get_backtest_run(run_id: int, actor: dict = Depends(permission("backtests")), rt: Runtime = Depends(get_runtime)):
+    from dewako.backtesting import report
+    try:
+        run = rt.packages.runs.get(run_id)
+    except KeyError:
+        raise HTTPException(404, "no such backtest run")
+    newest = rt.packages.runs.latest(run["strategy_name"], run["strategy_version"])
+    return report.detail(run, current=bool(newest and newest["id"] == run_id))
+
+
 # ---------------------------------------------------------------- AI provider manager (Phase 4.3). Output is advisory data; no route lets a model act.
 class AISettingsBody(BaseModel):
     config: dict = Field(default_factory=dict)

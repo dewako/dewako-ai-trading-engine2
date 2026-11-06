@@ -452,5 +452,6 @@ def test_routes_are_registered_with_the_expected_permissions():
             for d in n.decorator_list:
                 if isinstance(d, ast.Call) and getattr(d.func, "attr", "") in ("get", "post") and d.args and "strategy-packages" in ast.unparse(d.args[0]):
                     found[n.name] = ast.unparse(n)
-    assert set(found) == {"import_strategy_package", "list_strategy_packages", "get_strategy_package", "transition_strategy_package"}
+    assert set(found) == {"import_strategy_package", "list_strategy_packages", "get_strategy_package", "transition_strategy_package",
+                          "strategy_package_evidence", "review_existing_packages"}
     assert all("permission('strategies')" in v for v in found.values())          # none is anonymous

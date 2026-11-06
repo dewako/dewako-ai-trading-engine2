@@ -440,7 +440,7 @@ def test_activity_routes_are_read_only_authenticated_and_the_ui_csp_is_scoped():
     assert "'unsafe-eval'" not in csp and "*" not in csp
     assert directives["script-src"] == ["'self'"]                                   # no inline script, no eval
     assert directives["style-src"] == ["'self'"] and directives["style-src-attr"] == ["'unsafe-inline'"]   # the one scoped exception: style attributes
-    assert set(UI_ASSETS) == {"activity.js", "packages.js", "app.js", "app.css"}
+    assert set(UI_ASSETS) == {"activity.js", "packages.js", "backtests.js", "app.js", "app.css"}
 
 
 # ------------------------------------------------------------------ Phase 4.4 package-import integration
