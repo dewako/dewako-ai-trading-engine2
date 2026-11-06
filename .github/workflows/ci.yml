@@ -219,6 +219,24 @@ jobs:
           --require test_a_rule_built_strategy_is_labelled_from_its_spec
           --require test_an_unlabelled_strategy_is_reported_as_undeclared_not_assumed_long_only
           --require test_describe_carries_the_labels_to_the_api
+          --require test_a_clean_month_in_milliseconds_imports_with_the_exchange_symbol_normalised
+          --require test_microsecond_timestamps_give_the_same_candles_as_milliseconds
+          --require test_a_header_line_is_skipped
+          --require test_a_publication_time_is_the_close_not_the_open
+          --require test_delivery_futures_files_are_refused_and_nothing_is_stored
+          --require test_a_file_with_one_bad_row_is_refused_whole_not_partly_imported
+          --require test_every_kind_of_malformed_row_is_refused_with_its_line
+          --require test_a_candle_outside_the_month_named_in_the_file_is_refused
+          --require test_a_name_that_is_not_a_spot_archive_name_is_refused
+          --require test_a_unit_change_inside_a_file_is_refused
+          --require test_checksums_are_verified_and_a_mismatch_refuses_the_file
+          --require test_a_file_without_a_checksum_is_imported_but_marked_unverified
+          --require test_a_missing_day_between_months_is_reported_as_a_gap_and_never_filled
+          --require test_zero_volume_candles_are_counted_and_reported
+          --require test_importing_the_same_archive_twice_changes_nothing
+          --require test_a_changed_candle_on_reimport_is_kept_as_a_revision_and_flagged
+          --require test_parse_csv_reports_the_first_problem_it_finds
+          --require test_an_imported_series_passes_through_the_dataset_validator
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -442,6 +460,24 @@ jobs:
           --require test_a_rule_built_strategy_is_labelled_from_its_spec
           --require test_an_unlabelled_strategy_is_reported_as_undeclared_not_assumed_long_only
           --require test_describe_carries_the_labels_to_the_api
+          --require test_a_clean_month_in_milliseconds_imports_with_the_exchange_symbol_normalised
+          --require test_microsecond_timestamps_give_the_same_candles_as_milliseconds
+          --require test_a_header_line_is_skipped
+          --require test_a_publication_time_is_the_close_not_the_open
+          --require test_delivery_futures_files_are_refused_and_nothing_is_stored
+          --require test_a_file_with_one_bad_row_is_refused_whole_not_partly_imported
+          --require test_every_kind_of_malformed_row_is_refused_with_its_line
+          --require test_a_candle_outside_the_month_named_in_the_file_is_refused
+          --require test_a_name_that_is_not_a_spot_archive_name_is_refused
+          --require test_a_unit_change_inside_a_file_is_refused
+          --require test_checksums_are_verified_and_a_mismatch_refuses_the_file
+          --require test_a_file_without_a_checksum_is_imported_but_marked_unverified
+          --require test_a_missing_day_between_months_is_reported_as_a_gap_and_never_filled
+          --require test_zero_volume_candles_are_counted_and_reported
+          --require test_importing_the_same_archive_twice_changes_nothing
+          --require test_a_changed_candle_on_reimport_is_kept_as_a_revision_and_flagged
+          --require test_parse_csv_reports_the_first_problem_it_finds
+          --require test_an_imported_series_passes_through_the_dataset_validator
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
