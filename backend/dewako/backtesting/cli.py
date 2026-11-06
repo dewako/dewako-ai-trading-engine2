@@ -50,6 +50,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--periods", type=int, default=4)
     p.add_argument("--mc-runs", type=int, default=1000)
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--streak-reset", choices=("never", "daily"), default="never",
+                   help="risk engine's max-consecutive-losses latch: 'never' = as the platform is, 'daily' = a person is assumed to resume at the next UTC midnight")
     p.add_argument("--max-hold-seconds", type=float, default=None)
     p.add_argument("--fee-rate", type=float, default=SimConfig().fee_rate)
     p.add_argument("--allow-gap", action="append", default=[], type=_t, metavar="TIME", help="a missing candle a human has explained (repeatable)")
@@ -77,7 +79,7 @@ def main(argv: Optional[list[str]] = None, *, db: Optional[Database] = None) -> 
         print(f"unknown strategy {a.strategy} v{a.version}", file=sys.stderr)
         return 2
     cfg = ReplayConfig(strategy=a.strategy, version=a.version, symbol=a.symbol, timeframe=a.timeframe, initial_cash=a.cash,
-                       lookback=a.lookback, sim=SimConfig(fee_rate=a.fee_rate), max_hold_seconds=a.max_hold_seconds)
+                       lookback=a.lookback, sim=SimConfig(fee_rate=a.fee_rate), max_hold_seconds=a.max_hold_seconds, streak_reset=a.streak_reset)
     from dewako.backtesting.validation import VariantLedger
     ledger = VariantLedger(tried=[f"variant-{i}" for i in range(max(1, a.variants_tried))])
     v = validate_strategy(ds, cfg, Thresholds(), holdout_fraction=a.holdout, periods=a.periods, mc_runs=a.mc_runs, seed=a.seed, ledger=ledger)

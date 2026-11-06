@@ -29,6 +29,7 @@ from dewako.backtesting.clock import VirtualClock
 from dewako.backtesting.datasets import Dataset
 from dewako.backtesting.sim_adapter import SimConfig, SimFill, SimulatedExchange
 from dewako.core import timesource
+from dewako.market_data.state_builder import MIN_CANDLES, InsufficientData, build_market_state
 from dewako.core.types import Candle, MarketState
 from dewako.execution.engine import ExecutionEngine
 from dewako.execution.exit_monitor import ExitMonitor
@@ -58,6 +59,14 @@ class ReplayConfig:
     limits: Optional[RiskLimits] = None          # None = the platform default limits
     max_hold_seconds: Optional[float] = None     # time stop (None = off), as in the paper runtime
     # The runtime refuses to trade without explicit quote-guard limits, so a replay states its own. Recorded with the run.
+    # "market_state" = the real state builder (trend, momentum, volatility, volume ratio, regime), needs 60 closed candles, as the live feed does.
+    # "candles_only" = bare candles with default labels (volume ratio 1.0 always): for plumbing tests only. The promotion gate refuses such runs.
+    state_source: str = "market_state"
+    # The risk engine's max-consecutive-losses limit latches: after N losing trades in a row every signal is rejected and only a WIN resets it,
+    # which cannot happen while nothing trades. Live, that is a halt until a person acts. "never" = the platform as it is (the run measures
+    # time-to-halt); "daily" = a person is assumed to resume trading at the next UTC midnight (the streak counter is zeroed; every other limit
+    # stays). Recorded with the run. Neither choice changes the live limits.
+    streak_reset: str = "never"
     trade_from: Optional[datetime] = None        # earlier candles are warm-up only: shown to the strategy, never traded, not in the equity curve
     quote_guard: QuoteGuardConfig = field(default_factory=lambda: QuoteGuardConfig(max_spread_pct=0.5, max_price_deviation_pct=2.0,
                                                                                     max_quote_age_seconds=30.0, clock_skew_tolerance_seconds=2.0))
@@ -67,10 +76,14 @@ class ReplayConfig:
             raise ValueError("initial_cash must be positive")
         if self.lookback < 2:
             raise ValueError("lookback must be at least 2")
+        if self.streak_reset not in ("never", "daily"):
+            raise ValueError("streak_reset must be 'never' or 'daily'")
+        if self.state_source not in ("market_state", "candles_only"):
+            raise ValueError("state_source must be 'market_state' or 'candles_only'")
 
     def record(self) -> dict[str, Any]:
         return {"strategy": self.strategy, "version": self.version, "symbol": self.symbol, "timeframe": self.timeframe,
-                "initial_cash": self.initial_cash, "lookback": self.lookback, "max_hold_seconds": self.max_hold_seconds,
+                "initial_cash": self.initial_cash, "lookback": self.lookback, "state_source": self.state_source, "streak_reset": self.streak_reset, "max_hold_seconds": self.max_hold_seconds,
                 "trade_from": self.trade_from.isoformat() if self.trade_from else None,
                 "sim": {k: (v if not isinstance(v, tuple) else [[a.isoformat(), b.isoformat()] for a, b in v])
                         for k, v in self.sim.__dict__.items()},
@@ -147,7 +160,14 @@ class _Run:
         shown = self.candles[max(0, self._i - self.cfg.lookback):self._i]
         if not shown:
             raise LookupError("no closed candle yet")
-        return MarketState(symbol=symbol, as_of=shown[-1].t + self.step, candles=shown)
+        if self.cfg.state_source == "candles_only":
+            return MarketState(symbol=symbol, as_of=shown[-1].t + self.step, candles=shown)
+        try:
+            # the SAME state builder the live feed uses: trend, momentum, volatility, volume ratio and regime are computed from the closed
+            # candles only. (An earlier version passed bare candles, so every strategy saw volume_ratio 1.0 and none could confirm on volume.)
+            return build_market_state(symbol, shown, shown[-1].t + self.step, timeframe)
+        except InsufficientData as e:
+            raise LookupError(str(e)) from None
 
     # ------------------------------------------------------------------ price path
     def _positions(self) -> list[dict]:
@@ -230,7 +250,13 @@ class _Run:
             self._i = j                                                   # candles 0..j-1 are closed now
             await self._point(b, 0.0, b.o)                               # the open: waiting orders fill, gaps are exposed to the stops
             live = self.cfg.trade_from is None or b.t >= self.cfg.trade_from
-            if j > 0 and live:
+            if self.cfg.streak_reset == "daily" and j > 0 and b.t.date() != self.candles[j - 1].t.date():
+                with self.db.tx() as c:
+                    c.execute("UPDATE risk_state SET consecutive_losses=0 WHERE scope=?", (SCOPE,))
+            warm = self.cfg.state_source == "market_state" and j < MIN_CANDLES   # the real state builder needs 60 closed candles
+            if j > 0 and live and warm:
+                self.ticks["WARMUP"] = self.ticks.get("WARMUP", 0) + 1       # counted, not hidden; nothing can trade yet
+            elif j > 0 and live:
                 had_position = bool(self._positions())
                 r = await self.runner.tick(self.bot)
                 self.ticks[r.outcome] = self.ticks.get(r.outcome, 0) + 1

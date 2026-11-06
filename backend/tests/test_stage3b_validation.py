@@ -57,7 +57,7 @@ def trending(n=160, drift=0.002, seed=1):
 
 
 def cfg(name, **sim):
-    return ReplayConfig(strategy=name, version="1.0", symbol=SYM, timeframe=TF, lookback=20, sim=SimConfig(**{**CLEAN, **sim}))
+    return ReplayConfig(strategy=name, version="1.0", symbol=SYM, timeframe=TF, lookback=20, state_source="candles_only", sim=SimConfig(**{**CLEAN, **sim}))
 
 
 class Costs(unittest.TestCase):
@@ -251,3 +251,33 @@ class EndToEnd(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_a_run_mostly_halted_by_the_loss_streak_limit_carries_a_visible_warning():
+    from types import SimpleNamespace
+    from datetime import datetime, timezone
+    from dewako.backtesting.validation import halt_warning
+    t = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    cfg = SimpleNamespace(streak_reset="never")
+    halted = SimpleNamespace(ticks={"NO_SIGNAL": 100, "RISK_REJECTED": 200, "WARMUP": 59},
+                             notes=[(t, "RISK_REJECTED", "maximum consecutive losses reached")] * 200)
+    w = halt_warning(halted, cfg)
+    assert w and "200 of 300 ticks" in w and "'never'" in w and "consecutive-loss limit: 200" in w
+    fine = SimpleNamespace(ticks={"NO_SIGNAL": 290, "RISK_REJECTED": 10}, notes=[(t, "RISK_REJECTED", "maximum consecutive losses reached")] * 10)
+    assert halt_warning(fine, cfg) is None                                                 # 3% is not a halted run
+    other = SimpleNamespace(ticks={"NO_SIGNAL": 100, "RISK_REJECTED": 200}, notes=[(t, "RISK_REJECTED", "position size too large")] * 200)
+    assert halt_warning(other, cfg) is None                                                # only this limit triggers this warning
+
+    incident = SimpleNamespace(ticks={"NO_SIGNAL": 100, "BLOCKED": 100}, notes=[(t, "BLOCKED", "exit protection is unverified for an open position (incident open); new entries are blocked")] * 100)
+    assert "open exit-protection incident: 100" in halt_warning(incident, cfg)
+    shorts = SimpleNamespace(ticks={"NO_SIGNAL": 100, "BLOCKED": 100}, notes=[(t, "BLOCKED", "spot SELL is only allowed as an EXIT")] * 100)
+    assert halt_warning(shorts, cfg) is None                                                 # refused spot shorts are not a halt
+
+
+def test_a_cost_stress_raises_the_guard_ceiling_with_the_costs_and_never_lowers_it():
+    from dewako.backtesting.replay import ReplayConfig
+    from dewako.backtesting.validation import stress_config
+    base_cfg = ReplayConfig(strategy="x", version="1", symbol="BTC/USDT", timeframe="5m")
+    assert stress_config(base_cfg, 2.0).quote_guard.max_spread_pct == base_cfg.quote_guard.max_spread_pct * 2
+    assert stress_config(base_cfg, 0.5).quote_guard.max_spread_pct == base_cfg.quote_guard.max_spread_pct
+    assert stress_config(base_cfg, 2.0).sim.fee_rate == base_cfg.sim.fee_rate * 2 and stress_config(base_cfg, 2.0).quote_guard.max_price_deviation_pct == base_cfg.quote_guard.max_price_deviation_pct

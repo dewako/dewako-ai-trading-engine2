@@ -240,3 +240,20 @@ def test_existing_promoted_packages_without_evidence_are_demoted_only_by_a_human
         assert any("no passing backtest evidence" in a["metadata"] for a in audit_rows(db, "STRATEGY_PACKAGE_STATE"))
     finally:
         _unreg(mm)
+
+
+def test_a_run_on_a_simplified_market_state_is_plumbing_not_evidence():
+    from stage3b_evidence import config as cfg_of
+    s, _ = store()
+    s.save(validation("S", "1.0"), dataset(), cfg_of("S", "1.0", state_source="candles_only"), FP, ANALYST)
+    g = gate.check(s, "S", "1.0", FP)
+    assert not g.ok and any("simplified market state" in r for r in g.reasons)
+
+
+def test_a_record_that_does_not_say_which_state_it_used_is_unreadable_evidence():
+    from types import SimpleNamespace
+    s, _ = store()
+    old_style = SimpleNamespace(strategy="S", version="1.0", symbol="XAUUSD", timeframe="5m", record=lambda: {"strategy": "S"})
+    s.save(validation("S", "1.0"), dataset(), old_style, FP, ANALYST)
+    g = gate.check(s, "S", "1.0", FP)
+    assert not g.ok and "unreadable" in g.reasons[0]

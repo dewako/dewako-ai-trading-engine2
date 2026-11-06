@@ -74,6 +74,7 @@ CLEAN = dict(fee_rate=0.0, min_half_spread=0.0001, spread_range_factor=0.0, slip
 
 def cfg(name, **kw):
     sim = SimConfig(**{**CLEAN, **kw.pop("sim", {})})
+    kw.setdefault("state_source", "candles_only")                    # the probes are tiny plumbing scenarios (under 60 candles)
     return ReplayConfig(strategy=name, version="1.0", symbol=SYM, timeframe=TF, sim=sim, **kw)
 
 
@@ -272,7 +273,130 @@ class BuiltInStrategies(unittest.TestCase):
                 self.assertEqual(r.ticks.get("ERROR", 0), 0, r.notes[:3])
                 self.assertEqual(r.incidents, 0)
                 self.assertEqual(sum(r.ticks.values()), 219)
+                self.assertEqual(r.ticks.get("WARMUP", 0), 59)
                 self.assertTrue(r.simulated)
+
+
+class RealMarketState(unittest.TestCase):
+    """The replay must hand strategies the SAME computed state the live feed builds. (Until this test existed the replay passed bare candles, so
+    volume_ratio was always 1.0 and a strategy that needs volume confirmation could never trade: results on real data were silently void.)"""
+
+    def spy(self, name):
+        got = []
+
+        class Spy(base.Strategy):
+            supported_timeframes = ["5m"]
+            default_parameters = {}
+
+            def generate_signal(self, state):
+                got.append(state)
+                return None
+        Spy.name, Spy.version = name, "1.0"
+        base.register(Spy)
+        return got
+
+    def candles(self, n=100):
+        return [Candle(t=T0 + M5 * i, o=100.0 + i * 0.1, h=100.5 + i * 0.1, l=99.5 + i * 0.1, c=100.2 + i * 0.1, v=1000.0 * (5 if i == 80 else 1)) for i in range(n)]
+
+    def test_the_strategy_sees_exactly_what_the_live_state_builder_computes_from_the_closed_candles(self):
+        from dewako.market_data.state_builder import build_market_state
+        got = self.spy("Spy Real")
+        cs = self.candles()
+        replay(dataset(cs), ReplayConfig(strategy="Spy Real", version="1.0", symbol=SYM, timeframe=TF, lookback=300))
+        self.assertTrue(got)
+        for st in (got[0], got[-1], got[len(got) // 2]):
+            n = len(st.candles)
+            want = build_market_state(SYM, cs[:n], st.as_of, TF)
+            self.assertEqual((st.trend, st.momentum, st.volatility, st.volume_ratio, st.regime), (want.trend, want.momentum, want.volatility, want.volume_ratio, want.regime))
+        spike = [s for s in got if s.candles[-1].t == T0 + M5 * 80][0]
+        self.assertAlmostEqual(spike.volume_ratio, 5.0, places=6)                      # the volume spike is visible, not flattened to 1.0
+        self.assertEqual(spike.trend, "BULLISH")                                       # a steady uptrend is labelled as one
+
+    def test_nothing_is_shown_before_sixty_closed_candles_and_the_wait_is_counted_not_hidden(self):
+        got = self.spy("Spy Warm")
+        r = replay(dataset(self.candles()), ReplayConfig(strategy="Spy Warm", version="1.0", symbol=SYM, timeframe=TF))
+        self.assertEqual(len(got[0].candles), 60)
+        self.assertEqual(r.ticks["WARMUP"], 59)                                        # bars 1..59 had no usable state
+        self.assertEqual(r.ticks.get("ERROR", 0), 0)
+
+    def test_candles_only_mode_is_the_simplified_state_and_is_recorded_in_the_run_config(self):
+        got = self.spy("Spy Bare")
+        cfg_bare = ReplayConfig(strategy="Spy Bare", version="1.0", symbol=SYM, timeframe=TF, state_source="candles_only")
+        replay(dataset(self.candles()), cfg_bare)
+        self.assertEqual({s.volume_ratio for s in got}, {1.0})
+        self.assertEqual(cfg_bare.record()["state_source"], "candles_only")
+        self.assertEqual(ReplayConfig(strategy="x", version="1", symbol=SYM, timeframe=TF).record()["state_source"], "market_state")
+        with self.assertRaises(ValueError):
+            ReplayConfig(strategy="x", version="1", symbol=SYM, timeframe=TF, state_source="whatever")
+
+    def test_a_volume_gated_built_in_strategy_can_now_fire_on_data_with_volume_spikes(self):
+        import random
+        random.seed(3)
+        cs, p = [], 100.0
+        for i in range(500):
+            p *= 1 + 0.0015 + random.gauss(0, 0.004)
+            v = 1000.0 * (3 if i % 17 == 0 else 1)
+            cs.append(Candle(t=T0 + M5 * i, o=p, h=p * 1.003, l=p * 0.997, c=p * 1.001, v=v))
+        r = replay(dataset(cs), ReplayConfig(strategy="Trend AI", version="2.1", symbol=SYM, timeframe=TF, lookback=300))
+        self.assertGreater(sum(r.ticks.values()) - r.ticks.get("NO_SIGNAL", 0) - r.ticks.get("WARMUP", 0), 0, r.ticks)   # at least one real signal
+
+
+class ConsecutiveLossLatch(unittest.TestCase):
+    """After max_consecutive_losses losing trades in a row the risk engine rejects every signal and only a win resets it. A replay must say
+    which of two policies it used and must show the halt, because otherwise a year-long run silently measures only the first weeks."""
+
+    def losers(self, name):
+        class Loser(base.Strategy):
+            supported_timeframes = ["5m"]
+            default_parameters = {}
+
+            def generate_signal(self, state):
+                c = state.candles[-1].c
+                return Signal(symbol=state.symbol, side=Side.BUY, confidence=0.9, strategy=self.name, strategy_version=self.version,
+                              reason=["always buy"], entry_price=c, stop_price=c * 0.999, take_profit_price=None)
+        Loser.name, Loser.version = name, "1.0"
+        base.register(Loser)
+
+    def falling(self, bars=288 * 3):
+        out, p = [], 100.0
+        for i in range(bars):
+            o, p = p, p * 0.9985                                                  # each bar falls through the 0.1% stop
+            out.append(bar(i, o=o, h=o, l=p, c=p))
+        return out
+
+    def trades_per_day(self, r):
+        d = {}
+        for t in r.trades:
+            d[t.entry_time.date()] = d.get(t.entry_time.date(), 0) + 1
+        return d
+
+    def test_by_default_the_halt_latches_for_the_rest_of_the_run_and_is_visible(self):
+        self.losers("Loser Never")
+        r = replay(dataset(self.falling()), cfg("Loser Never"))
+        days = self.trades_per_day(r)
+        self.assertEqual(len(r.trades), 4)                                         # exactly max_consecutive_losses, then nothing
+        self.assertEqual(list(days), [T0.date()])
+        self.assertGreater(r.ticks["RISK_REJECTED"], 500)
+        self.assertTrue(any("maximum consecutive losses" in d for _t, o, d in r.notes if o == "RISK_REJECTED"))
+
+    def test_a_daily_reset_lets_trading_resume_each_utc_day_and_is_recorded(self):
+        self.losers("Loser Daily")
+        c = cfg("Loser Daily", streak_reset="daily")
+        r = replay(dataset(self.falling()), c)
+        days = self.trades_per_day(r)
+        self.assertEqual(len(days), 3)                                              # one batch of four losing trades per day
+        self.assertTrue(all(n == 4 for n in days.values()), days)
+        self.assertEqual(c.record()["streak_reset"], "daily")
+        self.assertEqual(cfg("x").record()["streak_reset"], "never")
+        with self.assertRaises(ValueError):
+            cfg("x", streak_reset="hourly")
+
+    def test_the_reset_only_zeroes_the_streak_other_limits_still_apply(self):
+        self.losers("Loser Limits")
+        r = replay(dataset(self.falling()), cfg("Loser Limits", streak_reset="daily"))
+        losses = sum(t.pnl for t in r.trades)
+        self.assertLess(losses, 0)                                                  # the account really lost money; nothing was refilled
+        self.assertLess(r.final_cash, 10_000.0)
 
 
 class IdleShortcutIsOnlyASpeedUp(unittest.TestCase):

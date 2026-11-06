@@ -33,6 +33,14 @@ def scale_costs(sim: SimConfig, k: float) -> SimConfig:
                                slippage_range_factor=sim.slippage_range_factor * k, impact_k=sim.impact_k * k)
 
 
+def stress_config(cfg: ReplayConfig, k: float) -> ReplayConfig:
+    """The config for a cost stress at factor k. The quote guard's spread ceiling is raised with it (never lowered): without that, doubled
+    costs push the simulated spread past the live guard, an exit-protection incident latches, new entries stay blocked for the rest of the
+    run, and the "2x costs" result would describe a halted run (2 trades instead of 53), not the same trading at higher cost."""
+    guard = dataclasses.replace(cfg.quote_guard, max_spread_pct=cfg.quote_guard.max_spread_pct * max(1.0, k))
+    return dataclasses.replace(cfg, sim=scale_costs(cfg.sim, k), quote_guard=guard)
+
+
 def replay_window(ds: Dataset, cfg: ReplayConfig, start: datetime, end: datetime) -> ReplayResult:
     """Replay only [start, end): earlier candles (up to the lookback) warm the strategy up but are never traded."""
     step = timedelta(seconds=timeframe_seconds(cfg.timeframe))
@@ -122,7 +130,7 @@ def validate_strategy(ds: Dataset, cfg: ReplayConfig, th: Thresholds = Threshold
     results: dict = {}
     stress: dict[float, Metrics] = {}
     for k in cost_factors:
-        r = replay(ds, dataclasses.replace(cfg, sim=scale_costs(cfg.sim, k)))
+        r = replay(ds, stress_config(cfg, k))
         results[f"costs_{k:g}x"] = r
         stress[k] = metrics_of(r)
     full = stress[1.0]
@@ -141,6 +149,9 @@ def validate_strategy(ds: Dataset, cfg: ReplayConfig, th: Thresholds = Threshold
     ins, oos = metrics_of(r_in), metrics_of(r_out)
     checks = evaluate(full, stress, ins, oos, per, mc, th)
     warn = list(full.warnings)
+    hw = halt_warning(results["costs_1x"], cfg)
+    if hw:
+        warn.append(hw)
     if th.is_placeholder:
         warn.append("Thresholds have no human approval recorded: treat them as placeholders.")
     if ledger and ledger.warning():
@@ -160,6 +171,21 @@ def compare(ds: Dataset, cfgs: Sequence[ReplayConfig], th: Thresholds = Threshol
     for c in cfgs:
         ledger.record(f"{c.strategy}|{c.version}|{c.timeframe}|{c.sim}")
     return [validate_strategy(ds, c, th, ledger=ledger, **kw) for c in cfgs]
+
+
+def halt_warning(result, cfg) -> Optional[str]:
+    """A latched halt (the consecutive-loss limit, or an open exit-protection incident that blocks new entries) rejected a large share of the
+    run: the numbers then describe only the part that was traded."""
+    ticks = sum(result.ticks.values()) - result.ticks.get("WARMUP", 0)
+    kinds = {"consecutive-loss limit": lambda o, d: o == "RISK_REJECTED" and "consecutive losses" in d,
+             "open exit-protection incident": lambda o, d: o == "BLOCKED" and "new entries are blocked" in d}
+    found = {name: sum(1 for _t, o, d in result.notes if f(o, d)) for name, f in kinds.items()}
+    halted = sum(found.values())
+    if ticks and halted / ticks > 0.10:
+        by = ", ".join(f"{n}: {c}" for n, c in found.items() if c)
+        return (f"A latched halt rejected {halted} of {ticks} ticks ({halted / ticks:.0%}) [{by}] with streak_reset={cfg.streak_reset!r}: "
+                f"much of the period was not traded, so these numbers describe only the first part of the data.")
+    return None
 
 
 def weaknesses(v: StrategyValidation) -> list[str]:

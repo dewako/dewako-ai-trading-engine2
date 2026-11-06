@@ -47,6 +47,8 @@ def judge_run(run: dict, th: Thresholds = OFFICIAL_THRESHOLDS) -> GateResult:
         checks = evaluate(Metrics.from_dict(m["full"]), stress, Metrics.from_dict(m["in_sample"]), Metrics.from_dict(m["out_of_sample"]),
                           [Metrics.from_dict(x) for x in m["periods"]], m.get("monte_carlo"), th)
         why += [f"{c.name}: {c.detail}" for c in checks if not c.ok]
+        if run["config"]["state_source"] != "market_state":            # a run on a simplified state is plumbing, not evidence
+            why.append(f"the run used a simplified market state ({run['config']['state_source']}), not the real state builder")
         days = (datetime.fromisoformat(ds["end"]) - datetime.fromisoformat(ds["start"])).total_seconds() / 86400
         if days < th.min_history_days:
             why.append(f"history too short: {days:.0f} days (need {th.min_history_days})")
