@@ -1,4 +1,4 @@
-# Stage 3B audit: status PENDING hosted CI (not yet "passed")
+# Stage 3B audit: STAGE 3B PASSED (research foundation only), with the limits below
 
 Scope: research foundation only. Passing this stage does not make any strategy profitable or live-ready.
 
@@ -22,4 +22,5 @@ Scope: research foundation only. Passing this stage does not make any strategy p
 Risk-profile GUI, max-trades-per-day limit, self-improving agent (must never change risk limits or live gates), exchange/broker adapters.
 
 ## Hosted CI
-Not yet run. To be recorded here: run id, commit, three consecutive green attempts.
+Run 42165684897 on 6705b4d: attempts 1, 2 and 3 all green (all jobs incl. PostgreSQL 16, docker, e2e-real-app, crash-repeat, windows-crash).
+Earlier run 42164574567 on ffda500 failed in the docker job only (UI tests could not see frontend/ in the backend-only image); fixed by mounting frontend/ and scripts/ read-only. The PG-only test bug (invalid timestamptz literal) was found by the local PG run and fixed before that.
