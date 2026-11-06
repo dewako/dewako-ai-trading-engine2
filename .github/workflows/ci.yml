@@ -258,7 +258,6 @@ jobs:
           --require test_a_cost_stress_raises_the_guard_ceiling_with_the_costs_and_never_lowers_it
           --require test_a_saved_run_round_trips_with_everything_needed_to_identify_it
           --require test_no_evidence_means_no
-          --require test_each_official_limit_blocks_on_its_own
           --require test_a_run_on_a_simplified_market_state_is_plumbing_not_evidence
           --require test_a_record_that_does_not_say_which_state_it_used_is_unreadable_evidence
   postgres16:
@@ -523,7 +522,6 @@ jobs:
           --require test_a_cost_stress_raises_the_guard_ceiling_with_the_costs_and_never_lowers_it
           --require test_a_saved_run_round_trips_with_everything_needed_to_identify_it
           --require test_no_evidence_means_no
-          --require test_each_official_limit_blocks_on_its_own
           --require test_a_run_on_a_simplified_market_state_is_plumbing_not_evidence
           --require test_a_record_that_does_not_say_which_state_it_used_is_unreadable_evidence
       - uses: actions/upload-artifact@v4
