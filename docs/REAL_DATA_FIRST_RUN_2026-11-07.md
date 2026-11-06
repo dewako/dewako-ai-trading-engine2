@@ -40,3 +40,7 @@ Long side only: spot refuses the short entries all of these strategies emit.
 It shows the pipeline works end to end on 12 months of real data and that these particular strategies, long-only on 1h BTC in this period with
 these assumed costs, do not pass. It does not show that no profitable strategy exists, and one year of one asset
 is a single regime: BTC closed at about 109,700 on 2025-11-01 and about 77,600 on 2026-10-31 (low 57,800 in between), a falling year, which is the hardest case for a long-only strategy. ETHUSDT was not run (4 spike candles await a human decision).
+
+## Hosted CI
+Run 42296320850 (commit after 082d6ac, which only drops one `--require` for a parametrised test): attempts 1, 2, 3 all green.
+The first run on 082d6ac failed only because CI's own gate caught a `--require` for a parametrised test (junit names carry a `[param]` suffix).
