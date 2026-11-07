@@ -30,3 +30,6 @@ Trade counts (14-37) are too small for the numbers to be more than suggestive; t
 ## Not done / limits
 Both final-test windows are now used: further tuning on them would be curve fitting. No parameter search was run. Spot long-only; futures not implemented.
 Fee tier assumed 0.1% (lower tiers would help; not assumed). Archive checksums unavailable. 100-trade gate threshold unchanged.
+
+## Hosted CI
+Run 42352801979 on 3dfac9b: attempts 1, 2 and 3 all green (full SQLite and PostgreSQL 16 suites locally: 808 and 811 passed).
