@@ -37,3 +37,4 @@ Run 42352801979 on 3dfac9b: attempts 1, 2 and 3 all green (full SQLite and Postg
 ## Fee guard (owner, 2026-11-07)
 The fee is 0.1% per side and must always be in the result. `Thresholds.min_fee_rate = 0.001`; the promotion gate refuses any run whose recorded `fee_rate` is lower
 (or missing). Cost stress multiplies the fee (2x, 3x), it never reduces it.
+Hosted CI for the fee guard: run 42357777604, 3 of 3 attempts green.
