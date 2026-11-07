@@ -60,7 +60,7 @@ def test_parameter_ranges_enforced():
 
 
 def test_registry_versions_and_latest():
-    assert base.versions("Trend AI") == ["2.1", "2.2"]
+    assert base.versions("Trend AI") == ["2.1", "2.2", "2.3"]                 # 2.3 is a research candidate: listed, runnable by version, never the default
     assert base.latest("Trend AI") is TrendAIv22
     assert base.get("Trend AI", "2.1") is TrendAI
     assert {"Momentum AI", "Mean Reversion", "Breakout AI", "Trend AI", "AI Strategy"} <= set(base.names())

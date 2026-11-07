@@ -23,6 +23,9 @@ class Strategy(ABC):
     # Allowed (min, max) for numeric parameters. Anything outside is refused before the strategy can run.
     parameter_ranges: ClassVar[dict[str, tuple[float, float]]] = {}
     experimental: ClassVar[bool] = False  # experimental strategies can never be activated live
+    # A research version: registered and runnable by an explicit version (backtests), but never what a bare name resolves to. Selection, switching and
+    # recommendations use latest(name), so an unproven version must not become the default just because it is newer.
+    candidate: ClassVar[bool] = False
 
     def __init__(self, **overrides: Any):
         unknown = set(overrides) - set(self.default_parameters)
@@ -68,6 +71,7 @@ class Strategy(ABC):
             "parameters": self.parameters,
             "risk_profile": self.risk_profile,
             "experimental": self.experimental,
+            "candidate": self.candidate,
             "directions": list(directions_of(type(self))),
             "market_support": self.market_support(),
             "parameter_ranges": {k: list(v) for k, v in self.parameter_ranges.items()},
@@ -103,7 +107,7 @@ def versions(name: str) -> list[str]:
 
 
 def latest(name: str) -> type[Strategy]:
-    vs = versions(name)
+    vs = [v for v in versions(name) if not _REGISTRY[(name, v)].candidate]
     if not vs:
         raise KeyError(name)
     return _REGISTRY[(name, vs[-1])]

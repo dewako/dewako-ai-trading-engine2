@@ -57,6 +57,11 @@ class SimConfig:
     min_qty: float = 0.00001
     max_qty: float = 1_000_000.0
     min_notional: float = 5.0
+    # Range-based costs (spread and slippage are a fraction of the bar's high-low range) must not grow just because the bars are longer: a real
+    # spread does not widen with the candle length. When bar_seconds is set (the replay sets it from the timeframe), the range is scaled to what a
+    # bar of range_reference_seconds would show (random-walk scaling, sqrt of the length ratio). At the 5m reference nothing changes. None = legacy.
+    bar_seconds: Optional[float] = None
+    range_reference_seconds: float = 300.0
     outage_windows: tuple[tuple[datetime, datetime], ...] = ()
     reject_windows: tuple[tuple[datetime, datetime], ...] = ()
     lost_response_windows: tuple[tuple[datetime, datetime], ...] = ()
@@ -69,6 +74,10 @@ class SimConfig:
         if isinstance(self.max_participation, bool) or not (0 < self.max_participation <= 1):
             raise ValueError("max_participation must be in (0, 1]")
         _nonneg("latency_seconds", self.latency_seconds, 3600.0)
+        if self.bar_seconds is not None and not (isinstance(self.bar_seconds, (int, float)) and math.isfinite(self.bar_seconds) and self.bar_seconds > 0):
+            raise ValueError("bar_seconds must be positive and finite, or None")
+        if not (math.isfinite(self.range_reference_seconds) and self.range_reference_seconds > 0):
+            raise ValueError("range_reference_seconds must be positive and finite")
         for n in ("step_size", "min_qty", "min_notional"):
             v = getattr(self, n)
             if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0:
@@ -146,7 +155,10 @@ class SimulatedExchange(ExchangeAdapter):
         return self._advance(symbol)
 
     def _range_pct(self, bar: Candle) -> float:
-        return max(0.0, (bar.h - bar.l) / bar.c)
+        r = max(0.0, (bar.h - bar.l) / bar.c)
+        if self.cfg.bar_seconds:
+            r *= math.sqrt(self.cfg.range_reference_seconds / self.cfg.bar_seconds)
+        return r
 
     def _half_spread(self, bar: Candle) -> float:
         return max(self.cfg.min_half_spread, self.cfg.spread_range_factor * self._range_pct(bar))

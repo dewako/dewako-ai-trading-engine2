@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import tempfile
+import dataclasses
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional
@@ -81,12 +82,18 @@ class ReplayConfig:
         if self.state_source not in ("market_state", "candles_only"):
             raise ValueError("state_source must be 'market_state' or 'candles_only'")
 
+    def effective_sim(self) -> SimConfig:
+        """The cost model actually used: range-based costs are scaled to the 5-minute reference unless the caller set bar_seconds explicitly."""
+        if self.sim.bar_seconds is not None:
+            return self.sim
+        return dataclasses.replace(self.sim, bar_seconds=float(_bar_seconds(self.timeframe)))
+
     def record(self) -> dict[str, Any]:
         return {"strategy": self.strategy, "version": self.version, "symbol": self.symbol, "timeframe": self.timeframe,
                 "initial_cash": self.initial_cash, "lookback": self.lookback, "state_source": self.state_source, "streak_reset": self.streak_reset, "max_hold_seconds": self.max_hold_seconds,
                 "trade_from": self.trade_from.isoformat() if self.trade_from else None,
                 "sim": {k: (v if not isinstance(v, tuple) else [[a.isoformat(), b.isoformat()] for a, b in v])
-                        for k, v in self.sim.__dict__.items()},
+                        for k, v in self.effective_sim().__dict__.items()},
                 "quote_guard": dict(self.quote_guard.__dict__),
                 "limits": self.limits.model_dump() if self.limits is not None and hasattr(self.limits, "model_dump") else None}
 
@@ -136,7 +143,7 @@ class _Run:
             raise ValueError("a replay needs at least two candles")
         self.step = timedelta(seconds=_bar_seconds(cfg.timeframe))
         self.clock = clock
-        self.sim = SimulatedExchange(self.clock, balance=cfg.initial_cash, config=cfg.sim)
+        self.sim = SimulatedExchange(self.clock, balance=cfg.initial_cash, config=cfg.effective_sim())
         safety = SafetyController(db)
         self.risk_state = RiskStateStore(db)
         self.risk_state.init_scope(SCOPE, cfg.initial_cash)

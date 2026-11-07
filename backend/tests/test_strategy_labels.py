@@ -26,7 +26,7 @@ def test_the_declared_sides_match_the_entries_written_in_each_strategys_source()
     """Static check against drift: a strategy that writes both Side.BUY and Side.SELL entries must be labelled LONG+SHORT, one that writes
     only BUY must not claim SHORT. (It reads the source; it does not prove the data will ever trigger a short.)"""
     for c in builtins():
-        src = inspect.getsource(inspect.getmodule(c))
+        src = "".join(inspect.getsource(inspect.getmodule(k)) for k in c.__mro__ if k is not base.Strategy and issubclass(k, base.Strategy))
         want = tuple(d for d, tok in (("LONG", "Side.BUY"), ("SHORT", "Side.SELL")) if tok in src)
         assert directions_of(c) == want, (c.name, c.version, directions_of(c), want)
 

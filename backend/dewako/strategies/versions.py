@@ -22,15 +22,24 @@ class StrategyVersionConflict(Exception):
     pass
 
 
+def _source(cls) -> str:
+    try:
+        return inspect.getsource(cls)
+    except (OSError, TypeError):
+        return f"{cls.__module__}.{cls.__qualname__}"
+
+
 def fingerprint(cls: type[Strategy]) -> str:
     spec = getattr(cls, "spec", None)  # rule-builder strategies are defined by their spec, not by source code
     if spec is not None:
         body = spec.model_dump_json()
     else:
-        try:
-            body = inspect.getsource(cls)
-        except (OSError, TypeError):
-            body = f"{cls.__module__}.{cls.__qualname__}"
+        body = _source(cls)
+        # A version built on another strategy (class Child(Parent)) behaves as its parent does too: editing the parent must change the child's
+        # fingerprint, or a released version could change silently. Classes with no strategy parent hash exactly as they always did.
+        parents = [k for k in cls.__mro__[1:] if issubclass(k, Strategy) and k is not Strategy and getattr(k, "spec", None) is None]
+        for k in parents:
+            body += f"\n#PARENT {k.__module__}.{k.__qualname__}\n" + _source(k)
     payload = json.dumps({"name": cls.name, "version": cls.version, "params": cls.default_parameters,
                           "ranges": {k: list(v) for k, v in cls.parameter_ranges.items()}, "body": body}, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode()).hexdigest()
