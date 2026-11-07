@@ -38,9 +38,9 @@ def dataset(symbol="XAUUSD", timeframe="5m", days=400, h="a" * 64):
     return SimpleNamespace(symbol=symbol, timeframe=timeframe, content_hash=h, record=lambda: rec)
 
 
-def config(name, version, symbol="XAUUSD", timeframe="5m", state_source="market_state"):
+def config(name, version, symbol="XAUUSD", timeframe="5m", state_source="market_state", fee_rate=0.001):
     return SimpleNamespace(strategy=name, version=version, symbol=symbol, timeframe=timeframe,
-                           record=lambda: {"strategy": name, "state_source": state_source})
+                           record=lambda: {"strategy": name, "state_source": state_source, "sim": {"fee_rate": fee_rate}})
 
 
 def record_run(store, actor, name, version, fingerprint, **kw):

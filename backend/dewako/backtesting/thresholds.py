@@ -16,6 +16,7 @@ from dewako.backtesting.metrics import Metrics
 class Thresholds:
     """Promotion evidence limits. `approved_by` says which human accepted these values; empty means placeholder."""
     min_trades: int = 100
+    min_fee_rate: float = 0.001      # owner, 2026-11-07: the trading fee is 0.1% per side and must always be in the result; a run with less is not evidence
     cost_factor_that_must_stay_positive: float = 2.0
     max_drawdown_pct: float = 0.15
     out_of_sample_vs_in_sample: float = 0.5        # out-of-sample expectancy must be at least this share of in-sample expectancy

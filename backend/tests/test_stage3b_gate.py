@@ -257,3 +257,23 @@ def test_a_record_that_does_not_say_which_state_it_used_is_unreadable_evidence()
     s.save(validation("S", "1.0"), dataset(), old_style, FP, ANALYST)
     g = gate.check(s, "S", "1.0", FP)
     assert not g.ok and "unreadable" in g.reasons[0]
+
+
+def test_a_run_that_charged_less_than_the_required_fee_is_not_evidence():
+    from stage3b_evidence import config as cfg_of
+    s, _ = store()
+    s.save(validation("S", "1.0"), dataset(), cfg_of("S", "1.0", fee_rate=0.0005), FP, ANALYST)
+    g = gate.check(s, "S", "1.0", FP)
+    assert not g.ok and any("below the required 0.10%" in r for r in g.reasons)
+    s2, _ = store()
+    s2.save(validation("S", "1.0"), dataset(), cfg_of("S", "1.0", fee_rate=0.001), FP, ANALYST)
+    assert not any("fee" in r for r in gate.check(s2, "S", "1.0", FP).reasons)
+
+
+def test_a_record_with_no_fee_at_all_is_unreadable_evidence():
+    from types import SimpleNamespace
+    s, _ = store()
+    nofee = SimpleNamespace(strategy="S", version="1.0", symbol="XAUUSD", timeframe="5m", record=lambda: {"strategy": "S", "state_source": "market_state"})
+    s.save(validation("S", "1.0"), dataset(), nofee, FP, ANALYST)
+    g = gate.check(s, "S", "1.0", FP)
+    assert not g.ok and "unreadable" in g.reasons[0]
