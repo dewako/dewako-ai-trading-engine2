@@ -105,3 +105,28 @@ def test_a_recorded_package_run_matches_the_package_fingerprint_so_the_gate_can_
         assert fingerprint(base.get("Cli Pkg", "1.0")) == mm.get(pid)["fingerprint"]
     finally:
         _unreg(mm)
+
+
+def test_screening_mode_is_labelled_saves_nothing_has_no_verdict_and_matches_the_full_runs_1x_numbers(tmp_path, capsys):
+    make_cycle("Cli Screen")
+    db, _ = tmp_db()
+    path = candle_file(tmp_path, 300)
+    more = ("--lookback", "70")                                                               # enough bars for the real market-state builder to trade
+    assert cli.main(args(path, "Cli Screen", 300, "--json", "--screen", *more), db=db) == 0   # no --dry-run: it must still save nothing
+    s = json.loads(capsys.readouterr().out)
+    assert s["mode"] == "SCREENING_ONLY" and s["saved"] is False and s["simulated"] is True
+    assert "verdict" not in s and "run_id" not in s and "checks" not in s
+    assert any("SCREENING ONLY" in w for w in s["warnings"])
+    assert RunStore(db, AuditLog(db)).list() == []
+    assert cli.main(args(path, "Cli Screen", 300, "--json", "--dry-run", *more), db=db) == 0
+    full = json.loads(capsys.readouterr().out)
+    assert full["trades"] > 5                                                                 # a comparison of two zeros would prove nothing
+    assert (s["trades"], s["net_pnl"], s["max_drawdown_pct"], s["dataset_hash"]) == (full["trades"], full["net_pnl"], full["max_drawdown_pct"], full["dataset_hash"])
+
+
+def test_screening_mode_cannot_produce_a_run_the_gate_could_use(tmp_path, capsys):
+    make_cycle("Cli Screen2")
+    db, _ = tmp_db()
+    assert cli.main(args(candle_file(tmp_path), "Cli Screen2", 100, "--screen"), db=db) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("SCREENING ONLY") and "not saved" in out and RunStore(db, AuditLog(db)).list() == []

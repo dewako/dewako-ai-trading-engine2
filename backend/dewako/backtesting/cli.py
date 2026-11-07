@@ -59,7 +59,32 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--variants-tried", type=int, default=1, help="how many strategy/parameter variants were tried on this data before this one")
     p.add_argument("--dry-run", action="store_true", help="run everything but do not save a record")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--screen", action="store_true",
+                   help="SCREENING ONLY: one replay at 1x costs, no stress / hold-out / periods / Monte Carlo (about 9x faster). Prints a loud "
+                        "SCREENING_ONLY label, no verdict, and never saves a record, so the promotion gate can never use it.")
     return p
+
+
+def _screen(ds, cfg, a) -> int:
+    """Fast look at one strategy: a single replay at the stated costs. Not evidence: no verdict, nothing saved (a.dry_run is irrelevant)."""
+    from dewako.backtesting.metrics import metrics_of
+    from dewako.backtesting.replay import replay
+    from dewako.backtesting.validation import halt_warning
+    r = replay(ds, cfg)
+    m = metrics_of(r)
+    warnings = list(m.warnings) + ["SCREENING ONLY: no cost stress, hold-out, period or Monte Carlo checks ran. This is not evidence and is never saved."]
+    hw = halt_warning(r, cfg)
+    if hw:
+        warnings.append(hw)
+    out = {"mode": "SCREENING_ONLY", "saved": False, "simulated": True, "trades": m.trades, "net_pnl": m.net_pnl,
+           "max_drawdown_pct": m.max_drawdown_pct, "dataset_hash": ds.content_hash, "warnings": warnings}
+    if a.json:
+        print(json.dumps(out, indent=2))
+    else:
+        print(f"SCREENING ONLY (SIMULATED, not saved, no verdict): trades={m.trades} net_pnl={m.net_pnl:.2f} max_drawdown={m.max_drawdown_pct:.2%}")
+        for w in warnings:
+            print(f"  note: {w}")
+    return 0
 
 
 def main(argv: Optional[list[str]] = None, *, db: Optional[Database] = None) -> int:
@@ -80,6 +105,8 @@ def main(argv: Optional[list[str]] = None, *, db: Optional[Database] = None) -> 
         return 2
     cfg = ReplayConfig(strategy=a.strategy, version=a.version, symbol=a.symbol, timeframe=a.timeframe, initial_cash=a.cash,
                        lookback=a.lookback, sim=SimConfig(fee_rate=a.fee_rate), max_hold_seconds=a.max_hold_seconds, streak_reset=a.streak_reset)
+    if a.screen:
+        return _screen(ds, cfg, a)
     from dewako.backtesting.validation import VariantLedger
     ledger = VariantLedger(tried=[f"variant-{i}" for i in range(max(1, a.variants_tried))])
     v = validate_strategy(ds, cfg, Thresholds(), holdout_fraction=a.holdout, periods=a.periods, mc_runs=a.mc_runs, seed=a.seed, ledger=ledger)

@@ -15,3 +15,8 @@ Research tooling only. Nothing here submits an order, enables live trading, or a
 Local results at this commit: SQLite 743 passed / 39 skipped; PostgreSQL 16 full run found one test bug (`created_at='t'` is not a valid timestamptz) in `test_an_unreadable_record_is_not_evidence`, fixed; that file then passes on both backends. Hosted CI: run 42165684897 on 6705b4d, 3 of 3 attempts green (first run ffda500 failed only in docker: missing frontend mount, fixed).
 
 Mutation checks done for the shortcut: forcing the shortcut on/off and ignoring open positions are killed. **Ignoring resting orders is NOT killed** (see audit, limits).
+
+## Screening mode (`--screen`, 2026-11-07)
+`python -m dewako.backtesting.cli ... --screen` runs ONE replay at the stated costs and prints trades, net P&L and max drawdown labelled `SCREENING_ONLY`.
+It skips the cost stress, hold-out, periods and Monte Carlo, saves nothing (with or without `--dry-run`), and prints no verdict or checks, so the promotion gate can never use it.
+Measured: 3 months of BTCUSDT 5m took 4m45s (24 months about 40 minutes) against about 4 hours for the full validation of the same data. Its numbers equal the full run's 1x numbers (tested). A strategy that survives screening still needs the full run. The 10% drawdown halt of the risk engine applies in screening too: a result ending at about -10% is a halt, not a full-period result.

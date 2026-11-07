@@ -279,6 +279,8 @@ jobs:
           --require test_when_every_version_is_a_candidate_there_is_no_default
           --require test_a_run_that_charged_less_than_the_required_fee_is_not_evidence
           --require test_a_record_with_no_fee_at_all_is_unreadable_evidence
+          --require test_screening_mode_is_labelled_saves_nothing_has_no_verdict_and_matches_the_full_runs_1x_numbers
+          --require test_screening_mode_cannot_produce_a_run_the_gate_could_use
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -562,6 +564,8 @@ jobs:
           --require test_when_every_version_is_a_candidate_there_is_no_default
           --require test_a_run_that_charged_less_than_the_required_fee_is_not_evidence
           --require test_a_record_with_no_fee_at_all_is_unreadable_evidence
+          --require test_screening_mode_is_labelled_saves_nothing_has_no_verdict_and_matches_the_full_runs_1x_numbers
+          --require test_screening_mode_cannot_produce_a_run_the_gate_could_use
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
