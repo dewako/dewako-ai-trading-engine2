@@ -36,3 +36,27 @@ until the owner promotes it). A fail is reported as it is, and no Dewako 1.1 is 
 ## Honest limit
 The design used lessons from this same 2020-2026 data, so this is not a clean out-of-sample test. A pass would be a reason to paper-trade it
 forward on new prices, not proof.
+
+## Results (added after the runs; nothing above was changed)
+| Coin | Trades | Net | 2x costs | 3x costs | Max DD | OOS vs IS expectancy | Periods | Gate |
+|---|---|---|---|---|---|---|---|---|
+| BTC | 132 | +2,247 | +1,804 | - | 3.6% | -6.54 vs 26.49 | 3 of 4 | **FAILED** (out-of-sample) |
+| ETH | 138 | +1,422 | +509 | +444 | 8.2% | 20.71 vs 8.09 | 3 of 4 | **PASSED** |
+
+Buy and hold, same window: BTC +978%, ETH +1,646%. 10% of the account in ETH, never rebalanced: 10,000 -> 26,325 (account max DD 65%).
+Dewako ETH: 10,000 -> 11,422 (max DD 8.2%).
+
+### ETH pass, examined (results/inspect_ETHUSDT_4h.json)
+* Without its 3 best trades (+730 2020-12, +587 2020-07, +446 2024-02) the 6.8-year result is **-341**; without the best 5, -1,108.
+* Hold-out (from 2025-05-23): 21 trades, +435. Without its 3 best, -290. One trade (2025-07, +436) carries it.
+* Period P&L: +1,476 / -464 / **+3** / +435. The "3 of 4 profitable" check passes on a +3 USDT period.
+* 39 winners avg +121.5, 99 losers avg -33.5: the usual trend-following shape (few large winners), so concentration alone is not proof of
+  luck, but with 21 hold-out trades the out-of-sample check is decided by one trade.
+* Monte Carlo drawdown p95 10.4%, worst 15.1%.
+
+### Decision
+The pre-registered rule (gate passes) is met for ETH. It is **not added to the project**: the pass rests on 2 checks each decided by one
+trade or by +3 USDT, it is the 1 pass among ~76 variants tried on this data, its design used lessons from this data, and it earned 11x
+less than holding 10% of the account in ETH. This extra condition was stated to the owner after the gate result and before this
+examination; it is stricter than the protocol, never looser. BTC: failed. Per the protocol, no Dewako 1.1 is tuned on this data.
+Next honest test: forward paper trading on prices after 2026-11-01.
