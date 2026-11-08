@@ -1,5 +1,7 @@
 # Owner-supplied Pine strategy "BTC Breakout — Asia Range + ADX + Breakeven" — test protocol (pre-registered 2026-11-08)
 
+**Status: REJECTED — scrapped by the owner on 2026-11-08 after failing every test. Not in the engine. Kept only as a record so it is not re-tested.**
+
 Written before any run. The owner asked: try it, and add it to the system only if it qualifies.
 It is tested in a standalone research harness (`harness.py` here). It is NOT registered in the engine.
 
