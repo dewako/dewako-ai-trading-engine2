@@ -46,7 +46,10 @@ def _text(v: Any, name: str, pattern: re.Pattern = _SAFE, max_len: int = 300) ->
 def _path(v: Any, name: str, must_exist: bool = False) -> str:
     if not isinstance(v, str) or not v.strip() or "\0" in v or len(v) > 500:
         raise BadRequest(f"{name} is missing")
-    p = Path(v.strip()).expanduser()
+    v = v.strip().strip('"').strip("'").strip()          # Windows "Copy as path" adds quotes
+    if not v:
+        raise BadRequest(f"{name} is missing")
+    p = Path(v).expanduser()
     p = p if p.is_absolute() else WORK / p
     if must_exist and not p.is_file():
         raise BadRequest(f"{name}: no such file: {p}")
@@ -222,7 +225,9 @@ async function show(){const j=await api('/api/job');const R=document.getElementB
  const r=j.result;if(r){h+=`<p><b>${r.mode==='SCREENING_ONLY'?'SCREENING ONLY (not evidence)':'Verdict: '+r.verdict}</b> &middot; trades ${r.trades} &middot; net ${(+r.net_pnl).toFixed(2)} &middot; max drawdown ${(100*r.max_drawdown_pct).toFixed(2)}%</p>`;
   if(r.checks)h+='<table>'+r.checks.map(c=>`<tr><td class=${c.ok?'ok':'bad'}>${c.ok?'ok':'FAIL'}<td>${esc(c.name)}<td>${esc(c.detail)}`).join('')+'</table>';
   if(r.warnings&&r.warnings.length)h+='<p class=mut>'+r.warnings.map(esc).join('<br>')+'</p>'}
- else if(j.code!==0&&!(j.spikes&&j.spikes.length))h+='<p class=bad>Failed (exit '+j.code+').</p>';
+ else if(j.code!==0&&!(j.spikes&&j.spikes.length))h+='<p class=bad>Failed (exit '+j.code+'). Details in the box below.</p>';
+ else if(j.code===0&&j.label==='import')h+='<p class=ok><b>Import finished</b> in '+j.seconds+' s. The report is in the box below (refused=0 means every file was loaded). Next: resample to 1h or 4h, then backtest.</p>';
+ else if(j.code===0&&j.label==='resample')h+='<p class=ok><b>Resample finished</b> in '+j.seconds+' s. Check the new source with Show what is in the store.</p>';
  R.innerHTML=h;L.hidden=false;L.textContent=(j.stderr||'')+(r?'':j.stdout)}
 poll();
 </script>"""
