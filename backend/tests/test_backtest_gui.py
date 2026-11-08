@@ -32,17 +32,19 @@ def test_a_valid_run_becomes_an_argument_list_with_the_safety_flags(tmp_path):
     assert "--screen" not in full and "--dry-run" in full                                   # a full run is still never saved
 
 
-@pytest.mark.parametrize("fee", [0, 0.0005, -1, "abc", None, float("nan")])
-def test_a_fee_below_one_tenth_of_a_percent_or_not_a_number_is_refused(tmp_path, fee):
-    with pytest.raises(gui.BadRequest):
-        gui.build_command("run", run_body(candle_file(tmp_path, 20), fee_rate=fee), work_dir=tmp_path)
+def test_a_fee_below_one_tenth_of_a_percent_or_not_a_number_is_refused(tmp_path):
+    store = candle_file(tmp_path, 20)
+    for fee in (0, 0.0005, -1, "abc", None, float("nan")):
+        with pytest.raises(gui.BadRequest):
+            gui.build_command("run", run_body(store, fee_rate=fee), work_dir=tmp_path)
 
 
-@pytest.mark.parametrize("field,val", [("symbol", "BTC/USDT; rm -rf /"), ("strategy", "x$(id)"), ("source", "a|b"), ("start", "2020-01-01; ls"),
-                                       ("timeframe", "7m"), ("mode", "both"), ("lookback", 5), ("cash", -5)])
-def test_shell_characters_and_out_of_range_values_are_refused(tmp_path, field, val):
-    with pytest.raises(gui.BadRequest):
-        gui.build_command("run", run_body(candle_file(tmp_path, 20), **{field: val}), work_dir=tmp_path)
+def test_shell_characters_and_out_of_range_values_are_refused(tmp_path):
+    store = candle_file(tmp_path, 20)
+    for field, val in [("symbol", "BTC/USDT; rm -rf /"), ("strategy", "x$(id)"), ("source", "a|b"), ("start", "2020-01-01; ls"),
+                       ("timeframe", "7m"), ("mode", "both"), ("lookback", 5), ("cash", -5)]:
+        with pytest.raises(gui.BadRequest, match=""):
+            gui.build_command("run", run_body(store, **{field: val}), work_dir=tmp_path)
 
 
 def test_unknown_actions_and_missing_files_are_refused(tmp_path):
