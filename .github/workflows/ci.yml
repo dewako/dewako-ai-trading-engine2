@@ -281,6 +281,14 @@ jobs:
           --require test_a_record_with_no_fee_at_all_is_unreadable_evidence
           --require test_screening_mode_is_labelled_saves_nothing_has_no_verdict_and_matches_the_full_runs_1x_numbers
           --require test_screening_mode_cannot_produce_a_run_the_gate_could_use
+          --require test_a_valid_run_becomes_an_argument_list_with_the_safety_flags
+          --require test_a_fee_below_one_tenth_of_a_percent_or_not_a_number_is_refused
+          --require test_shell_characters_and_out_of_range_values_are_refused
+          --require test_the_server_refuses_a_missing_token_and_a_foreign_host_header
+          --require test_a_screening_job_with_the_persons_own_strategy_file_runs_end_to_end_and_saves_nothing
+          --require test_a_full_job_shows_checks_and_a_verdict_and_still_saves_no_record
+          --require test_only_one_job_runs_at_a_time
+          --require test_spike_times_are_read_whole_from_the_data_check_message
   postgres16:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -566,6 +574,14 @@ jobs:
           --require test_a_record_with_no_fee_at_all_is_unreadable_evidence
           --require test_screening_mode_is_labelled_saves_nothing_has_no_verdict_and_matches_the_full_runs_1x_numbers
           --require test_screening_mode_cannot_produce_a_run_the_gate_could_use
+          --require test_a_valid_run_becomes_an_argument_list_with_the_safety_flags
+          --require test_a_fee_below_one_tenth_of_a_percent_or_not_a_number_is_refused
+          --require test_shell_characters_and_out_of_range_values_are_refused
+          --require test_the_server_refuses_a_missing_token_and_a_foreign_host_header
+          --require test_a_screening_job_with_the_persons_own_strategy_file_runs_end_to_end_and_saves_nothing
+          --require test_a_full_job_shows_checks_and_a_verdict_and_still_saves_no_record
+          --require test_only_one_job_runs_at_a_time
+          --require test_spike_times_are_read_whole_from_the_data_check_message
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: junit, path: "*-junit.xml"}
