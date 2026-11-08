@@ -57,8 +57,8 @@ Pass = the gate passes. The result is reported whatever it is; a fail is not fol
 
 ### Reading
 * Tuning did not produce a strategy that passes. Per this protocol, no second grid is run on this data.
-* The common failure is the hold-out (last 25% of 2020-2026, about 2025-03 onward): edge per trade drops to 3-23% of its earlier level,
-  or below zero. Positive test-window screens came mostly from 2024, before the hold-out.
+* The common failure is the hold-out (last 25% of 2020-2026, roughly 2025-02 onward): edge per trade drops to 3-23% of its earlier level,
+  or below zero. For AI Strategy the positive test-window screens must therefore come mostly from 2024, before the hold-out (inferred from the two numbers, not measured month by month).
 * Trend AI also trades too rarely on 4h (about 11 trades per coin per year) for the 100-trade minimum.
 * Next honest options are new hypotheses, not more knobs: a 1h timeframe (more trades), a regime filter judged on fresh data
   (2026-11 onward, paper only), or the futures/short stage once approved.
