@@ -61,3 +61,8 @@ Owner decision after the gate run in research/dewako_strategy_2026-11-08: "If it
 * Limitation: the paper runtime feed (`runtime/market_feed.py`) supplies 200 candles; Dewako ETH needs 1,200, so a paper bot of it would
   never signal. Not changed here: extending the feed changes the input of every strategy and is a separate, owner-approved step.
 * Tests: tests/test_dewako_eth.py (4, required in CI). Mutations killed: no regime filter, BTC allowed, no 10-bar exit, no regime exit.
+
+## Test fix: the idle-shortcut equivalence test covers built-ins only (2026-11-09)
+`test_identical_results_for_every_built_in_strategy` looped over the whole registry, including probe strategies registered by earlier tests,
+so its runtime depended on test order and exceeded the 300 s CI timeout twice (postgres16 on b5f3310, sqlite 3.13 on 97443a9). It now
+replays exactly the built-in strategies its name promises (asserted to be at least 10), all of them, in both modes. Timeout unchanged.

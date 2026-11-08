@@ -444,8 +444,12 @@ class IdleShortcutIsOnlyASpeedUp(unittest.TestCase):
             m = 100 + i * 0.05 + 3 * math.sin(i / 9)
             candles.append(Candle(t=T0 + M5 * i, o=m, h=m + 0.4, l=m - 0.4, c=m + 0.1 * math.sin(i), v=1000.0))
         ds = dataset(candles)
-        for (name, version) in sorted(base._REGISTRY):
-            with self.subTest(strategy=name):
+        # Built-ins only, as the name says. Iterating the whole registry also replayed every probe strategy other tests had registered
+        # by then, so the runtime depended on test order and hit the 300 s CI timeout (2026-11-08, b5f3310 and 97443a9).
+        builtins = sorted(k for k, c in base._REGISTRY.items() if c.__module__.startswith("dewako.strategies."))
+        self.assertGreaterEqual(len(builtins), 10)
+        for (name, version) in builtins:
+            with self.subTest(strategy=name, version=version):
                 self.both(ds, ReplayConfig(strategy=name, version=version, symbol=SYM, timeframe=TF, lookback=120))
 
     def test_an_exit_protection_incident_still_clears_after_the_position_closes_while_the_account_is_flat(self):
