@@ -1,0 +1,55 @@
+{
+  "symbol": "ETH/USDT",
+  "timeframe": "15m",
+  "mode": "both",
+  "fee": 0.0,
+  "slippage": 0.0,
+  "bars": 239463,
+  "trades": 2185,
+  "net_pnl": 1606.9817581587413,
+  "max_drawdown_pct": 0.03050883747813021,
+  "win_rate": 0.47322654462242564,
+  "longs": 1155,
+  "shorts": 1030,
+  "net_pnl_2x": 1606.9817581587413,
+  "oos_expectancy": 0.28132217605316584,
+  "is_expectancy": 0.8867479255849374,
+  "period_pnl": [
+    604.0231410107376,
+    939.8205387659451,
+    -42.455322933949546,
+    105.5934013160073
+  ],
+  "exit_reasons": {
+    "stop": 1347,
+    "target": 838
+  },
+  "checks": [
+    {
+      "name": "enough trades",
+      "ok": true,
+      "detail": "2185 closed trades (need 100)"
+    },
+    {
+      "name": "positive at 2x costs",
+      "ok": true,
+      "detail": "net P&L 1606.98 at 2x costs"
+    },
+    {
+      "name": "drawdown within limit",
+      "ok": true,
+      "detail": "max drawdown 3.1% (limit 15%)"
+    },
+    {
+      "name": "out-of-sample holds up",
+      "ok": false,
+      "detail": "out-of-sample expectancy 0.28 vs in-sample 0.89 (need >= 50% of it, and positive)"
+    },
+    {
+      "name": "consistent across periods",
+      "ok": true,
+      "detail": "3 of 4 equal periods profitable (need 50%)"
+    }
+  ],
+  "verdict": "FAILED"
+}

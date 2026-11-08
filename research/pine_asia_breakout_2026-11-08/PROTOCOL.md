@@ -35,3 +35,26 @@ At least 100 closed trades; net P&L positive at 2x costs; max drawdown <= 15%; o
 2. Long side only (same script, shorts never placed): this is the only form the spot-only system could run.
 The strategy qualifies for adding to the system only if reading 2 passes the gate on BTC on 15m. ETH and 5m are reported.
 Results are reported whatever they are. A fail is not followed by tuning on this data.
+
+## Results (added after the runs; nothing above was changed)
+Base costs 0.10% fee + 0.02% slippage per fill, 2020-01-01..2026-11-01. **All 8 pre-declared runs FAILED. Not added to the system.**
+
+| Coin | TF | Sides | Trades | Net P&L | Net at 2x | Max DD | Win rate | Periods profitable |
+|---|---|---|---|---|---|---|---|---|
+| BTC | 15m | long only (the qualifying reading) | 1,184 | -2,204 | -4,096 | 22.2% | 34% | 0 of 4 |
+| BTC | 15m | long + short | 2,237 | -4,145 | -6,581 | 41.5% | 33% | 0 of 4 |
+| BTC | 5m | long only | 1,657 | -3,069 | -5,397 | 30.7% | 28% | 0 of 4 |
+| BTC | 5m | long + short | 3,176 | -4,983 | -7,684 | 49.9% | 29% | 0 of 4 |
+| ETH | 15m | long only | 1,155 | -2,006 | -3,943 | 20.5% | 38% | 0 of 4 |
+| ETH | 15m | long + short | 2,185 | -3,318 | -6,084 | 33.2% | 38% | 0 of 4 |
+| ETH | 5m | long only | 1,645 | -3,196 | -5,341 | 32.0% | 31% | 0 of 4 |
+| ETH | 5m | long + short | 3,146 | -5,215 | -7,695 | 52.2% | 32% | 0 of 4 |
+
+Each fails 4 of 5 checks (only "enough trades" passes).
+
+Reference, not a gate input: BTC 15m long + short at the script's own Bybit cost (0.055% + ~0): -2,295, max DD 23.1%, 0 of 4 periods.
+Diagnostic, not a gate input: at zero cost, BTC 15m long + short is -79 over 2,237 trades (no edge); ETH +1,607 (+0.74 per trade, about
+0.07% of the ~1,000 USDT position) against about 2.4 USDT of real cost per round trip. The edge before costs is a fraction of the costs.
+
+Caveat: this is a re-implementation of the Pine script, checked against hand-built bars (test_harness.py), not against TradingView's own
+Strategy Tester. Spot prices stand in for the Bybit perpetual (no funding).

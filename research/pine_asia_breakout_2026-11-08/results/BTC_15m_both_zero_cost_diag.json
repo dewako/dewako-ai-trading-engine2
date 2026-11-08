@@ -1,0 +1,55 @@
+{
+  "symbol": "BTC/USDT",
+  "timeframe": "15m",
+  "mode": "both",
+  "fee": 0.0,
+  "slippage": 0.0,
+  "bars": 239463,
+  "trades": 2237,
+  "net_pnl": -79.47324703782036,
+  "max_drawdown_pct": 0.04286560951937851,
+  "win_rate": 0.44792132320071526,
+  "longs": 1184,
+  "shorts": 1053,
+  "net_pnl_2x": -79.47324703782036,
+  "oos_expectancy": -0.2937403611381853,
+  "is_expectancy": 0.05049321504077784,
+  "period_pnl": [
+    138.92633594061132,
+    -4.210848727838037,
+    -17.03157149212055,
+    -197.15716275847356
+  ],
+  "exit_reasons": {
+    "stop": 1458,
+    "target": 779
+  },
+  "checks": [
+    {
+      "name": "enough trades",
+      "ok": true,
+      "detail": "2237 closed trades (need 100)"
+    },
+    {
+      "name": "positive at 2x costs",
+      "ok": false,
+      "detail": "net P&L -79.47 at 2x costs"
+    },
+    {
+      "name": "drawdown within limit",
+      "ok": true,
+      "detail": "max drawdown 4.3% (limit 15%)"
+    },
+    {
+      "name": "out-of-sample holds up",
+      "ok": false,
+      "detail": "out-of-sample expectancy -0.29 vs in-sample 0.05 (need >= 50% of it, and positive)"
+    },
+    {
+      "name": "consistent across periods",
+      "ok": false,
+      "detail": "1 of 4 equal periods profitable (need 50%)"
+    }
+  ],
+  "verdict": "FAILED"
+}
