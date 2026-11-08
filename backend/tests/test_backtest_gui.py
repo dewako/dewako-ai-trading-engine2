@@ -164,3 +164,21 @@ def test_only_one_job_runs_at_a_time(server, tmp_path):
     store = candle_file(tmp_path, 300)
     code, out = call(port, "/api/run", run_body(store, end="2026-01-06T01:00"))
     assert code == 400 and "already running" in out["error"]
+
+
+def test_the_file_picker_only_opens_for_the_two_known_kinds_and_reports_a_missing_tk_clearly(monkeypatch):
+    with pytest.raises(gui.BadRequest):
+        gui.pick_file("exe")
+    with pytest.raises(gui.BadRequest):
+        gui.pick_file("zip; rm -rf /")
+
+    class Done:
+        returncode, stdout, stderr = 1, "", "ModuleNotFoundError: No module named 'tkinter'"
+    monkeypatch.setattr(gui.subprocess, "run", lambda *a, **k: Done())
+    with pytest.raises(gui.BadRequest, match="Paste the full path"):
+        gui.pick_file("zip")
+
+    class Chosen:
+        returncode, stdout, stderr = 0, "C:\\data\\BTCUSDT-5m-2024-10.zip\n", ""
+    monkeypatch.setattr(gui.subprocess, "run", lambda *a, **k: Chosen())
+    assert gui.pick_file("zip") == "C:\\data\\BTCUSDT-5m-2024-10.zip"

@@ -102,6 +102,32 @@ def build_command(action: str, body: dict, *, work_dir: Path) -> tuple[list[str]
     raise BadRequest("unknown action")
 
 
+_PICK_KINDS = {
+    "zip": ("Binance archive (.zip)", "*.zip"),
+    "plugin": ("Strategy file (.py)", "*.py"),
+}
+_PICK_CODE = (
+    "import sys, tkinter as tk\n"
+    "from tkinter import filedialog\n"
+    "root = tk.Tk(); root.withdraw(); root.attributes('-topmost', True)\n"
+    "p = filedialog.askopenfilename(title=sys.argv[1], filetypes=[(sys.argv[2], sys.argv[3]), ('All files', '*.*')])\n"
+    "root.destroy(); print(p)\n"
+)
+
+
+def pick_file(kind: str) -> str:
+    """Open the operating system's file dialog on THIS computer and return the chosen path ('' if cancelled).
+    Runs in a separate Python process (tkinter must not share the server's thread). Only two kinds are allowed."""
+    if kind not in _PICK_KINDS:
+        raise BadRequest("unknown file kind")
+    title, pattern = _PICK_KINDS[kind]
+    pr = subprocess.run([sys.executable, "-c", _PICK_CODE, f"Choose the {kind} file", title, pattern],
+                        capture_output=True, text=True, timeout=600)
+    if pr.returncode != 0:
+        raise BadRequest("the file dialog is not available here (Python without tkinter). Paste the full path instead. " + (pr.stderr.strip().splitlines() or [''])[-1][:200])
+    return pr.stdout.strip()
+
+
 def coverage(store: str) -> list[dict]:
     """What a candle store holds: symbol / timeframe / source with first and last candle and count. Read-only."""
     p = Path(store).expanduser()
@@ -185,7 +211,7 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 <p class=mut>Runs on your computer. No exchange connection, no orders, no credentials. Fee is always at least 0.1% per side. Runs are not saved as evidence.</p>
 <fieldset><legend>1. Data</legend>
 <label>Candle store file (created if missing)</label><input type=text id=store value="candles.db">
-<label>Binance archive .zip (monthly spot kline files, e.g. BTCUSDT-5m-2024-10.zip)</label><input type=text id=zip placeholder="C:\data\BTCUSDT-5m.zip or /home/me/BTCUSDT-5m.zip">
+<label>Binance archive .zip (monthly spot kline files, e.g. BTCUSDT-5m-2024-10.zip)</label><div class=row style="grid-template-columns:1fr auto"><input type=text id=zip placeholder="click Browse, or paste C:\data\BTCUSDT-5m.zip"><button class=sec onclick="pick('zip','zip')">Browse...</button></div>
 <button onclick="go('import',{zip:v('zip'),store:v('store')})">Import zip</button> <button class=sec onclick=cov()>Show what is in the store</button>
 <div id=cov></div></fieldset>
 <fieldset><legend>2. Make a slower timeframe (much faster backtests)</legend><div class=row>
@@ -201,13 +227,14 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 <div><label>Fee per side (min 0.001)</label><input id=fee value="0.001"></div><div><label>Start cash</label><input id=cash value="10000"></div>
 <div><label>Lookback bars</label><input id=lb value="300"></div>
 <div><label>Mode</label><select id=mode><option value=screen>Screen (fast, one run, not evidence)</option><option value=full>Full validation (slow)</option></select></div></div>
-<label>Optional: your own strategy file (.py)</label><input type=text id=plugin placeholder="leave empty for the built-in strategies">
+<label>Optional: your own strategy file (.py)</label><div class=row style="grid-template-columns:1fr auto"><input type=text id=plugin placeholder="leave empty for the built-in strategies"><button class=sec onclick="pick('plugin','plugin')">Browse...</button></div>
 <button onclick=run()>Run backtest</button> <span class=mut>Screening 5m over years takes a long time; prefer 1h or 4h.</span></fieldset>
 <h2 id=jt>Result</h2><div id=res class=mut>Nothing run yet.</div><pre id=log hidden></pre>
 <script>
 const TOKEN="__TOKEN__";let acks=[];const v=i=>document.getElementById(i).value;
 async function api(p,b){const r=await fetch(p,{method:b?'POST':'GET',headers:{'X-Token':TOKEN,'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});
  const j=await r.json().catch(()=>({error:'bad response'}));if(!r.ok)throw new Error(j.error||r.status);return j}
+async function pick(kind,id){try{const r=await api('/api/pick?kind='+kind);if(r.path)document.getElementById(id).value=r.path}catch(e){document.getElementById('res').innerHTML='<span class=bad>'+esc(e.message)+'</span>'}}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 async function go(a,b){try{await api('/api/'+a,b);poll()}catch(e){document.getElementById('res').innerHTML='<span class=bad>'+esc(e.message)+'</span>'}}
 async function cov(){try{const r=await api('/api/coverage?store='+encodeURIComponent(v('store')));
@@ -277,6 +304,9 @@ def make_handler(token: str, jobs: Jobs, cwd: Path, port: int):
                 if path == "/api/coverage":
                     from urllib.parse import parse_qs
                     return self._send(200, {"rows": coverage(parse_qs(query).get("store", [""])[0])})
+                if path == "/api/pick":
+                    from urllib.parse import parse_qs
+                    return self._send(200, {"path": pick_file(parse_qs(query).get("kind", [""])[0])})
             except BadRequest as e:
                 return self._send(400, {"error": str(e)})
             self._send(404, {"error": "not found"})
