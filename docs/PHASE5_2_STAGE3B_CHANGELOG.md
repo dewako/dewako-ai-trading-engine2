@@ -37,3 +37,11 @@ same digest; it failed before the fix: 2 fills with the shortcut vs 3 without). 
 Not changed: the live candle-freshness rule. A maintenance gap inside the lookback window refuses decisions until the gap leaves the window
 (300 bars by default), in live as in the replay. On the 2020-2026 data that blocks trading for a measurable share of the time; it is
 reported with each run, not worked around.
+
+## Optional tolerance for exchange-maintenance holes (2026-11-08)
+
+`CandleFreshnessPolicy.max_gap_intervals` (env `DEWAKO_CANDLE_MAX_GAP_INTERVALS`, CLI `--max-gap-intervals N`). Default 0: unchanged, any
+hole in the decision window refuses decisions. N > 0 accepts holes of at most N missing candles each; the newest candle must still be closed
+and fresh, timestamps on the grid. Recorded in every replay (`candle_max_gap_intervals`) and printed as a warning on every run that used it.
+Why: on Binance 2020-2026 the 16 maintenance holes (1-7 candles on 1h, 1-3 on 4h) blocked 4h decisions for most of 2020-2021.
+Live keeps the strict default unless the owner sets the variable.

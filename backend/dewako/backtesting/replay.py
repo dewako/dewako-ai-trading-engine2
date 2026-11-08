@@ -33,6 +33,7 @@ from dewako.core import timesource
 from dewako.market_data.state_builder import MIN_CANDLES, InsufficientData, build_market_state
 from dewako.core.types import Candle, MarketState
 from dewako.execution.engine import ExecutionEngine
+from dewako.market_data.freshness import CandleFreshnessPolicy
 from dewako.execution.exit_monitor import INCIDENT_KIND as EXIT_INCIDENT_KIND, WIDE_SPREAD_KIND, ExitMonitor
 from dewako.execution.validation import QuoteGuardConfig
 from dewako.market_data.timeframes import seconds as timeframe_seconds
@@ -95,7 +96,8 @@ class ReplayConfig:
                 "sim": {k: (v if not isinstance(v, tuple) else [[a.isoformat(), b.isoformat()] for a, b in v])
                         for k, v in self.effective_sim().__dict__.items()},
                 "quote_guard": dict(self.quote_guard.__dict__),
-                "limits": self.limits.model_dump() if self.limits is not None and hasattr(self.limits, "model_dump") else None}
+                "limits": self.limits.model_dump() if self.limits is not None and hasattr(self.limits, "model_dump") else None,
+                "candle_max_gap_intervals": CandleFreshnessPolicy.from_env().max_gap_intervals}
 
 
 @dataclass

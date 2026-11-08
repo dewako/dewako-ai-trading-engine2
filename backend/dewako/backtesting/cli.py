@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from typing import Optional
@@ -57,12 +58,22 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-gap", action="append", default=[], type=_t, metavar="TIME", help="a missing candle a human has explained (repeatable)")
     p.add_argument("--ack-spike", action="append", default=[], type=_t, metavar="TIME", help="a price spike a human has checked and accepts (repeatable)")
     p.add_argument("--variants-tried", type=int, default=1, help="how many strategy/parameter variants were tried on this data before this one")
+    p.add_argument("--max-gap-intervals", type=int, default=None, metavar="N",
+                   help="accept holes of at most N missing candles inside the decision window (exchange maintenance); sets "
+                        "DEWAKO_CANDLE_MAX_GAP_INTERVALS for this run and is recorded with it. Default: the environment's value (0 = strict)")
     p.add_argument("--dry-run", action="store_true", help="run everything but do not save a record")
     p.add_argument("--json", action="store_true")
     p.add_argument("--screen", action="store_true",
                    help="SCREENING ONLY: one replay at 1x costs, no stress / hold-out / periods / Monte Carlo (about 9x faster). Prints a loud "
                         "SCREENING_ONLY label, no verdict, and never saves a record, so the promotion gate can never use it.")
     return p
+
+
+def _gap_note() -> list[str]:
+    from dewako.market_data.freshness import CandleFreshnessPolicy
+    n = CandleFreshnessPolicy.from_env().max_gap_intervals
+    return [f"Decisions accepted holes of up to {n} missing candle(s) in the window (exchange maintenance). A live bot gets the same "
+            f"behaviour only with DEWAKO_CANDLE_MAX_GAP_INTERVALS={n}; the live default (0) refuses them."] if n else []
 
 
 def _screen(ds, cfg, a) -> int:
@@ -73,6 +84,7 @@ def _screen(ds, cfg, a) -> int:
     r = replay(ds, cfg)
     m = metrics_of(r)
     warnings = list(m.warnings) + ["SCREENING ONLY: no cost stress, hold-out, period or Monte Carlo checks ran. This is not evidence and is never saved."]
+    warnings += _gap_note()
     hw = halt_warning(r, cfg)
     if hw:
         warnings.append(hw)
@@ -89,6 +101,10 @@ def _screen(ds, cfg, a) -> int:
 
 def main(argv: Optional[list[str]] = None, *, db: Optional[Database] = None) -> int:
     a = parser().parse_args(argv)
+    if a.max_gap_intervals is not None:
+        from dewako.market_data.freshness import CandleFreshnessPolicy
+        CandleFreshnessPolicy(max_gap_intervals=a.max_gap_intervals)                # refuses an out-of-range value before anything runs
+        os.environ["DEWAKO_CANDLE_MAX_GAP_INTERVALS"] = str(a.max_gap_intervals)
     try:
         ds = build_dataset(CandleStore(a.candles), a.symbol, a.timeframe, a.source, a.start, a.end,
                            allowed_gaps=a.allow_gap, acknowledged_spikes=a.ack_spike)
@@ -120,7 +136,7 @@ def main(argv: Optional[list[str]] = None, *, db: Optional[Database] = None) -> 
             return 2
     summary = {"run_id": rid, "verdict": "PASSED" if v.passed else "FAILED", "simulated": True, "trades": v.full.trades,
                "net_pnl": v.full.net_pnl, "max_drawdown_pct": v.full.max_drawdown_pct, "dataset_hash": ds.content_hash,
-               "checks": [{"name": c.name, "ok": c.ok, "detail": c.detail} for c in v.checks], "warnings": v.warnings}
+               "checks": [{"name": c.name, "ok": c.ok, "detail": c.detail} for c in v.checks], "warnings": list(v.warnings) + _gap_note()}
     if a.json:
         print(json.dumps(summary, indent=2))
     else:
