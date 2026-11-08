@@ -209,6 +209,7 @@ jobs:
           --require test_identical_results_for_stops_targets_gaps_strategy_exits_and_split_entries
           --require test_identical_results_for_every_built_in_strategy
           --require test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open
+          --require test_an_exit_protection_incident_still_clears_after_the_position_closes_while_the_account_is_flat
           --require test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar
           --require test_every_built_in_strategy_declares_which_sides_it_signals
           --require test_the_declared_sides_match_the_entries_written_in_each_strategys_source
@@ -502,6 +503,7 @@ jobs:
           --require test_identical_results_for_stops_targets_gaps_strategy_exits_and_split_entries
           --require test_identical_results_for_every_built_in_strategy
           --require test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open
+          --require test_an_exit_protection_incident_still_clears_after_the_position_closes_while_the_account_is_flat
           --require test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar
           --require test_every_built_in_strategy_declares_which_sides_it_signals
           --require test_the_declared_sides_match_the_entries_written_in_each_strategys_source

@@ -33,7 +33,7 @@ from dewako.core import timesource
 from dewako.market_data.state_builder import MIN_CANDLES, InsufficientData, build_market_state
 from dewako.core.types import Candle, MarketState
 from dewako.execution.engine import ExecutionEngine
-from dewako.execution.exit_monitor import ExitMonitor
+from dewako.execution.exit_monitor import INCIDENT_KIND as EXIT_INCIDENT_KIND, WIDE_SPREAD_KIND, ExitMonitor
 from dewako.execution.validation import QuoteGuardConfig
 from dewako.market_data.timeframes import seconds as timeframe_seconds
 from dewako.persistence.db import Database
@@ -215,12 +215,15 @@ class _Run:
         self._collect()
 
     def _idle(self) -> bool:
-        """No open position and no order that could still move: the exit monitor and the order sync would do nothing. (Pure speed-up:
-        a test replays the same data with the shortcut off and requires an identical digest.)"""
+        """No open position, no order that could still move and no open exit-protection incident: the exit monitor and the order sync would
+        do nothing. (Pure speed-up: a test replays the same data with the shortcut off and requires an identical digest.) An open incident
+        is not idle: the monitor, which runs while flat in live, resolves it after its clean cycles; skipping it latched the halt forever."""
         if self.no_shortcut:
             return False
         with self.db.read() as c:
             if c.execute("SELECT 1 FROM positions WHERE status<>'CLOSED' LIMIT 1").fetchone():
+                return False
+            if c.execute("SELECT 1 FROM incidents WHERE status='OPEN' AND kind IN (?,?) LIMIT 1", (EXIT_INCIDENT_KIND, WIDE_SPREAD_KIND)).fetchone():
                 return False
             return not c.execute("SELECT 1 FROM orders WHERE state IN ('SUBMITTED','OPEN','PARTIALLY_FILLED','CANCEL_REQUESTED') LIMIT 1").fetchone()
 

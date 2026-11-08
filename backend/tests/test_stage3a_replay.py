@@ -448,6 +448,29 @@ class IdleShortcutIsOnlyASpeedUp(unittest.TestCase):
             with self.subTest(strategy=name):
                 self.both(ds, ReplayConfig(strategy=name, version=version, symbol=SYM, timeframe=TF, lookback=120))
 
+    def test_an_exit_protection_incident_still_clears_after_the_position_closes_while_the_account_is_flat(self):
+        """Live, the exit monitor keeps running while flat and resolves the incident after clean cycles. The shortcut used to skip it, so one
+        wide-spread stop latched a halt for the rest of a multi-year replay."""
+        class TwoEntries(base.Strategy):
+            supported_timeframes = ["5m"]
+            default_parameters = {}
+
+            def generate_signal(self, state):
+                if len(state.candles) not in (5, 20):
+                    return None
+                c = state.candles[-1].c
+                return Signal(symbol=state.symbol, side=Side.BUY, confidence=0.9, strategy=self.name, strategy_version=self.version,
+                              reason=["probe"], entry_price=c, stop_price=c * 0.98, take_profit_price=None)
+
+            def manage_position(self, state, position):
+                return None
+        TwoEntries.name, TwoEntries.version = "Probe Eq incident", "1.0"
+        base.register(TwoEntries)
+        candles = [bar(i) for i in range(6)] + [bar(6, o=100, h=100, l=93.0, c=99.0)] + [bar(i) for i in range(7, 30)]
+        r = self.both(dataset(candles), cfg("Probe Eq incident", sim=dict(spread_range_factor=0.05)))
+        self.assertGreaterEqual(r.incidents, 1)                                            # the wide-spread stop really opened an incident
+        self.assertEqual(len([f for f in r.fills if f.side == "BUY"]), 2)                  # and it cleared: the second entry was allowed
+
     def test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open(self):
         from dewako.backtesting import replay as rp
         make_probe("Probe Skip", buy_at=5, tp_pct=0.5, sell_at=9)
