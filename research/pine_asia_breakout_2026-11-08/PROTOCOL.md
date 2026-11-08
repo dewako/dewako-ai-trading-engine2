@@ -58,3 +58,14 @@ Diagnostic, not a gate input: at zero cost, BTC 15m long + short is -79 over 2,2
 
 Caveat: this is a re-implementation of the Pine script, checked against hand-built bars (test_harness.py), not against TradingView's own
 Strategy Tester. Spot prices stand in for the Bybit perpetual (no funding).
+
+## Futures-style follow-up, 5m long + short (owner request, 2026-11-08; reference runs, not gate inputs)
+Binance futures archive is unreachable from this workspace (403), so spot 5m prices stand in for the perpetual.
+| Cost per side | BTC net (per trade) | ETH net (per trade) | Periods profitable |
+|---|---|---|---|
+| 0.10% + 0.02% slip (owner rule) | -4,983 (-1.57) | -5,215 (-1.66) | 0 / 0 of 4 |
+| 0.05% + 0.01% (futures taker) | -2,685 (-0.85) | -2,935 (-0.93) | 0 / 0 of 4 |
+| 0.02% + 0.01% (futures maker) | -1,150 (-0.36) | -1,467 (-0.47) | 0 / 0 of 4 |
+| zero cost | +635 (+0.20) | +235 (+0.07) | 3 / 3 of 4 |
+Hold time: mean 0.4 h, median 0.25 h; 0.08 funding times crossed per trade, so funding cannot change the verdict.
+Gross edge is 0.02% (BTC) / 0.007% (ETH) of the ~1,000 USDT position per trade; even maker fees are larger.
