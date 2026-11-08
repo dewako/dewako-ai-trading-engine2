@@ -1,0 +1,40 @@
+{
+  "run_id": null,
+  "verdict": "FAILED",
+  "simulated": true,
+  "trades": 255,
+  "net_pnl": 1607.3198821887047,
+  "max_drawdown_pct": 0.0336653442465144,
+  "dataset_hash": "43637022f06305332d7273e270b58180bc5948a2ad4c098af6638e498f1bf039",
+  "checks": [
+    {
+      "name": "enough trades",
+      "ok": true,
+      "detail": "255 closed trades (need 100)"
+    },
+    {
+      "name": "positive at 2x costs",
+      "ok": true,
+      "detail": "net P&L 813.81 at 2x costs"
+    },
+    {
+      "name": "drawdown within limit",
+      "ok": true,
+      "detail": "max drawdown 3.4% (limit 15%)"
+    },
+    {
+      "name": "out-of-sample holds up",
+      "ok": false,
+      "detail": "out-of-sample expectancy -2.18 vs in-sample 9.80 (need >= 50% of it, and positive)"
+    },
+    {
+      "name": "consistent across periods",
+      "ok": true,
+      "detail": "3 of 4 equal periods profitable (need 50%)"
+    }
+  ],
+  "warnings": [
+    "67 variants were tried on this data. The best of 67 looks better than a single honest test; treat its numbers as optimistic.",
+    "Decisions accepted holes of up to 3 missing candle(s) in the window (exchange maintenance). A live bot gets the same behaviour only with DEWAKO_CANDLE_MAX_GAP_INTERVALS=3; the live default (0) refuses them."
+  ]
+}

@@ -30,3 +30,35 @@ The best-scoring variant per strategy is chosen. If none scores above 0, that st
 Each chosen variant: one screening run on 2024-01-01..2026-11-01 at the real fee (0.1%), and the full promotion gate over 2020-2026 with
 `--variants-tried` = 52 + the 15 untuned screens = 67. The gate's hold-out (last 25%) lies inside the test window.
 Pass = the gate passes. The result is reported whatever it is; a fail is not followed by another grid on the same data.
+
+## Results (added 2026-11-08, after all runs; nothing above was changed)
+
+### Selection on training (2020-01-01..2024-01-01, fee 0.2%)
+* Trend AI: **2.3.11** (ema 20/100, adx_min 25, atr_stop 2). BTC 45 trades +2,424; ETH 43 trades +3,697. Score +2,424.
+* AI Strategy: **0.4.8** (min_volume_ratio 1.2, atr_stop 2). BTC 141 trades +977; ETH 153 trades +1,891. Score +977.
+* Mean Reversion: best eligible score -159 (1.2.12). **Not improvable by this grid.** No variant made money on both coins.
+* Raw rows: research/tuning_2026-11-08/results_train.jsonl.
+
+### Test screen (2024-01-01..2026-11-01, fee 0.1%, screening only)
+| Variant | Coin | Trades | Net P&L | Max DD |
+|---|---|---|---|---|
+| Trend AI 2.3.11 | BTC | 31 | +914 | 4.1% |
+| Trend AI 2.3.11 | ETH | 31 | +888 | 5.9% |
+| AI Strategy 0.4.8 | BTC | 112 | +298 | 3.0% |
+| AI Strategy 0.4.8 | ETH | 112 | +127 | 5.4% |
+
+### Full promotion gate (2020-01-01..2026-11-01, fee 0.1%, variants-tried 67, max-gap 3): **all four FAILED**
+| Variant | Coin | Trades | Net | 2x costs | DD | Out-of-sample vs in-sample expectancy | Periods | Fails on |
+|---|---|---|---|---|---|---|---|---|
+| Trend AI 2.3.11 | BTC | 77 | +3,644 | +3,335 | 7.1% | 10.24 vs 58.34 (18%) | 3/4 | trades, OOS |
+| Trend AI 2.3.11 | ETH | 75 | +4,961 | +4,562 | 5.9% | 18.53 vs 80.48 (23%) | 4/4 | trades, OOS |
+| AI Strategy 0.4.8 | BTC | 255 | +1,607 | +814 | 3.4% | -2.18 vs 9.80 | 3/4 | OOS |
+| AI Strategy 0.4.8 | ETH | 266 | +2,487 | +1,586 | 5.7% | 0.35 vs 12.91 (3%) | 4/4 | OOS |
+
+### Reading
+* Tuning did not produce a strategy that passes. Per this protocol, no second grid is run on this data.
+* The common failure is the hold-out (last 25% of 2020-2026, about 2025-03 onward): edge per trade drops to 3-23% of its earlier level,
+  or below zero. Positive test-window screens came mostly from 2024, before the hold-out.
+* Trend AI also trades too rarely on 4h (about 11 trades per coin per year) for the 100-trade minimum.
+* Next honest options are new hypotheses, not more knobs: a 1h timeframe (more trades), a regime filter judged on fresh data
+  (2026-11 onward, paper only), or the futures/short stage once approved.
