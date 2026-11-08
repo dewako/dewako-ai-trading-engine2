@@ -17,7 +17,7 @@ def test_buys_a_breakout_only_above_the_200_day_average():
     up = [100 + i * 0.01 for i in range(1200)] + [140]
     s = D().generate_signal(state(up))
     assert s is not None and s.side is Side.BUY and s.stop_price < 140
-    down = [200 - i * 0.01 for i in range(1200)] + [150]       # breakout of the last 20 bars, but below the 1,200-bar average
+    down = [200.0] * 1180 + [100.0] * 20 + [105.0]               # breaks the 20-bar high (100.1), but below the 1,200-bar average (~197)
     assert D().generate_signal(state(down)) is None
     assert D().generate_signal(state(up[-1000:])) is None        # not enough history: no signal
 

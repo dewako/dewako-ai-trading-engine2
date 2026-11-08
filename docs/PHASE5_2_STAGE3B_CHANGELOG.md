@@ -45,3 +45,19 @@ hole in the decision window refuses decisions. N > 0 accepts holes of at most N 
 and fresh, timestamps on the grid. Recorded in every replay (`candle_max_gap_intervals`) and printed as a warning on every run that used it.
 Why: on Binance 2020-2026 the 16 maintenance holes (1-7 candles on 1h, 1-3 on 4h) blocked 4h decisions for most of 2020-2021.
 Live keeps the strict default unless the owner sets the variable.
+
+## New strategy: Dewako ETH 1.0 (candidate, ETH/USDT 4h, long only) (2026-11-09)
+
+Owner decision after the gate run in research/dewako_strategy_2026-11-08: "If it passes on ETH then add; name it Dewako ETH."
+* Same rules as the research plugin Dewako 1.0: buy a close above the previous 20-bar high while the close is above its 1,200-bar
+  (200-day) average; initial stop 2 x ATR(14); exit on a close below the previous 10-bar low or below the 200-day average.
+* Gate, ETHUSDT 4h 2020-01..2026-10, fee 0.1%, variants-tried 76: PASSED (138 trades, +1,422, 2x costs +509, max DD 8.2%). BTC FAILED, so
+  `supported_markets = ["ETH/USDT"]`; a bot for BTC or another timeframe is refused at creation.
+* `candidate = True`: never the default version, never live. Known weakness, recorded in the research protocol: without its 3 best trades
+  the 6.8-year result is negative, and one trade decides the hold-out.
+* `helpers.make_exit` added so a long-only strategy's module contains no SELL entry (the label check reads module source). No existing
+  strategy's source or fingerprint changed. `test_spot_executes_only_the_long_side_and_says_so` now also covers a long-only strategy
+  (its SPOT note must be exactly "long-only") instead of assuming every built-in is long + short.
+* Limitation: the paper runtime feed (`runtime/market_feed.py`) supplies 200 candles; Dewako ETH needs 1,200, so a paper bot of it would
+  never signal. Not changed here: extending the feed changes the input of every strategy and is a separate, owner-approved step.
+* Tests: tests/test_dewako_eth.py (4, required in CI). Mutations killed: no regime filter, BTC allowed, no 10-bar exit, no regime exit.

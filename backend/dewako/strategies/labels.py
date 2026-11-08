@@ -12,6 +12,7 @@ BUILTIN_DIRECTIONS: dict[str, tuple[str, ...]] = {
     "Breakout AI": ("LONG", "SHORT"),
     "Mean Reversion": ("LONG", "SHORT"),
     "AI Strategy": ("LONG", "SHORT"),
+    "Dewako ETH": ("LONG",),
 }
 
 

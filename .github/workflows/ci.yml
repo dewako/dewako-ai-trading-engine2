@@ -210,6 +210,10 @@ jobs:
           --require test_identical_results_for_every_built_in_strategy
           --require test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open
           --require test_an_exit_protection_incident_still_clears_after_the_position_closes_while_the_account_is_flat
+          --require test_dewako_eth_is_a_registered_long_only_eth_4h_candidate_that_never_becomes_a_default
+          --require test_dewako_eth_buys_a_20_bar_breakout_only_above_the_200_day_average_and_with_full_history
+          --require test_dewako_eth_exits_on_a_10_bar_low_or_a_lost_200_day_trend_and_otherwise_holds
+          --require test_a_dewako_eth_bot_cannot_be_created_for_btc_where_it_failed_the_gate
           --require test_a_maintenance_hole_is_refused_by_default_and_accepted_only_up_to_the_configured_size
           --require test_a_replay_records_the_gap_tolerance_it_ran_with
           --require test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar
@@ -506,6 +510,10 @@ jobs:
           --require test_identical_results_for_every_built_in_strategy
           --require test_the_shortcut_really_skips_the_monitor_while_flat_and_never_while_a_position_is_open
           --require test_an_exit_protection_incident_still_clears_after_the_position_closes_while_the_account_is_flat
+          --require test_dewako_eth_is_a_registered_long_only_eth_4h_candidate_that_never_becomes_a_default
+          --require test_dewako_eth_buys_a_20_bar_breakout_only_above_the_200_day_average_and_with_full_history
+          --require test_dewako_eth_exits_on_a_10_bar_low_or_a_lost_200_day_trend_and_otherwise_holds
+          --require test_a_dewako_eth_bot_cannot_be_created_for_btc_where_it_failed_the_gate
           --require test_a_maintenance_hole_is_refused_by_default_and_accepted_only_up_to_the_configured_size
           --require test_a_replay_records_the_gap_tolerance_it_ran_with
           --require test_a_flat_stretch_costs_little_time_and_a_long_one_does_not_grow_memory_per_bar

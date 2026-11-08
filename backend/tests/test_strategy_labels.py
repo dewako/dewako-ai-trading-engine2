@@ -39,7 +39,11 @@ def test_labels_are_not_part_of_a_strategys_source_so_no_released_fingerprint_ch
 def test_spot_executes_only_the_long_side_and_says_so():
     for c in builtins():
         m = c.market_support()["SPOT"]
-        assert m["status"] == "SUPPORTED" and m["trades"] == ["LONG"] and "short entries are refused" in m["note"]
+        assert m["status"] == "SUPPORTED" and m["trades"] == ["LONG"]
+        if "SHORT" in directions_of(c):
+            assert "short entries are refused" in m["note"], c.name
+        else:
+            assert m["note"] == "long-only", c.name
 
 
 def test_futures_is_not_implemented_for_any_strategy_and_lists_what_is_missing():
