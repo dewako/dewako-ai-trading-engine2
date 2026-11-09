@@ -11,3 +11,14 @@ the 4h used so far.
 * Pass = the gate passes for that version and coin. A pass is then examined as Dewako ETH's was (dependence on the best trades,
   hold-out trade count) and reported to the owner; nothing is added to the engine without that report and the owner's decision.
 * A fail is reported as it is and not followed by tuning on this data.
+
+## Results so far (added after the runs; nothing above was changed)
+| Strategy | Coin | Trades | Net | Max DD | Gate |
+|---|---|---|---|---|---|
+| Momentum AI 1.4 | BTC | 4 (0 winners, 1 still open at end) | -180 | 44.2% | **FAILED** 5 of 5 checks |
+| Momentum AI 1.4 | ETH | 1 (0 winners) | -22 | 10.2% | **FAILED** 4 of 5 checks |
+| Momentum AI 1.5 | BTC / ETH | - | - | - | not finished |
+| Breakout AI 1.8 | BTC / ETH | - | - | - | not started |
+
+The runner hit the 2-hour background limit on 2026-11-09 (each 1h gate takes 1-2 hours here). The 4 unfinished runs are not reported as
+anything. `results/run.py` resumes them (finished runs are skipped).
