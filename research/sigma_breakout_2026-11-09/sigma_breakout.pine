@@ -1,0 +1,147 @@
+//@version=6
+// Sigma Breakout -- intraday momentum / volatility-range breakout (Pine v6 port).
+//
+// Reference = RTH open (default) or session VWAP as of the previous bar (causal).
+// Sigma(slot) = average over the last N prior RTH days of |close(slot) - RTH open|,
+//               matched by exact clock time (HHMM, New York time), CLOSE only.
+// Upper = refPx + BandMult*sigma(slot); Lower = refPx - BandMult*sigma(slot).
+// Bands use ONLY prior days' slot history: today's observation is pushed AFTER use.
+// Long on a bar CLOSING above Upper, short on a bar CLOSING below Lower.
+// Opposite band break flips the position. Flat at the flatten time each day.
+//
+// Port notes / deliberate differences from the Rust version:
+//  * Orders fill at the signal bar's close (process_orders_on_close=true).
+//  * Per-slot warm-up gate: a slot trades only when it has N full days of history AND sigma > 0.
+//  * Flatten uses the bar's CLOSE time, so with 30m bars the 15:30 bar (ends 16:00) flattens
+//    at 16:00, not at the 16:00 bar's close. No new entries on or after that bar.
+//  * Optional cap on entries per day (0 = unlimited).
+strategy("Sigma Breakout", overlay = true, process_orders_on_close = true,
+         calc_on_every_tick = false, pyramiding = 0,
+         default_qty_type = strategy.fixed, default_qty_value = 1,
+         initial_capital = 100000)
+
+// ---------------- inputs ----------------
+nDays      = input.int(14, "N Sigma Days", minval = 2, maxval = 60)
+bandMult   = input.float(1.0, "Band Multiplier", minval = 0.1, maxval = 5.0, step = 0.1)
+useVwap    = input.bool(false, "Use VWAP as reference (false = RTH Open)")
+slPct      = input.float(0.0, "Stop Loss % (0 = off)", minval = 0.0, maxval = 20.0, step = 0.1)
+fixedLot   = input.int(1, "Fixed Lot (used when SL off)", minval = 1, maxval = 100)
+riskPct    = input.float(1.0, "Risk % of equity (used only when SL on)", minval = 0.1, maxval = 20.0, step = 0.1)
+fixedRisk  = input.float(0.0, "Fixed Risk $ per trade (0 = off, used only when SL on)", minval = 0.0, maxval = 10000.0, step = 10.0)
+flattenEt  = input.int(1600, "Flatten time ET HHMM (1600 = at close)", minval = 930, maxval = 1600)
+maxEntries = input.int(0, "Max entries per day (0 = unlimited)", minval = 0, maxval = 20)
+
+SESSION_OPEN_ET  = 930
+SESSION_CLOSE_ET = 1600
+TZ = "America/New_York"
+
+if not timeframe.isintraday
+    runtime.error("Sigma Breakout needs an intraday chart timeframe.")
+
+// ---------------- state ----------------
+type SlotHist
+    array<float> v
+
+var map<int, SlotHist> hist = map.new<int, SlotHist>()
+var int   curDay      = 0
+var float dayOpen     = na
+var bool  haveOpen    = false
+var float pvSum       = 0.0
+var float volSum      = 0.0
+var float vwapPrev    = na
+var int   entriesToday = 0
+
+// ---------------- time keys (New York time) ----------------
+dkey  = year(time, TZ) * 10000 + month(time, TZ) * 100 + dayofmonth(time, TZ)
+hhmm  = hour(time, TZ) * 100 + minute(time, TZ)               // bar open
+endMm = hour(time_close, TZ) * 100 + minute(time_close, TZ)   // bar close
+
+// ---------------- new-day bookkeeping ----------------
+if dkey != curDay
+    if strategy.position_size != 0
+        // fallback only: a position should never survive past the flatten bar
+        strategy.close_all(comment = "day rollover")
+    curDay       := dkey
+    haveOpen     := false
+    pvSum        := 0.0
+    volSum       := 0.0
+    vwapPrev     := na
+    entriesToday := 0
+
+// ---------------- flatten ----------------
+if endMm >= flattenEt and strategy.position_size != 0
+    strategy.close_all(comment = "RTH close")
+
+// ---------------- sizing ----------------
+f_qty(float px) =>
+    float q = fixedLot
+    if slPct > 0
+        float lossPerContract = px * slPct / 100.0 * syminfo.pointvalue
+        float riskUsd = fixedRisk > 0 ? fixedRisk : strategy.equity * riskPct / 100.0
+        q := lossPerContract > 0 ? math.floor(riskUsd / lossPerContract) : 0.0
+    q
+
+// ---------------- main ----------------
+inRth = hhmm >= SESSION_OPEN_ET and hhmm < SESSION_CLOSE_ET
+
+float refPx   = na
+float upper = na
+float lower = na
+bool  fullSlot = false
+
+if inRth
+    if not haveOpen
+        dayOpen  := open
+        haveOpen := true
+
+    refPx := useVwap ? (na(vwapPrev) ? dayOpen : vwapPrev) : dayOpen
+
+    SlotHist h = hist.get(hhmm)
+    if na(h)
+        h := SlotHist.new(array.new<float>())
+        hist.put(hhmm, h)
+
+    fullSlot := h.v.size() == nDays
+    float sigma = h.v.size() > 0 ? h.v.avg() : 0.0
+    upper := refPx + bandMult * sigma
+    lower := refPx - bandMult * sigma
+
+    bool canTrade = fullSlot and sigma > 0
+    bool capOk    = maxEntries == 0 or entriesToday < maxEntries
+
+    if canTrade and endMm < flattenEt and capOk
+        float curPos = strategy.position_size
+        if close > upper and curPos <= 0
+            if curPos < 0
+                strategy.close_all(comment = "flip to long")
+            float q = f_qty(close)
+            if q > 0
+                strategy.entry("Long", strategy.long, qty = q)
+                if slPct > 0
+                    strategy.exit("SL Long", "Long", stop = close * (1.0 - slPct / 100.0))
+                entriesToday += 1
+        else if close < lower and curPos >= 0
+            if curPos > 0
+                strategy.close_all(comment = "flip to short")
+            float q = f_qty(close)
+            if q > 0
+                strategy.entry("Short", strategy.short, qty = q)
+                if slPct > 0
+                    strategy.exit("SL Short", "Short", stop = close * (1.0 + slPct / 100.0))
+                entriesToday += 1
+
+    // causal VWAP: THIS bar becomes "prev" for the NEXT bar
+    pvSum  += hlc3 * volume
+    volSum += volume
+    if volSum > 0
+        vwapPrev := pvSum / volSum
+
+    // push today's |close - day_open| for FUTURE days (after the band was used)
+    h.v.push(math.abs(close - dayOpen))
+    while h.v.size() > nDays
+        h.v.shift()
+
+// ---------------- plots ----------------
+plot(refPx, "Reference", color = color.new(color.yellow, 0))
+plot(fullSlot ? upper : na, "Upper Band", color = color.new(color.teal, 0), style = plot.style_linebr)
+plot(fullSlot ? lower : na, "Lower Band", color = color.new(color.red, 0), style = plot.style_linebr)
