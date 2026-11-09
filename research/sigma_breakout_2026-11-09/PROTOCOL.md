@@ -1,5 +1,7 @@
 # Owner-supplied Pine strategy "Sigma Breakout" — test protocol (pre-registered 2026-11-09, before any run)
 
+**Status: REJECTED — scrapped by the owner on 2026-11-10 after failing every test (spot and futures, 5m and 15m). Not in the engine. Kept only as a record so it is not re-tested.**
+
 Owner request: test it on ETHUSDT 15m; do not add it to the project yet. It is re-implemented bar by bar in `harness.py` here
 (research only, not registered in the engine). `sigma_breakout.pine` is the owner's script, unchanged.
 
