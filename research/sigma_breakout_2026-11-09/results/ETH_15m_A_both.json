@@ -1,0 +1,62 @@
+{
+  "symbol": "ETH/USDT",
+  "timeframe": "15m",
+  "sizing": "A",
+  "mode": "both",
+  "fee": 0.001,
+  "slippage": 0.0002,
+  "bars": 239463,
+  "trades": 2580,
+  "net_pnl": -6802.380822119741,
+  "max_drawdown_pct": 0.08265979386676618,
+  "win_rate": 0.40193798449612406,
+  "longs": 1228,
+  "shorts": 1352,
+  "avg_hold_h": 4.493507751937985,
+  "net_pnl_2x": -20214.159000479514,
+  "zero_cost_net_pnl_diag": 6609.400000000005,
+  "zero_cost_per_trade_pct_of_notional_diag": 0.0011826239967285893,
+  "avg_notional": 2166.185493295349,
+  "oos_expectancy": -0.6251941309580398,
+  "is_expectancy": -3.307044241680519,
+  "period_pnl": [
+    -2521.7833508759545,
+    -1769.736261263937,
+    -2958.9211166939112,
+    448.05990671406244
+  ],
+  "exit_reasons": {
+    "flip": 499,
+    "RTH close": 2081,
+    "day rollover": 0,
+    "end of data": 0
+  },
+  "checks": [
+    {
+      "name": "enough trades",
+      "ok": true,
+      "detail": "2580 closed trades (need 100)"
+    },
+    {
+      "name": "positive at 2x costs",
+      "ok": false,
+      "detail": "net P&L -20214.16 at 2x costs"
+    },
+    {
+      "name": "drawdown within limit",
+      "ok": true,
+      "detail": "max drawdown 8.3% (limit 15%)"
+    },
+    {
+      "name": "out-of-sample holds up",
+      "ok": false,
+      "detail": "out-of-sample expectancy -0.63 vs in-sample -3.31 (need >= 50% of it, and positive)"
+    },
+    {
+      "name": "consistent across periods",
+      "ok": false,
+      "detail": "1 of 4 equal periods profitable (need 50%)"
+    }
+  ],
+  "verdict": "FAILED"
+}

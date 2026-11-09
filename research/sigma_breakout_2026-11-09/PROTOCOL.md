@@ -42,3 +42,28 @@ whatever they are; a fail is not followed by tuning on this data. Even a pass is
 ## Honest limits
 Re-implementation checked against hand-built bars (`test_harness.py`), not against TradingView's Strategy Tester. About 84 variants have
 now been tried on this ETH data, so a single pass would be optimistic.
+
+## Results (added after the runs; nothing above was changed)
+ETHUSDT 15m, 2020-01-01..2026-11-01 (239,463 bars), 0.10% fee + 0.02% slippage per fill. **All 4 pre-declared readings FAILED. Not added.**
+
+| Reading | Trades | Net | Net at 2x | Max DD | Win rate | OOS vs IS expectancy | Period P&L | Gate |
+|---|---|---|---|---|---|---|---|---|
+| A1 1 ETH, long + short | 2,580 | -6,802 | -20,214 | 8.3% of 100k | 40% | -0.63 vs -3.31 | -2,522 / -1,770 / -2,959 / +448 | FAILED |
+| A2 1 ETH, long only | 1,228 | -3,607 | -9,940 | 4.3% of 100k | 42% | -1.45 vs -3.43 | -694 / -1,166 / -1,851 / +104 | FAILED |
+| B1 10% equity, long + short | 2,580 | -3,462 | -6,481 | 37.7% | 40% | -0.40 vs -1.65 | -1,710 / -852 / -809 / -90 | FAILED |
+| B2 10% equity, long only (the qualifying reading) | 1,228 | -1,115 | -3,385 | 15.8% | 42% | -0.54 vs -1.03 | -102 / -477 / -524 / -12 | FAILED |
+
+B2 passes only "enough trades"; it fails 2x costs, drawdown (15.8% > 15%), out-of-sample and periods (0 of 4).
+Mean hold 4.4-4.5 h; exits are 81% at the 16:00 ET flatten, 19% by flip.
+
+Diagnostic (not a gate input): at zero cost the strategy makes money in every reading (B2 +1,933; A1 +6,609). Its edge before costs is
+about 0.10-0.16% of the position per trade, against about 0.24% of real cost per round trip. This is a much larger gross edge than the
+Asia-range script (0.007-0.02%), but still smaller than the fee.
+
+Reference (not gate inputs), B1 long + short at futures fees, spot prices standing in for the perpetual, no funding:
+| Cost per side | Net | Net at 2x | Max DD | Periods | Gate checks failed |
+|---|---|---|---|---|---|
+| 0.05% + 0.01% (futures taker) | -1,088 | -3,462 | 20.2% | -1,011 / -284 / -302 / +509 | 2x costs, drawdown, periods |
+| 0.02% + 0.01% (futures maker) | +405 | -1,088 | 13.6% | -639 / +57 / +44 / +943 | 2x costs |
+The maker row assumes every fill at the bar close earns the maker fee, which a breakout-at-the-close entry cannot get (it is a market
+order); it is an upper bound. Funding (16:00 UTC falls inside the 09:30-16:00 ET window) is not included.
