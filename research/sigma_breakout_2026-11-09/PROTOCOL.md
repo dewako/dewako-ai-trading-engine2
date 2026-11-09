@@ -81,3 +81,15 @@ Entries and exits are market orders at the bar close, so the realistic futures c
 Funding is not in the P&L (no funding data here); the number of 8-hour funding times each trade is open across is reported.
 "Works for futures scalping" means the full gate passes at the futures taker cost on 5m or 15m. Even then it is not added: futures is a
 separate stage the owner has not opened. No tuning after these runs.
+
+### Addendum results (nothing above was changed). **Fails at every cost on 5m and 15m. Not added.**
+| TF | Cost | Trades | Net | Net at 2x | Max DD | Period P&L | Gate checks failed |
+|---|---|---|---|---|---|---|---|
+| 5m | owner 0.10% | 3,187 | -4,486 | -7,435 | 47.2% | -1,787 / -1,282 / -1,032 / -385 | 2x, DD, OOS, periods |
+| 5m | taker 0.05% | 3,187 | -1,916 | -4,486 | 25.7% | -936 / -652 / -513 / +184 | 2x, DD, periods |
+| 5m | maker 0.02% (ref) | 3,187 | -212 | -1,916 | 15.0% | -478 / -254 / -127 / +646 | 2x, periods |
+| 15m | owner 0.10% | 2,580 | -3,462 | -6,481 | 37.7% | -1,710 / -852 / -809 / -90 | 2x, DD, OOS, periods |
+| 15m | taker 0.05% | 2,580 | -1,088 | -3,462 | 20.2% | -1,011 / -284 / -302 / +509 | 2x, DD, periods |
+| 15m | maker 0.02% (ref) | 2,580 | +405 | -1,088 | 13.6% | -639 / +57 / +44 / +943 | 2x |
+Zero cost: 5m +1,851, 15m +2,147. Mean hold about 4.2-4.5 h (it is an intraday hold, not a scalp); 0.66-0.72 funding times per trade.
+5m is worse than 15m: more trades, a smaller move per trade, same cost per trade.
