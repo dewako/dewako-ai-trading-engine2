@@ -63,3 +63,15 @@ def test_engine_comparable_sizing_is_ten_percent_of_equity():
     df = days({930: 101}, {930: 101}, {930: 102})
     t = H.run(df, True, 0, 0, "B", P2).trades[0]
     assert t.qty == pytest.approx(0.10 * 10000 / 102)
+
+
+def test_on_5m_bars_the_1555_bar_is_the_flatten_bar_and_the_band_slot_is_per_5_minutes():
+    rows = []
+    for d, c930, c1555 in ((0, 101, 100), (1, 101, 100), (2, 102, 103)):
+        for i in range(288):
+            hhmm = (i // 12) * 100 + (i % 12) * 5
+            c = {930: c930, 1555: c1555}.get(hhmm, 100.0)
+            rows.append((DAY0 + d * 86_400_000 + i * 300_000, 100.0, max(100.0, c), min(100.0, c), c, 1.0))
+    df = H.add_clock(pd.DataFrame(rows, columns=["open_ms", "o", "h", "l", "c", "v"]), 300_000)
+    t = H.run(df, True, 0, 0, "B", P2).trades
+    assert [(x.side, x.entry, x.exit, x.reason) for x in t] == [(1, 102, 103, "RTH close")]

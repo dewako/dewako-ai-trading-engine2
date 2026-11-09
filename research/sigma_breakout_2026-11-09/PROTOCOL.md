@@ -67,3 +67,17 @@ Reference (not gate inputs), B1 long + short at futures fees, spot prices standi
 | 0.02% + 0.01% (futures maker) | +405 | -1,088 | 13.6% | -639 / +57 / +44 / +943 | 2x costs |
 The maker row assumes every fill at the bar close earns the maker fee, which a breakout-at-the-close entry cannot get (it is a market
 order); it is an upper bound. Funding (16:00 UTC falls inside the 09:30-16:00 ET window) is not included.
+
+## Addendum 2026-11-09: futures long + short scalping (owner request; pre-registered before these runs)
+Same script, same defaults, long + short, engine-comparable sizing (10% of equity, 1x, 10,000). Spot prices stand in for the perpetual
+(the Binance futures archive is unreachable from this workspace). Timeframes: **5m** (new) and 15m (already run above as B1).
+Entries and exits are market orders at the bar close, so the realistic futures cost is the **taker** fee.
+| Cost case | Fee + slippage per side | Role |
+|---|---|---|
+| Owner rule | 0.10% + 0.02% | gate |
+| Futures taker | 0.05% + 0.01% | gate (the realistic futures cost) |
+| Futures maker | 0.02% + 0.01% | reference only: not reachable with market orders |
+| Zero | 0 | diagnostic only |
+Funding is not in the P&L (no funding data here); the number of 8-hour funding times each trade is open across is reported.
+"Works for futures scalping" means the full gate passes at the futures taker cost on 5m or 15m. Even then it is not added: futures is a
+separate stage the owner has not opened. No tuning after these runs.

@@ -1,6 +1,6 @@
 """Bar-by-bar re-implementation of the owner's Pine "Sigma Breakout" (see PROTOCOL.md). Research only; not part of the engine.
 
-usage: python harness.py <candles.db> <ETH/USDT> <A|B> <both|long> [fee slip]   -> prints JSON
+usage: python harness.py <candles.db> <ETH/USDT> <A|B> <both|long> [fee slip [5m|15m]]   -> prints JSON
 """
 from __future__ import annotations
 
@@ -19,10 +19,12 @@ SIZING = {"A": dict(cash=100000.0, fixed_qty=1.0, pct=None), "B": dict(cash=1000
 STEP_MS = 900_000
 
 
-def load(db: str, symbol: str) -> pd.DataFrame:
+def load(db: str, symbol: str, tf: str = "15m") -> pd.DataFrame:
     q = ("SELECT open_ms, o, h, l, c, v FROM candles WHERE symbol=? AND timeframe='5m' AND source='binance_archive' "
          "AND open_ms>=? AND open_ms<? ORDER BY open_ms")
     df = pd.read_sql_query(q, sqlite3.connect(db), params=(symbol, START_MS, END_MS))
+    if tf == "5m":
+        return df.reset_index(drop=True)
     df["b"] = df.open_ms // STEP_MS * STEP_MS
     df = df.groupby("b").agg(o=("o", "first"), h=("h", "max"), l=("l", "min"), c=("c", "last"), v=("v", "sum")).reset_index()
     return df.rename(columns={"b": "open_ms"}).reset_index(drop=True)
@@ -132,6 +134,8 @@ def stats(res: Result) -> dict:
             "max_drawdown_pct": float(((peak - eq) / peak).max()),
             "win_rate": float((pnl > 0).mean()) if len(pnl) else 0.0,
             "longs": sum(t.side > 0 for t in res.trades), "shorts": sum(t.side < 0 for t in res.trades),
+            "funding_times_crossed_per_trade": float(np.mean([len(range((t.entry_ms // 28_800_000) + 1, (t.exit_ms // 28_800_000) + 1))
+                                                              for t in res.trades])) if len(pnl) else 0.0,
             "avg_hold_h": float(np.mean([(t.exit_ms - t.entry_ms) / 3.6e6 for t in res.trades])) if len(pnl) else 0.0}
 
 
@@ -167,7 +171,8 @@ def gate(df, allow_short, fee, slip, sizing) -> dict:
 if __name__ == "__main__":
     db, sym, sizing, mode = sys.argv[1:5]
     fee, slip = (float(sys.argv[5]), float(sys.argv[6])) if len(sys.argv) > 6 else (0.001, 0.0002)
-    d = add_clock(load(db, sym))
-    out = {"symbol": sym, "timeframe": "15m", "sizing": sizing, "mode": mode, "fee": fee, "slippage": slip, "bars": len(d),
+    tf = sys.argv[7] if len(sys.argv) > 7 else "15m"
+    d = add_clock(load(db, sym, tf), 300_000 if tf == "5m" else STEP_MS)
+    out = {"symbol": sym, "timeframe": tf, "sizing": sizing, "mode": mode, "fee": fee, "slippage": slip, "bars": len(d),
            **gate(d, mode == "both", fee, slip, sizing)}
     print(json.dumps(out, indent=2))
