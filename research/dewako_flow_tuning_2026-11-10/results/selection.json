@@ -1,0 +1,175 @@
+{
+ "baseline": "1.0.5",
+ "rows": [
+  {
+   "version": "1.0.1",
+   "params": {
+    "vwap_bars": 18,
+    "exit_atr": 1.0,
+    "atr_stop": 2.0
+   },
+   "btc_trades": 67,
+   "btc_net": 312.2103340973132,
+   "eth_trades": 84,
+   "eth_net": 319.5708020962757,
+   "eligible": true,
+   "score": 312.2103340973132
+  },
+  {
+   "version": "1.0.2",
+   "params": {
+    "vwap_bars": 18,
+    "exit_atr": 1.0,
+    "atr_stop": 3.0
+   },
+   "btc_trades": 64,
+   "btc_net": 546.9318784679201,
+   "eth_trades": 80,
+   "eth_net": 313.22889199368535,
+   "eligible": true,
+   "score": 313.22889199368535
+  },
+  {
+   "version": "1.0.3",
+   "params": {
+    "vwap_bars": 18,
+    "exit_atr": 2.0,
+    "atr_stop": 2.0
+   },
+   "btc_trades": 45,
+   "btc_net": 1150.9303355912318,
+   "eth_trades": 59,
+   "eth_net": 444.0217554003995,
+   "eligible": true,
+   "score": 444.0217554003995
+  },
+  {
+   "version": "1.0.4",
+   "params": {
+    "vwap_bars": 18,
+    "exit_atr": 2.0,
+    "atr_stop": 3.0
+   },
+   "btc_trades": 44,
+   "btc_net": 1040.2361978178512,
+   "eth_trades": 51,
+   "eth_net": 478.19146061060513,
+   "eligible": true,
+   "score": 478.19146061060513
+  },
+  {
+   "version": "1.0.5",
+   "params": {
+    "vwap_bars": 30,
+    "exit_atr": 1.0,
+    "atr_stop": 2.0
+   },
+   "btc_trades": 60,
+   "btc_net": 450.03909205746123,
+   "eth_trades": 64,
+   "eth_net": 1009.6117049556245,
+   "eligible": true,
+   "score": 450.03909205746123
+  },
+  {
+   "version": "1.0.6",
+   "params": {
+    "vwap_bars": 30,
+    "exit_atr": 1.0,
+    "atr_stop": 3.0
+   },
+   "btc_trades": 57,
+   "btc_net": 626.9034679267468,
+   "eth_trades": 59,
+   "eth_net": 860.9856233810877,
+   "eligible": true,
+   "score": 626.9034679267468
+  },
+  {
+   "version": "1.0.7",
+   "params": {
+    "vwap_bars": 30,
+    "exit_atr": 2.0,
+    "atr_stop": 2.0
+   },
+   "btc_trades": 52,
+   "btc_net": 192.08222899704725,
+   "eth_trades": 51,
+   "eth_net": 962.1443717876383,
+   "eligible": true,
+   "score": 192.08222899704725
+  },
+  {
+   "version": "1.0.8",
+   "params": {
+    "vwap_bars": 30,
+    "exit_atr": 2.0,
+    "atr_stop": 3.0
+   },
+   "btc_trades": 47,
+   "btc_net": 291.0929363866688,
+   "eth_trades": 44,
+   "eth_net": 791.084172165966,
+   "eligible": true,
+   "score": 291.0929363866688
+  },
+  {
+   "version": "1.0.9",
+   "params": {
+    "vwap_bars": 60,
+    "exit_atr": 1.0,
+    "atr_stop": 2.0
+   },
+   "btc_trades": 35,
+   "btc_net": 883.4380895450345,
+   "eth_trades": 54,
+   "eth_net": 634.1383643264455,
+   "eligible": false,
+   "score": 634.1383643264455
+  },
+  {
+   "version": "1.0.10",
+   "params": {
+    "vwap_bars": 60,
+    "exit_atr": 1.0,
+    "atr_stop": 3.0
+   },
+   "btc_trades": 35,
+   "btc_net": 722.2738954508909,
+   "eth_trades": 53,
+   "eth_net": 608.655864111267,
+   "eligible": false,
+   "score": 608.655864111267
+  },
+  {
+   "version": "1.0.11",
+   "params": {
+    "vwap_bars": 60,
+    "exit_atr": 2.0,
+    "atr_stop": 2.0
+   },
+   "btc_trades": 29,
+   "btc_net": 844.9909819063082,
+   "eth_trades": 43,
+   "eth_net": 1558.2192681797449,
+   "eligible": false,
+   "score": 844.9909819063082
+  },
+  {
+   "version": "1.0.12",
+   "params": {
+    "vwap_bars": 60,
+    "exit_atr": 2.0,
+    "atr_stop": 3.0
+   },
+   "btc_trades": 28,
+   "btc_net": 1006.6988080435735,
+   "eth_trades": 38,
+   "eth_net": 1250.5868734418357,
+   "eligible": false,
+   "score": 1006.6988080435735
+  }
+ ],
+ "winner": "1.0.6",
+ "beats_baseline": true
+}

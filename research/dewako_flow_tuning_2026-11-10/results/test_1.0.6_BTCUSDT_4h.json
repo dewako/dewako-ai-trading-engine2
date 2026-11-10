@@ -1,0 +1,14 @@
+{
+ "mode": "SCREENING_ONLY",
+ "saved": false,
+ "simulated": true,
+ "trades": 33,
+ "net_pnl": 61.93351571472892,
+ "max_drawdown_pct": 0.03418119104162861,
+ "dataset_hash": "a872a13e9a29aaf8b74b625b87ca9772024e4a1133d22943cb5754611624c1fb",
+ "warnings": [
+  "One trade makes up more than half of the gross profit: the result depends on a single event.",
+  "SCREENING ONLY: no cost stress, hold-out, period or Monte Carlo checks ran. This is not evidence and is never saved.",
+  "Decisions accepted holes of up to 3 missing candle(s) in the window (exchange maintenance). A live bot gets the same behaviour only with DEWAKO_CANDLE_MAX_GAP_INTERVALS=3; the live default (0) refuses them."
+ ]
+}
