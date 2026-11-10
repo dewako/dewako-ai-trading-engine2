@@ -26,3 +26,14 @@ Binance spot 5m BTCUSDT and ETHUSDT, 2020-01-01..2026-11-01, standing in for the
 P&L; funding times crossed are counted. Cost per side = fee + slippage: 0.10% + 0.02% (owner rule), **0.05% + 0.01% (futures taker,
 the gate cost: entries are market orders)**, 0.02% + 0.01% (maker, reference only), zero (diagnostic). 2x stress doubles both.
 Gate: the engine's five checks. "Works" = the full gate passes at the taker cost. 4 runs (2 variants x 2 coins); no tuning afterwards.
+
+## Results (added after the runs; nothing above was changed). **All 4 runs FAILED at every cost. Not added.**
+| Coin | Variant | Trades | Win rate | Net, taker 0.05% | Owner 0.10% | Maker 0.02% (ref) | Zero cost (diag) | Max DD (taker) |
+|---|---|---|---|---|---|---|---|---|
+| BTC | V1 reversion | 49,131 | 32% | -9,973 | -10,000 | -9,480 | -94 | 99.7% |
+| BTC | V2 breakout | 33,179 | 31% | -9,806 | -9,996 | -8,581 | +391 | 98.1% |
+| ETH | V1 reversion | 49,032 | 33% | -9,983 | -10,000 | -9,669 | -3,724 | 99.8% |
+| ETH | V2 breakout | 32,262 | 33% | -9,734 | -9,994 | -8,159 | +2,757 | 97.3% |
+Each run fails 4 of 5 checks (only "enough trades" passes). About 4,700-7,200 trades a year, mean hold 25-51 minutes.
+Edge before costs: -0.011% to +0.008% of the position per trade, i.e. none; against 0.12-0.24% of cost per round trip.
+3m: not run (no 1m data here).

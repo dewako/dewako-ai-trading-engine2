@@ -1,0 +1,58 @@
+{
+  "symbol": "BTC/USDT",
+  "variant": "V1",
+  "fee": 0.0002,
+  "slip": 0.0001,
+  "bars": 718378,
+  "trades": 49131,
+  "net_pnl": -9480.44668492287,
+  "max_drawdown_pct": 0.9480930675962336,
+  "win_rate": 0.33992794773157475,
+  "long_pnl": -4642.1707487432095,
+  "short_pnl": -4838.2759361796325,
+  "avg_notional": 288.04689579712834,
+  "per_trade_pct_of_notional": -0.0006699000298941363,
+  "avg_hold_min": 50.03276953450978,
+  "funding_times_per_trade": 0.11381815961409293,
+  "exit_reasons": {
+    "stop": 30232,
+    "target": 0,
+    "back to VWAP": 10354,
+    "time": 8544,
+    "end of data": 1
+  },
+  "net_pnl_2x": -9972.755187045343,
+  "zero_cost_net_pnl_diag": -93.971202288629,
+  "zero_cost_per_trade_pct_diag": -2.1514617543660097e-06,
+  "oos_expectancy": -0.03717500932207967,
+  "is_expectancy": -0.24488760130340276,
+  "period_pnl": [
+    -5691.993003325813,
+    -2175.42493755768,
+    -1088.5285381806896,
+    -524.5851376173681
+  ],
+  "checks": [
+    {
+      "name": "enough trades",
+      "ok": true
+    },
+    {
+      "name": "positive at 2x costs",
+      "ok": false
+    },
+    {
+      "name": "drawdown within limit",
+      "ok": false
+    },
+    {
+      "name": "out-of-sample holds up",
+      "ok": false
+    },
+    {
+      "name": "consistent across periods",
+      "ok": false
+    }
+  ],
+  "verdict": "FAILED"
+}
