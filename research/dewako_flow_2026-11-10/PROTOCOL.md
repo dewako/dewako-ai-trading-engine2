@@ -31,3 +31,12 @@ gate, `--variants-tried 104` (everything tried on this data so far, counted gene
 The full gate passes for that coin; a pass is examined (top-trade dependence, hold-out count) and reported before anything is added.
 "Most powerful" cannot be promised: this is one design, its lessons come from this same data, and it is the ~104th variant tried on it,
 so even a pass is optimistic until it holds on unseen coins or forward paper trading. A fail is reported as it is, with no 1.1 tuned here.
+
+## Results (added after the runs; nothing above was changed). **Both coins FAILED the gate. Not added.**
+| Coin | Trades | Net | 2x costs | Max DD | OOS vs IS expectancy | Periods | Gate |
+|---|---|---|---|---|---|---|---|
+| BTC | 109 | +704 | +395 | 5.8% | -2.51 vs 8.79 | 2 of 4 | **FAILED** (out-of-sample) |
+| ETH | 109 | +2,025 | +1,671 | 4.3% | 9.25 vs 20.64 (45%; needs 50%) | 3 of 4 | **FAILED** (out-of-sample) |
+Each fails exactly one check, the out-of-sample one: the most recent quarter of trades earns much less than the earlier ones (BTC: loses).
+ETH misses the 50% line by a small margin; a near miss is a fail, and the thresholds are not moved. For comparison Dewako ETH 1.0:
+138 trades, +1,422, 2x +509, DD 8.2%, passed. Per the protocol, no Dewako Flow 1.1 is tuned on this data.
