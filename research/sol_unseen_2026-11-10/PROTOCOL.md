@@ -20,3 +20,11 @@ The 200-day filter needs 1,200 candles, so trading can start only around March 2
 * Pass on SOL = the rules work on a coin they were not built on. It is still not independent proof: SOL moves with ETH and BTC, and SOL
   is a coin picked today knowing it survived and rose strongly (survivorship). A pass is examined (top trades, by year) before any claim.
 * Fail = reported as it is. Neither strategy is retuned on SOL.
+
+## Results (added after the runs; nothing above was changed). **Both FAILED the gate on SOL. Nothing retuned.**
+| Strategy | Trades | Net | 2x costs | Max DD | OOS vs IS expectancy | Periods | Gate |
+|---|---|---|---|---|---|---|---|
+| Dewako ETH 1.0 | 109 | +2,348 | +1,899 | 7.7% | 10.05 vs 23.65 (42%; needs 50%) | 3 of 4 | **FAILED** (out-of-sample) |
+| Dewako Flow 1.0.6 | 83 | +723 | +526 | 4.6% | -14.26 vs 14.53 | 2 of 4 | **FAILED** (too few trades; out-of-sample) |
+Both are profitable overall and at 2x costs, and both earn much less (Flow: loses) in the most recent quarter of their trades.
+Dewako ETH 1.0 fails one check, by 8 points. Dewako Flow 1.0.6 fails two; its ETH pass after tuning did not carry over to SOL.
