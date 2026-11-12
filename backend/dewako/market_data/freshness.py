@@ -18,11 +18,18 @@ class CandleFreshnessError(ValueError):
 class CandleFreshnessPolicy:
     max_age_intervals: int = 2
     clock_skew_tolerance_seconds: float = 30.0
+    # Exchange maintenance leaves permanent holes (Binance halted for 1-6 hours about 16 times in 2020-2023). With 0 (the default) any hole
+    # inside the decision window refuses every decision until the hole has scrolled out of the window: 300 candles = 50 days on 4h.
+    # N > 0 accepts holes of at most N missing candles each, still on the timeframe grid. The newest candle must still be closed and fresh.
+    max_gap_intervals: int = 0
 
     def __post_init__(self) -> None:
         if (isinstance(self.max_age_intervals, bool) or not isinstance(self.max_age_intervals, int)
                 or not 1 <= self.max_age_intervals <= 10):
             raise ValueError("max_age_intervals must be an integer in [1, 10]")
+        if (isinstance(self.max_gap_intervals, bool) or not isinstance(self.max_gap_intervals, int)
+                or not 0 <= self.max_gap_intervals <= 12):
+            raise ValueError("max_gap_intervals must be an integer in [0, 12]")
         if (isinstance(self.clock_skew_tolerance_seconds, bool)
                 or not isinstance(self.clock_skew_tolerance_seconds, (int, float))
                 or not math.isfinite(self.clock_skew_tolerance_seconds)
@@ -34,6 +41,7 @@ class CandleFreshnessPolicy:
         return cls(
             max_age_intervals=int(os.environ.get("DEWAKO_CANDLE_MAX_AGE_INTERVALS", "2")),
             clock_skew_tolerance_seconds=float(os.environ.get("DEWAKO_CANDLE_CLOCK_SKEW_SECONDS", "30")),
+            max_gap_intervals=int(os.environ.get("DEWAKO_CANDLE_MAX_GAP_INTERVALS", "0")),
         )
 
 
@@ -63,7 +71,9 @@ def validate_candles(candles: list[Candle], timeframe: str, now: datetime, *,
             if ts <= previous:
                 raise CandleFreshnessError("candle timestamps are out of order or duplicated")
             if ts - previous != step:
-                raise CandleFreshnessError("candle sequence has a missing or invalid timeframe interval")
+                missing = (ts - previous) // step - 1
+                if (ts - previous) % step or missing > p.max_gap_intervals:
+                    raise CandleFreshnessError("candle sequence has a missing or invalid timeframe interval")
         previous = ts
 
         values = (getattr(candle, "o", None), getattr(candle, "h", None), getattr(candle, "l", None),

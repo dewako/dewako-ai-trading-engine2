@@ -16,15 +16,15 @@ import sqlite3
 import threading
 import weakref
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from typing import Any, Iterator, Optional
 
+from dewako.core import timesource as _timesource
 from dewako.persistence import pgwire
 from dewako.persistence.migrations import MIGRATIONS, MIGRATION_EXTRA
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return _timesource.now().isoformat()
 
 
 class MigrationError(Exception):

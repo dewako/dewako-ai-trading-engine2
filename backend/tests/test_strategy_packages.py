@@ -15,6 +15,7 @@ from dewako.strategy_packages import archive as A
 from dewako.strategy_packages.archive import PackageRejected
 from dewako.strategy_packages.manager import PackageManager, TransitionRefused
 from hardening_helpers import *
+from stage3b_evidence import record_run
 
 TRADER = {"user_id": 2, "username": "trader", "role": "TRADER"}
 ANALYST = {"user_id": 3, "username": "analyst", "role": "ANALYST"}
@@ -99,6 +100,9 @@ def test_lifecycle_ladder_is_one_step_at_a_time_and_registers_only_when_eligible
         cls = sbase.get("Gold Scalp B", "1.0")
         assert cls.experimental is True and cls.supported_markets == ["XAUUSD"] and cls.supported_timeframes == ["1m", "5m"]
         assert cls.default_parameters["atr_stop"] == 2.5                       # parameters.json applied
+        with pytest.raises(TransitionRefused):
+            m.transition(pid, "PAPER_ELIGIBLE", TRADER)                        # since Stage 3B: no backtest evidence, no promotion
+        record_run(m.runs, ANALYST, "Gold Scalp B", "1.0", m.get(pid)["fingerprint"])
         m.transition(pid, "PAPER_ELIGIBLE", TRADER)
         m.transition(pid, "TESTNET_ELIGIBLE", TRADER)
         m.transition(pid, "PAPER_ELIGIBLE", TRADER)                            # demotion allowed
@@ -136,6 +140,8 @@ def test_imported_strategy_can_never_pass_the_live_gate_and_has_no_execution_acc
         name = _name()
         pid = m.import_package(build(name), ADMIN)["id"]
         for to in ("BACKTEST_ELIGIBLE", "PAPER_ELIGIBLE", "TESTNET_ELIGIBLE"):
+            if to == "PAPER_ELIGIBLE":
+                record_run(m.runs, ADMIN, name, "1.0", m.get(pid)["fingerprint"])
             m.transition(pid, to, ADMIN)
         safety = SafetyController(db)
         eid = make_live_ready(db, safety)
@@ -446,5 +452,6 @@ def test_routes_are_registered_with_the_expected_permissions():
             for d in n.decorator_list:
                 if isinstance(d, ast.Call) and getattr(d.func, "attr", "") in ("get", "post") and d.args and "strategy-packages" in ast.unparse(d.args[0]):
                     found[n.name] = ast.unparse(n)
-    assert set(found) == {"import_strategy_package", "list_strategy_packages", "get_strategy_package", "transition_strategy_package"}
+    assert set(found) == {"import_strategy_package", "list_strategy_packages", "get_strategy_package", "transition_strategy_package",
+                          "strategy_package_evidence", "review_existing_packages"}
     assert all("permission('strategies')" in v for v in found.values())          # none is anonymous

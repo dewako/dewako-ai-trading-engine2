@@ -438,6 +438,71 @@ canvas{display:block;width:100%}
 
 </script>
 <script>
+/* DEWAKO Backtest records: pure helpers for the READ-ONLY report page (no DOM, no network). Everything shown comes from the server's stored run
+   records; nothing is computed or invented here, and nothing here can start, edit or promote a run. */
+(function (root, factory) { if (typeof module === 'object' && module.exports) module.exports = factory(); else root.DewakoBacktests = factory(); })(this, function () {
+  'use strict';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function num(v, d) { return v == null || isNaN(v) ? 'n/a' : Number(v).toFixed(d == null ? 2 : d); }
+  function pct(v, d) { return v == null || isNaN(v) ? 'n/a' : (Number(v) * 100).toFixed(d == null ? 1 : d) + '%'; }
+  function day(s) { return s ? String(s).slice(0, 10) : '?'; }
+  function verdictPill(v) { return '<span class="pill ' + (v === 'PASSED' ? 'ai' : 'dn') + '">' + esc(v) + '</span>'; }
+
+  function renderRows(list) {
+    if (!list || !list.length) return '<div class="act-empty">No backtest has been recorded yet. Runs are produced on the server by the backtest command and listed here; this page cannot start one.</div>';
+    return '<div class="scroll"><table class="tbl"><tr><th>#</th><th>Strategy</th><th>Market</th><th>Data</th><th>Trades</th><th>Net P&amp;L</th><th>Max DD</th><th>Result</th><th></th></tr>' +
+      list.map(function (r) {
+        return '<tr><td class="num">' + esc(r.id) + '</td><td>' + esc(r.strategy) + ' v' + esc(r.version) + '</td><td>' + esc(r.symbol) + ' ' + esc(r.timeframe) +
+          '</td><td class="mono">' + esc(day(r.dataset_start)) + ' to ' + esc(day(r.dataset_end)) + '</td><td class="num">' + esc(r.trades) + '</td><td class="num">' + num(r.net_pnl) +
+          '</td><td class="num">' + pct(r.max_drawdown_pct) + '</td><td>' + verdictPill(r.verdict) + ' <span class="pill warn">SIMULATED</span></td>' +
+          '<td><button class="btn sm" data-bk="btdetail" data-id="' + esc(r.id) + '">Report</button></td></tr>';
+      }).join('') + '</table></div>';
+  }
+
+  function section(title, body) { return '<div class="card"><h2>' + esc(title) + '</h2>' + body + '</div>'; }
+
+  function renderDetail(d) {
+    var g = d.official_gate || {}, out = [];
+    out.push('<div class="row">' + verdictPill(d.verdict) + ' <span class="pill warn">SIMULATED</span> ' +
+      (d.counts_for_promotion ? '<span class="pill ai">NEWEST RUN: counts for promotion</span>' : '<span class="pill">older run: does not count</span>') + '</div>');
+    out.push('<p class="mut">' + esc(d.strategy) + ' v' + esc(d.version) + ' &middot; ' + esc(d.symbol) + ' ' + esc(d.timeframe) + ' &middot; data ' + esc(day(d.dataset_start)) + ' to ' + esc(day(d.dataset_end)) +
+      ' &middot; recorded by ' + esc(d.created_by) + ' at ' + esc(d.created_at) + '</p>');
+    out.push(section('Promotion gate (recomputed now, against the owner-approved limits)',
+      '<div class="' + (g.ok ? 'note' : 'warnbox') + '"><b>' + (g.ok ? 'Meets every limit.' : 'Does not meet the limits:') + '</b>' +
+      ((g.reasons || []).length ? '<ul>' + g.reasons.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+      ((g.notes || []).length ? '<ul>' + g.notes.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>'));
+    var m = d.metrics || {};
+    out.push(section('Result (after costs)', '<dl class="kv"><dt>Closed trades</dt><dd>' + esc(m.trades) + '</dd><dt>Net P&amp;L</dt><dd>' + num(m.net_pnl) + '</dd><dt>Return</dt><dd>' + pct(m.total_return_pct) +
+      '</dd><dt>Win rate</dt><dd>' + pct(m.win_rate) + '</dd><dt>Profit factor</dt><dd>' + num(m.profit_factor) + '</dd><dt>Expectancy / trade</dt><dd>' + num(m.expectancy) +
+      '</dd><dt>Realised reward/risk</dt><dd>' + num(m.payoff_ratio) + '</dd><dt>Max drawdown</dt><dd>' + pct(m.max_drawdown_pct) + '</dd><dt>Longest losing streak</dt><dd>' + esc(m.max_consecutive_losses) +
+      '</dd><dt>Time in market</dt><dd>' + pct(m.exposure_pct) + '</dd><dt>Fees</dt><dd>' + num(m.fees) + '</dd><dt>Spread + slippage cost</dt><dd>' + num(m.execution_cost) + '</dd></dl>'));
+    var st = d.stress || {}, keys = Object.keys(st).sort(function (a, b) { return a - b; });
+    out.push(section('If costs were higher', '<table class="tbl"><tr><th>Costs</th><th>Net P&amp;L</th><th>Trades</th></tr>' + keys.map(function (k) {
+      return '<tr><td>' + esc(k) + 'x</td><td class="num">' + num(st[k].net_pnl) + '</td><td class="num">' + esc(st[k].trades) + '</td></tr>'; }).join('') + '</table>'));
+    var i = d.in_sample || {}, o = d.out_of_sample || {};
+    out.push(section('Held-out data', '<dl class="kv"><dt>Earlier part: expectancy</dt><dd>' + num(i.expectancy) + ' (' + esc(i.trades) + ' trades)</dd><dt>Held-out last part: expectancy</dt><dd>' +
+      num(o.expectancy) + ' (' + esc(o.trades) + ' trades)</dd></dl><p class="mut" style="margin:6px 0 0">The system does not tune any parameter yet, so this checks consistency, not over-fitting.</p>'));
+    out.push(section('Equal consecutive periods', '<div class="row">' + (d.periods || []).map(function (p, n) {
+      return '<span class="pill ' + (p.net_pnl > 0 ? 'ai' : 'dn') + '">' + (n + 1) + ': ' + num(p.net_pnl) + ' (' + esc(p.trades) + ')</span>'; }).join(' ') + '</div>'));
+    if (d.monte_carlo) out.push(section('Same trades, shuffled order', '<p class="mut" style="margin:0">Drawdown over ' + esc(d.monte_carlo.runs) + ' shuffles: median ' + pct(d.monte_carlo.p50) + ', 95th percentile ' + pct(d.monte_carlo.p95) + ', worst ' + pct(d.monte_carlo.worst) + '.</p>'));
+    out.push(section('Weaknesses and warnings', (d.weaknesses || []).length ? '<ul>' + d.weaknesses.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' : '<span class="mut">None raised. One run is still not proof.</span>'));
+    out.push(section('Identity (so the exact run can be checked again)', '<dl class="kv"><dt>Data fingerprint</dt><dd class="mono">' + esc(d.dataset_hash) + '</dd><dt>Result digest</dt><dd class="mono">' + esc(d.digest) +
+      '</dd><dt>Code version</dt><dd class="mono">' + esc(d.code_version) + '</dd><dt>Thresholds approved by</dt><dd>' + esc((d.thresholds || {}).approved_by || 'nobody (placeholder)') + '</dd></dl>'));
+    out.push('<div class="warnbox"><b>Limits</b><ul>' + (d.limits || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>');
+    return out.join('');
+  }
+
+  function describeError(status, body) {
+    if (status === 401) return 'Your session has expired. Sign in again.';
+    if (status === 403) return 'Your role cannot view backtest records.';
+    if (status === 404) return 'That run does not exist.';
+    return 'The server could not return the backtest records (HTTP ' + status + ').';
+  }
+  return { renderRows: renderRows, renderDetail: renderDetail, describeError: describeError, esc: esc };
+});
+
+</script>
+<script>
 (function(){
 'use strict';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -640,44 +705,16 @@ R.strategies=()=>{const ex=EX[S.exch],m=mk(S.mkt);
 function adaptTiles(){const e=EX[S.exch],base=S.mkt.replace('/','');return [['Native symbol',S.exch.startsWith('OKX')?S.mkt.replace('/','-'):base],['Tick size',e.tick],['Qty precision',e.qty],['Min order',e.min],['Fees (maker / taker)',e.fee],['Leverage',e.lev],['Order types',e.types],['Account balance',e.bal]].map(x=>`<div class="tile"><div class="l">${x[0]}</div><div class="v mono" style="font-size:12px">${x[1]}</div></div>`).join('')}
 function compTable(){const d=[['ROI','+31.2%','+44.8%','+52.1%'],['Win rate','58%','46%','39%'],['Max drawdown','6.1%','11.4%','16.9%'],['Profit factor','1.62','1.38','1.21'],['Trades','212','388','147'],['Sharpe','1.41','1.02','0.74']];return `<div class="scroll"><table class="tbl"><tr><th></th><th>Trend AI</th><th>Momentum AI</th><th>Breakout AI</th></tr>${d.map(r=>`<tr><td class="mut">${r[0]}</td>${r.slice(1).map(v=>`<td class="num">${v}</td>`).join('')}</tr>`).join('')}</table></div>`}
 
-R.backtest=()=>{const b=S.bt;
-  return `<div class="row">${pill('SIMULATED RESULTS','warn')}<span class="mut">The engine here is a demo. Numbers come from a seeded generator, not from a real strategy run.</span></div>
-  <div class="card"><h2>Backtest setup</h2><form class="form" id="btForm">
-   <label>Strategy<select id="bStrat">${STRATS.map(s=>`<option ${s.n===(S.btSel||'Trend AI')?'selected':''}>${s.n}</option>`).join('')}</select></label>
-   <label>Version<select id="bVer"></select></label>
-   <label>Market<select id="bMk">${MK.map(x=>`<option ${x.s===S.mkt?'selected':''}>${x.s}</option>`).join('')}</select></label>
-   <label>Timeframe<select id="bTf"><option>15m</option><option>1h</option><option>4h</option></select></label>
-   <label>Start<input id="bS" type="date" value="2025-10-01"></label><label>End<input id="bE" type="date" value="2026-09-30"></label>
-   <label>Capital (USDT)<input id="bCap" type="number" value="10000" min="100"></label>
-   <label>Fee % per side<input id="bFee" type="number" step="0.01" value="0.10" min="0"></label>
-   <label>Slippage %<input id="bSlip" type="number" step="0.01" value="0.05" min="0"></label>
-   <label>Sizing<select id="bSize"><option>Fixed 0.5% risk</option><option>Fixed 1% risk</option><option>Kelly (capped)</option></select></label>
-   <label>Leverage<input id="bLev" type="number" value="3" min="1" max="50"></label>
-   <label>&nbsp;<button class="btn pri" type="submit">Run backtest</button></label></form></div>
-  <div id="btOut">${b?btHtml(b):`<div class="card mut">Choose settings and run a backtest. Every run records strategy, version, parameters, data period, market, fees, slippage and execution assumptions.</div>`}</div>`};
-function runBt(){
-  const g=id=>$('#'+id).value,st=STRATS.find(s=>s.n===g('bStrat')),cfg={st:st.n,ver:g('bVer'),mk:g('bMk'),tf:g('bTf'),s:g('bS'),e:g('bE'),cap:+g('bCap'),fee:+g('bFee'),slip:+g('bSlip'),size:g('bSize'),lev:+g('bLev')};
-  const seed=hash(JSON.stringify(cfg)),r=rng(seed),days=Math.max(10,Math.round((new Date(cfg.e)-new Date(cfg.s))/864e5)||90);
-  const base={'Trend AI':[.44,2.3,1],'Momentum AI':[.48,1.6,1],'Mean Reversion':[.62,.9,1.15],'Breakout AI':[.38,2.9,1],'AI Strategy':[.5,1.5,1]}[cfg.st]||[.45,1.8,1],tfm={'15m':3.2,'1h':1,'4h':.3}[cfg.tf],N=Math.max(4,Math.round(days*.55*tfm*(.8+r()*.4)));
-  const m=mk(cfg.mk),cs=genCandles({...m,seed:m.seed+Math.round(days)},Math.min(220,Math.max(60,N*2))),costPct=(cfg.fee+cfg.slip)*2,rk=cfg.size.includes('1%')?1:.5,rets=[],trs=[];
-  let eq=cfg.cap;const curve=[eq];
-  for(let i=0;i<N;i++){const win=r()<base[0],mag=(win?base[1]:-1)*(.6+r()*.8)*rk*(cfg.lev>1?1+Math.log(cfg.lev)*.25:1),net=mag-costPct*rk*cfg.lev*.15,pnl=eq*net/100,en=Math.floor(i/N*(cs.length-8))+2,du=2+Math.floor(r()*5),side=r()<.8?'LONG':'SHORT';
-    eq+=pnl;curve.push(eq);rets.push(net);trs.push({n:i+1,en,ex:Math.min(cs.length-1,en+du),side,pnl,net,win:net>0,reason:cfg.st==='Trend AI'?['EMA crossover','ADX confirmation','Volume confirmation']:cfg.st==='Mean Reversion'?['Price below lower band','RSI oversold','Below VWAP']:['Signal conditions met','Risk engine approved'],exitK:net>0?'tp':'sl'})}
-  const wins=trs.filter(t=>t.win),gp=wins.reduce((a,t)=>a+t.pnl,0),gl=-trs.filter(t=>!t.win).reduce((a,t)=>a+t.pnl,0),mean=rets.reduce((a,x)=>a+x,0)/N,sd=Math.sqrt(rets.reduce((a,x)=>a+(x-mean)**2,0)/N)||1,dsd=Math.sqrt(rets.filter(x=>x<0).reduce((a,x)=>a+x*x,0)/N)||1,ann=Math.sqrt(N/days*365);
-  const ddv=dd(curve),mdd=Math.min(...ddv),tr=curve.slice(0,Math.floor(curve.length*.6)),va=curve.slice(Math.floor(curve.length*.6));
-  const trainR=(tr[tr.length-1]/tr[0]-1)*100,valR=(va[va.length-1]/va[0]-1)*100,nPar=Object.keys(st.par).length;
-  const wf=[0,1,2,3,4].map(i=>{const t=trainR*(.8+r()*.5),v=valR*(.5+r()*.9),o=i===4&&base[1]>2.5?valR*.25:valR*(.4+r()*.9);return{w:i+1,t,v,o}});
-  const warns=[];if(nPar>6)warns.push('Many tunable parameters relative to trade count.');if(N<30)warns.push('Fewer than 30 trades. Statistics are unreliable.');if(trainR>0&&valR<trainR*.35)warns.push('Training performance is far better than validation.');if(cfg.fee===0||cfg.slip===0)warns.push('Zero fees or slippage is unrealistic.');if(cfg.lev>10)warns.push('High leverage assumption inflates results.');if(wf.some(w=>w.o<w.t*.2))warns.push('Out-of-sample result collapsed in at least one walk-forward window.');
-  S.bt={cfg,seed,cs,trs,curve,ddv,warns,wf,sel:null,m:{net:eq-cfg.cap,roi:(eq/cfg.cap-1)*100,wr:wins.length/N*100,pf:gp/(gl||1),sharpe:mean/sd*ann,sortino:mean/dsd*ann,mdd,n:N,avg:(eq-cfg.cap)/N,lw:Math.max(...trs.map(t=>t.pnl)),ll:Math.min(...trs.map(t=>t.pnl))}};
-  audit(`Backtest run: ${cfg.st} v${cfg.ver} on ${cfg.mk}, ${cfg.s} to ${cfg.e}, fee ${cfg.fee}%, slip ${cfg.slip}%`)}
-function btHtml(b){const m=b.m,c=b.cfg;
-  return `<div class="grid kpis">${[['Net profit','$'+fmt(m.net),cls(m.net)],['ROI',sgn(m.roi)+'%',cls(m.roi)],['Win rate',fmt(m.wr,1)+'%',''],['Profit factor',fmt(m.pf),''],['Sharpe',fmt(m.sharpe),''],['Sortino',fmt(m.sortino),''],['Max drawdown',fmt(m.mdd,1)+'%','dn'],['Trades',m.n,''],['Avg trade','$'+fmt(m.avg),cls(m.avg)],['Largest win','$'+fmt(m.lw),'up'],['Largest loss','$'+fmt(m.ll),'dn']].map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="v ${k[2]}" style="font-size:17px">${k[1]}</div></div>`).join('')}</div>
-  ${b.warns.length?`<div class="warnbox"><b>POSSIBLE OVERFITTING</b><ul style="margin:6px 0 0;padding-left:18px">${b.warns.map(w=>`<li>${w}</li>`).join('')}</ul></div>`:`<div class="note">No overfitting flags raised for this run. One run is still not proof.</div>`}
-  <div class="grid g2"><div class="card"><h2>Trades on price ${pill('SIMULATED','warn')}</h2><canvas id="cBt" style="height:300px"></canvas><canvas id="cBe" style="height:90px;margin-top:6px"></canvas><canvas id="cBd" style="height:48px;margin-top:4px"></canvas></div>
-  <div style="display:grid;gap:12px;align-content:start"><div class="card"><h2>Run record</h2><dl class="kv"><dt>Strategy</dt><dd>${c.st} v${c.ver}</dd><dt>Market / TF</dt><dd>${c.mk} ${c.tf}</dd><dt>Period</dt><dd>${c.s} to ${c.e}</dd><dt>Fees</dt><dd>${c.fee}% / side</dd><dt>Slippage</dt><dd>${c.slip}%</dd><dt>Sizing</dt><dd style="font-family:var(--f-ui)">${c.size}</dd><dt>Leverage</dt><dd>${c.lev}x</dd><dt>Fills</dt><dd style="font-family:var(--f-ui)">Next-bar open</dd><dt>Seed</dt><dd>${b.seed}</dd></dl></div>
-  <div class="card" id="tradeDetail"><h2>Trade detail</h2><span class="mut">Select a trade below.</span></div></div></div>
-  <div class="card"><h2>Walk-forward validation</h2><div class="scroll"><table class="tbl"><tr><th>Window</th><th>Train ROI</th><th>Validation ROI</th><th>Out-of-sample ROI</th><th>Flag</th></tr>${b.wf.map(w=>`<tr><td>#${w.w}</td><td class="num">${sgn(w.t,1)}%</td><td class="num">${sgn(w.v,1)}%</td><td class="num ${cls(w.o)}">${sgn(w.o,1)}%</td><td>${w.o<w.t*.2?pill('DEGRADED','warn'):pill('OK','up')}</td></tr>`).join('')}</table></div></div>
-  <div class="card"><h2>Trades</h2><div class="scroll" style="max-height:300px;overflow-y:auto"><table class="tbl"><tr><th>#</th><th>Side</th><th>Bars</th><th>P&amp;L</th></tr>${b.trs.map(t=>`<tr class="click" data-trade="${t.n}"><td>#${t.n}</td><td>${t.side}</td><td class="num">${t.ex-t.en}</td><td class="num ${cls(t.pnl)}">${sgn(t.pnl)}</td></tr>`).join('')}</table></div></div>`}
+/* ----- Backtesting: READ-ONLY records from the backend (replaces the old seeded-random demo page) ----- */
+const BT={list:null,err:'',busy:false};
+R.backtest=()=>{if(!BK.token)return loginPanel('Sign in to view recorded backtests.');
+ return `<div class="row sb"><div class="act-head"><h2 style="margin:0">Backtesting</h2><span class="pill ai">REAL BACKEND RECORDS</span><span class="pill warn">SIMULATED</span><span class="pill warn">LIVE TRADING LOCKED</span></div><div class="row">${whoBar()}</div></div>
+ <div class="card"><h2>Recorded runs <span class="row"><button class="btn sm" data-bk="btrefresh">Refresh</button></span></h2><div id="btList">${btListHtml()}</div>
+  <p class="note" style="margin:10px 0 0">Each run replays recorded candles through the real strategy, risk and order pipeline on a simulated exchange with spread, slippage, fees and latency. Runs are produced on the server and cannot be started, edited or promoted from this page. A strategy can move up to paper trading only when its newest run meets the owner-approved limits.</p></div>`};
+function btListHtml(){if(BT.err)return `<div class="act-empty" role="alert">${DB.esc(BT.err)}</div>`;if(!BT.list)return `<div class="act-empty" role="status">Loading backtest records…</div>`;return DB.renderRows(BT.list)}
+async function btLoad(){BT.err='';const r=await bk('/backtests/runs');if(r.status===200)BT.list=r.body;else{BT.err=DB.describeError(r.status,r.body);if(r.status===401)bkExpired()}if(S.page==='backtest'&&$('#btList'))$('#btList').innerHTML=btListHtml()}
+function btPost(){if(!BK.token)return;if(BT.list===null&&!BT.err)btLoad()}
+async function btDetail(id){const r=await bk('/backtests/runs/'+encodeURIComponent(id));if(r.status!==200)return toast(DB.describeError(r.status,r.body));modal(DB.renderDetail(r.body));$('#modalBox').classList.add('wide')}
 
 R.paper=()=>`<div class="row">${pill('PAPER TRADING','warn')}<span class="mut">Same pipeline as live: Strategy &rarr; Signal &rarr; Risk &rarr; Order engine &rarr; Paper exchange. No real money.</span></div>
   <div class="grid g3">${BOTS.map(botCard).join('')}</div>
@@ -742,7 +779,7 @@ let tradeBuf=[];
 function pushTrade(){const t=$('#trades');if(!t)return;const m=mk(S.mkt),r=Math.random();tradeBuf.unshift({t:new Date(),s:r<.52?'BUY':'SELL',p:m.p*(1+(Math.random()-.5)*.0004),q:+(Math.random()*.8+.01).toFixed(3)});tradeBuf=tradeBuf.slice(0,9);t.innerHTML='<tr><th>Time</th><th>Side</th><th>Price</th><th>Size</th></tr>'+tradeBuf.map(x=>`<tr><td class="mono mut">${clock(x.t)}</td><td class="${x.s==='BUY'?'up':'dn'}">${x.s}</td><td class="num">${fmt(x.p,m.d)}</td><td class="num">${x.q}</td></tr>`).join('')}
 
 /* ---------- render engine ---------- */
-const REAL_PAGES=['activity','pkgs'];
+const REAL_PAGES=['activity','pkgs','backtest'];
 function pageHtml(p){const h=R[p]();if(REAL_PAGES.indexOf(p)!==-1)return h;
  return '<div class="demo-banner" role="note"><b>DEMO / SIMULATED PAGE.</b> Prices, balances, positions, orders, statuses and charts on this page are generated in your browser. Nothing here comes from the trading engine and no order placed here reaches any exchange. Real backend data: <a href="#" data-go="activity">Live Activity</a> and <a href="#" data-go="pkgs">Strategy Manager</a>.</div>'+h}
 function drawPage(){
@@ -750,15 +787,12 @@ function drawPage(){
   if($('#cEq')&&S.page==='dashboard'){const e=equity(S.range);drawLines($('#cEq'),[{d:e.bm,c:col('--dim'),w:1.2,dash:[4,3]},{d:e.eq,c:col('--ai'),fill:'rgba(139,140,255,.22)',end:1}],{f:v=>'$'+fmt(v,0)});drawLines($('#cDd'),[{d:dd(e.eq),c:col('--dn'),fill:'rgba(255,92,108,.25)'}],{lo:Math.min(-6,...dd(e.eq)),hi:0,base:0,f:v=>fmt(v,0)+'%'})}
   if($('#cEq')&&S.page==='perf'){const e=equity('3M');drawLines($('#cEq'),[{d:e.bm,c:col('--dim'),dash:[4,3]},{d:e.eq,c:col('--ai'),fill:'rgba(139,140,255,.22)',end:1}],{f:v=>'$'+fmt(v,0)})}
   if(cm)drawCandles(cm,m.cs,{n:S.page==='dashboard'?70:90});
-  if($('#cBt')&&S.bt){const b=S.bt,marks=[];b.trs.forEach(t=>{const c=b.cs[t.en];if(c)marks.push({i:t.en,p:c.l*.998,k:'in'});const x=b.cs[t.ex];if(x)marks.push({i:t.ex,p:x.h*1.002,k:t.exitK})});drawCandles($('#cBt'),b.cs,{n:b.cs.length,ind:{ema:1,vol:1},marks});drawLines($('#cBe'),[{d:b.curve,c:col('--ai'),fill:'rgba(139,140,255,.2)',end:1}],{f:v=>'$'+fmt(v,0)});drawLines($('#cBd'),[{d:b.ddv,c:col('--dn'),fill:'rgba(255,92,108,.25)'}],{lo:Math.min(-2,...b.ddv),hi:0,base:0,f:v=>fmt(v,0)+'%'})}
 }
 function updatePnl(){$$('[data-pnl]').forEach(e=>{const p=POS[+e.dataset.pnl],v=posPnl(p);e.textContent=sgn(v);e.className='num '+cls(v)})}
 function go(p){if(S.page==='activity'&&p!=='activity')stopActivity();S.page=p;$$('#nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.p===p?'page':'false'));$('#view').innerHTML=pageHtml(p);window.scrollTo(0,0);post();log('Opened '+p,'sys');S.logs.shift()}
 function rerender(){const y=window.scrollY;$('#view').innerHTML=pageHtml(S.page);post();window.scrollTo(0,y)}
-function post(){if(S.page==='activity')activityPost();if(S.page==='pkgs')pkgsPost();drawPage();updatePnl();updateBook();pushTrade();if(S.page==='logs')renderLogRows();
-  if(S.page==='backtest'){fillVer();if(S.bt)$('#bStrat').value=S.bt.cfg.st}
+function post(){if(S.page==='activity')activityPost();if(S.page==='pkgs')pkgsPost();if(S.page==='backtest')btPost();drawPage();updatePnl();updateBook();pushTrade();if(S.page==='logs')renderLogRows();
   if($('#scTrend'))$('#scTrend').value=S.ostate.trend}
-function fillVer(){const s=STRATS.find(x=>x.n===$('#bStrat').value);$('#bVer').innerHTML=s.vs.slice().reverse().map(v=>`<option ${v===s.v?'selected':''}>${v}</option>`).join('')}
 function syncBanners(){$('#bPaper').classList.toggle('show',S.mode==='PAPER');$('#bLive').classList.toggle('show',S.mode==='LIVE');$('#bHalt').classList.toggle('show',S.halted)}
 
 /* ---------- events ---------- */
@@ -871,10 +905,9 @@ document.addEventListener('click',e=>{
   else if(d.ind){S.ind[d.ind]=S.ind[d.ind]?0:1;rerender()}
   else if(d.bot)botDo(d.bot,d.do);
   else if(d.det){const el=$('#det-'+d.det);el.hidden=!el.hidden}
-  else if(d.bt){S.btSel=d.bt;go('backtest')}
+  else if(d.bt){go('backtest')}
   else if(d.use){S.activeStrat=d.use;if(S.page==='strategies'){const s=$('#aSt');if(s)s.value=d.use;doApply()}}
   else if(d.of){S.orderFilter=d.of;rerender()}
-  else if(d.trade&&S.bt){const x=S.bt.trs[+d.trade-1],c=S.bt.cfg;$('#tradeDetail').innerHTML=`<h2>Trade #${x.n}</h2><dl class="kv"><dt>Side</dt><dd>${x.side}</dd><dt>Entry bar</dt><dd>${x.en}</dd><dt>Exit bar</dt><dd>${x.ex}</dd><dt>Duration</dt><dd>${x.ex-x.en} bars</dd><dt>P&amp;L</dt><dd class="${cls(x.pnl)}">${sgn(x.pnl)}</dd><dt>Strategy</dt><dd>${c.st} v${c.ver}</dd></dl><div class="mut" style="margin-top:6px">Reason: ${x.reason.join(', ')}</div>`}
   else if(d.ev){const ev=EVENTS[+d.ev];$('#evd').innerHTML=`<b>${ev.n}</b> &middot; ${ev.a}<br>${ev.ai}`}
   else if(d.ex){S.exch=d.ex;$('#selEx').value=d.ex;rerender();toast('Exchange: '+d.ex)}
   else if(d.wl){S.watch=d.wl;rerender()}
@@ -895,7 +928,6 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='applyBtn')return;
   if(t.id==='aEx'){S.exch=t.value;$('#selEx').value=t.value;$('#adapt').innerHTML=adaptTiles()}
   else if(t.id==='aMk'){S.mkt=t.value;$('#selMkt').value=t.value;$('#adapt').innerHTML=adaptTiles()}
-  else if(t.id==='bStrat')fillVer();
   else if(t.name==='smode'){S.stratMode=t.value;audit('Strategy mode: '+t.value);rerender()}
   else if(t.id==='minScore'){S.ostate.minScore=+t.value;rerender()}
   else if(t.id==='scTrend'){S.ostate.trend=t.value;rerender()}
@@ -903,11 +935,10 @@ document.addEventListener('change',e=>{const t=e.target;
 });
 document.addEventListener('input',e=>{if(e.target.id==='lq')renderLogRows()});
 document.addEventListener('click',e=>{if(e.target.id==='applyBtn')doApply()});
-document.addEventListener('submit',e=>{if(e.target.id==='btForm'){e.preventDefault();runBt();$('#btOut').innerHTML=btHtml(S.bt);drawPage()}});
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(drawPage,120)});
 
 /* ---------- real backend: Live Activity + Strategy Manager (no demo data on these pages) ---------- */
-const DA=window.DewakoActivity,DP=window.DewakoPackages;
+const DA=window.DewakoActivity,DP=window.DewakoPackages,DB=window.DewakoBacktests;
 const BK={token:null,user:null,role:null,perms:[],base:(location.protocol==='http:'||location.protocol==='https:')?location.origin:'http://127.0.0.1:8000',err:'',busy:false};
 const AM=new DA.Model(),AF={category:'',severity:'',status:'',strategy:'',q:'',since:'',until:''};
 const AS={status:null,more:false,next:null,loadingMore:false,streaming:false,abort:null,attempt:0,tz:'local',lastRender:0,statusTimer:null,staleTimer:null,sel:null,loadErr:''};
@@ -1043,7 +1074,7 @@ async function pkPromote(id,to){const r=await bk('/strategy-packages/'+encodeURI
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-bk],[data-pk]');if(!t)return;const a=t.dataset.bk,k=t.dataset.pk;
  if(k==='detail')pkDetail(t.dataset.pid);else if(k==='promote')pkPromote(t.dataset.pid,t.dataset.to);
- else if(a==='logout')doLogout();else if(a==='pick')$('#pkFile').click();else if(a==='cancelup'){if(PK.xhr)PK.xhr.abort()}else if(a==='pkrefresh'){PK.list=null;rerender()}
+ else if(a==='logout')doLogout();else if(a==='pick')$('#pkFile').click();else if(a==='cancelup'){if(PK.xhr)PK.xhr.abort()}else if(a==='pkrefresh'){PK.list=null;rerender()}else if(a==='btrefresh'){BT.list=null;BT.err='';rerender()}else if(a==='btdetail')btDetail(t.dataset.id)
  else if(a==='pause'){if(AM.paused){AM.resume()}else AM.pause();renderActivity()}else if(a==='refresh'){AS.loadErr='';AM.error=null;refilter();loadStatus()}
  else if(a==='tz'){AS.tz=AS.tz==='utc'?'local':'utc';renderActivity()}else if(a==='clear'){Object.keys(AF).forEach(x=>AF[x]='');rerender();refilter()}else if(a==='more')loadHistory(true)
  else if(a==='pkactivity'){closeModal();AF.q=t.dataset.name||'';go('activity')}});

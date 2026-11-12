@@ -15,7 +15,6 @@ import math
 import dataclasses
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 
 from dewako.core.types import Order, OrderRequest, OrderStatus, OrderType, RiskDecision, Side, utcnow
@@ -661,7 +660,7 @@ class ExecutionEngine:
         reason ABANDONED_AFTER_CRASH, which releases their reservation; a fresh signal can try again. `grace_seconds` protects an order
         that another live worker is about to send."""
         from datetime import datetime, timezone, timedelta
-        cutoff = datetime.now(timezone.utc) - timedelta(seconds=grace_seconds)
+        cutoff = utcnow() - timedelta(seconds=grace_seconds)
         done = []
         for o in self.orders.in_states({S.CREATED}, environment):
             created = o["updated_at"]

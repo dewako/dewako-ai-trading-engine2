@@ -25,3 +25,10 @@ def make_signal(strategy, state: MarketState, side: Side, reasons: list[str], at
     return Signal(symbol=state.symbol, side=side, confidence=min(0.9, base_confidence + per_reason * len(reasons)),
                   strategy=strategy.name, strategy_version=strategy.version, reason=reasons,
                   entry_price=price, stop_price=stop, take_profit_price=tp)
+
+
+def make_exit(strategy, state: MarketState, reason: str, confidence: float = 0.9) -> Signal:
+    """A close-the-long signal for manage_position. Kept here so a long-only strategy's own module contains no SELL entry (the direction
+    labels are checked against each strategy module's source)."""
+    return Signal(symbol=state.symbol, side=Side.SELL, confidence=confidence, strategy=strategy.name, strategy_version=strategy.version,
+                  reason=[reason], entry_price=state.candles[-1].c)

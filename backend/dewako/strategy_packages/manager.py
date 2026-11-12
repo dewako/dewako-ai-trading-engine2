@@ -17,6 +17,8 @@ from dewako.auth.service import PERMISSIONS
 from dewako.persistence.db import Database, IntegrityError, now_iso
 from dewako.strategies import base as sbase
 from dewako.strategies import library  # noqa: F401  (registers the built-ins so a package cannot reuse their names)
+from dewako.backtesting import gate as backtest_gate
+from dewako.backtesting.records import RunStore
 from dewako.strategies.rule_builder import RuleSpec, build_strategy_class
 from dewako.strategies.versions import fingerprint
 from dewako.strategy_packages.archive import PackageRejected, open_package, parse_json
@@ -41,6 +43,7 @@ def _has(actor: dict, perm: str) -> bool:
 class PackageManager:
     def __init__(self, db: Database, audit):
         self.db, self.audit = db, audit
+        self.runs = RunStore(db, audit)
         self._registered: dict[int, tuple[str, str]] = {}
 
     # ------------------------------------------------------------------ validation (pure)
@@ -209,9 +212,43 @@ class PackageManager:
             if bad:
                 self._quarantine(pid, bad, actor, correlation_id)
                 raise TransitionRefused(f"quarantined: {bad}")
+            if to in ("PAPER_ELIGIBLE", "TESTNET_ELIGIBLE") and cur in LADDER and LADDER.index(to) > LADDER.index(cur):
+                g = backtest_gate.check(self.runs, r["name"], r["version"], r["fingerprint"])        # demotions are never gated
+                if not g.ok:
+                    self.audit.record("STRATEGY_PACKAGE_STATE", "DENIED", correlation_id, actor=actor, resource=f"package:{pid}",
+                                      metadata={"from": cur, "to": to, "why": "no passing backtest evidence", "reasons": g.reasons, "run_id": g.run_id})
+                    raise TransitionRefused("promotion needs passing backtest evidence: " + "; ".join(g.reasons))
         self._set_state(pid, to, reason or f"{cur} -> {to}", actor, correlation_id)
         self._sync_one(self._row(pid))
         return self.get(pid)
+
+    def evidence(self, pid: int) -> dict:
+        """What the promotion gate sees for this package right now (read-only)."""
+        from dewako.backtesting import report
+        r = self._row(pid)
+        g = backtest_gate.check(self.runs, r["name"], r["version"], r["fingerprint"])
+        run = self.runs.latest(r["name"], r["version"])
+        return {"package_id": pid, "name": r["name"], "version": r["version"], "state": r["state"],
+                "gate": {"ok": g.ok, "reasons": g.reasons, "notes": g.notes, "run_id": g.run_id},
+                "latest_run": report.summary(run) if run else None, "limits": list(report.LIMITS)}
+
+    def review_existing(self, actor: dict, correlation_id: str = "") -> list[dict]:
+        """Apply the evidence gate to packages that were promoted BEFORE it existed. A package at PAPER_ELIGIBLE or TESTNET_ELIGIBLE
+        without passing evidence is demoted to BACKTEST_ELIGIBLE (never anywhere else), each one audited with the reasons.
+        Human-triggered only: it needs the same permission as a promotion and acts on nothing by itself."""
+        if not _has(actor, NEEDS["PAPER_ELIGIBLE"]):
+            raise TransitionRefused(f"requires permission {NEEDS['PAPER_ELIGIBLE']}")
+        out = []
+        for p in self.list():
+            if p["state"] not in ("PAPER_ELIGIBLE", "TESTNET_ELIGIBLE"):
+                continue
+            g = backtest_gate.check(self.runs, p["name"], p["version"], p["fingerprint"])
+            if g.ok:
+                continue
+            self._set_state(p["id"], "BACKTEST_ELIGIBLE", "no passing backtest evidence: " + "; ".join(g.reasons)[:200], actor, correlation_id)
+            self._sync_one(self._row(p["id"]))
+            out.append({"id": p["id"], "name": p["name"], "version": p["version"], "from": p["state"], "reasons": g.reasons})
+        return out
 
     def _quarantine(self, pid: int, why: str, actor: dict, cid: str) -> None:
         self._set_state(pid, "QUARANTINED", why, actor, cid)

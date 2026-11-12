@@ -1,0 +1,58 @@
+{
+  "symbol": "ETH/USDT",
+  "variant": "V2",
+  "fee": 0.0005,
+  "slip": 0.0001,
+  "bars": 718378,
+  "trades": 32262,
+  "net_pnl": -9734.33552050497,
+  "max_drawdown_pct": 0.9734576949058661,
+  "win_rate": 0.3325584278717996,
+  "long_pnl": -5078.466082035042,
+  "short_pnl": -4655.869438470032,
+  "avg_notional": 266.17390263047355,
+  "per_trade_pct_of_notional": -0.0011335731541965413,
+  "avg_hold_min": 24.815417519062674,
+  "funding_times_per_trade": 0.04280577769512119,
+  "exit_reasons": {
+    "stop": 20889,
+    "target": 10766,
+    "back to VWAP": 0,
+    "time": 607,
+    "end of data": 0
+  },
+  "net_pnl_2x": -9994.469999592686,
+  "zero_cost_net_pnl_diag": 2756.7495139645907,
+  "zero_cost_per_trade_pct_diag": 7.565643652113836e-05,
+  "oos_expectancy": -0.050802232689688274,
+  "is_expectancy": -0.38536246286162057,
+  "period_pnl": [
+    -5693.368779275526,
+    -2677.7329329101826,
+    -937.5476795543027,
+    -425.6861287649297
+  ],
+  "checks": [
+    {
+      "name": "enough trades",
+      "ok": true
+    },
+    {
+      "name": "positive at 2x costs",
+      "ok": false
+    },
+    {
+      "name": "drawdown within limit",
+      "ok": false
+    },
+    {
+      "name": "out-of-sample holds up",
+      "ok": false
+    },
+    {
+      "name": "consistent across periods",
+      "ok": false
+    }
+  ],
+  "verdict": "FAILED"
+}

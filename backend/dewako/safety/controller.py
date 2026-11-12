@@ -17,6 +17,7 @@ from enum import Enum
 from typing import Optional
 
 from dewako.persistence.audit import AuditLog
+from dewako.core import timesource as _timesource
 from dewako.persistence.db import Database, now_iso
 from dewako.market_data.freshness import CandleFreshnessError, validate_latest_candle_timestamp
 from dewako.reconciliation.state import ReconState
@@ -258,7 +259,7 @@ class SafetyController:
 
     def mark_market_data_fresh(self, symbol: str, candle_timestamp: datetime, timeframe: str,
                                by: str = "market_data") -> None:
-        validate_latest_candle_timestamp(candle_timestamp, timeframe, datetime.now(timezone.utc))
+        validate_latest_candle_timestamp(candle_timestamp, timeframe, _timesource.now())
         self._set(f"market_data_candle_at:{symbol}", candle_timestamp.astimezone(timezone.utc).isoformat(), by)
         self._set(f"market_data_timeframe:{symbol}", timeframe, by)
 
@@ -291,7 +292,7 @@ class SafetyController:
             else:
                 fin = rec["finished_at"]
                 fin = datetime.fromisoformat(fin) if isinstance(fin, str) else fin
-                if datetime.now(timezone.utc) - fin > self.reconciliation_max_age:
+                if _timesource.now() - fin > self.reconciliation_max_age:
                     why.append("reconciliation is stale")
             if self.vault is not None:
                 try:
@@ -397,7 +398,7 @@ class SafetyController:
                     why.append(f"market data for {symbol} was never confirmed fresh")
                 else:
                     try:
-                        validate_latest_candle_timestamp(datetime.fromisoformat(ts), timeframe, datetime.now(timezone.utc))
+                        validate_latest_candle_timestamp(datetime.fromisoformat(ts), timeframe, _timesource.now())
                     except CandleFreshnessError as e:
                         label = "stale" if "stale" in str(e) else "invalid or unverified"
                         why.append(f"market data for {symbol} is {label}: {e}")

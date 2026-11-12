@@ -265,3 +265,38 @@ def test_quote_configuration_requires_all_runtime_limits(monkeypatch):
     monkeypatch.setenv("DEWAKO_MAX_QUOTE_AGE_SECONDS", "5")
     config = QuoteGuardConfig.from_env()
     assert config == QuoteGuardConfig(0.25, 0.50, 5)
+
+
+def test_a_maintenance_hole_is_refused_by_default_and_accepted_only_up_to_the_configured_size(monkeypatch):
+    from dewako.market_data.freshness import CandleFreshnessPolicy
+    rows = candles()
+    now = latest_close(rows) + timedelta(seconds=5)
+    one_hole = rows[:10] + rows[11:]                                     # 1 missing candle
+    two_holes = rows[:10] + rows[13:]                                    # 3 missing candles in one hole
+    monkeypatch.delenv("DEWAKO_CANDLE_MAX_GAP_INTERVALS", raising=False)
+    assert CandleFreshnessPolicy.from_env().max_gap_intervals == 0       # the live default is strict
+    with pytest.raises(CandleFreshnessError, match="missing or invalid timeframe interval"):
+        validate_candles(one_hole, "15m", now)
+    validate_candles(one_hole, "15m", now, policy=CandleFreshnessPolicy(max_gap_intervals=1))
+    with pytest.raises(CandleFreshnessError, match="missing or invalid timeframe interval"):
+        validate_candles(two_holes, "15m", now, policy=CandleFreshnessPolicy(max_gap_intervals=2))
+    validate_candles(two_holes, "15m", now, policy=CandleFreshnessPolicy(max_gap_intervals=3))
+    monkeypatch.setenv("DEWAKO_CANDLE_MAX_GAP_INTERVALS", "3")
+    validate_candles(two_holes, "15m", now)                              # the environment sets it for the live runtime and the replay
+    with pytest.raises(CandleFreshnessError, match="stale"):
+        validate_candles(two_holes[:-4], "15m", now)                     # a tolerated hole never excuses a stale newest candle
+    off_grid = rows[:10] + [rows[10].model_copy(update={"t": rows[10].t + timedelta(minutes=7)})] + rows[12:]
+    with pytest.raises(CandleFreshnessError):
+        validate_candles(off_grid, "15m", now)                           # still on the timeframe grid
+    for bad in (-1, 13, True, 1.5):
+        with pytest.raises(ValueError):
+            CandleFreshnessPolicy(max_gap_intervals=bad)
+
+
+def test_a_replay_records_the_gap_tolerance_it_ran_with(monkeypatch):
+    from dewako.backtesting.replay import ReplayConfig
+    cfg = ReplayConfig(strategy="Trend AI", version="2.1", symbol="BTC/USDT", timeframe="1h")
+    monkeypatch.delenv("DEWAKO_CANDLE_MAX_GAP_INTERVALS", raising=False)
+    assert cfg.record()["candle_max_gap_intervals"] == 0
+    monkeypatch.setenv("DEWAKO_CANDLE_MAX_GAP_INTERVALS", "6")
+    assert cfg.record()["candle_max_gap_intervals"] == 6

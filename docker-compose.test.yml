@@ -20,6 +20,9 @@ services:
     user: "10001"
     command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--junitxml=/tmp/pg-junit.xml", "."]
     tmpfs: ["/tmp"]
+    volumes:                                         # the UI tests read the sources next to the backend (ROOT = / inside the container)
+      - ./frontend:/frontend:ro
+      - ./scripts:/scripts:ro
     networks: [internal]
 networks:
   internal: {}

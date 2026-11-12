@@ -1,0 +1,14 @@
+{
+ "mode": "SCREENING_ONLY",
+ "saved": false,
+ "simulated": true,
+ "trades": 53,
+ "net_pnl": 608.655864111267,
+ "max_drawdown_pct": 0.058442889847024816,
+ "dataset_hash": "3ec6c5a5d83b7c3b325b1504bd0a6e76606405a905c2ad4fb1536a8f1eb8f946",
+ "warnings": [
+  "A position was still open at the end: its unrealised result is in the equity curve, not in the trade statistics.",
+  "SCREENING ONLY: no cost stress, hold-out, period or Monte Carlo checks ran. This is not evidence and is never saved.",
+  "Decisions accepted holes of up to 3 missing candle(s) in the window (exchange maintenance). A live bot gets the same behaviour only with DEWAKO_CANDLE_MAX_GAP_INTERVALS=3; the live default (0) refuses them."
+ ]
+}

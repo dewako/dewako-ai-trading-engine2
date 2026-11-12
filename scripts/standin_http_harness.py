@@ -129,6 +129,20 @@ def handler_for(rt):
                 except Exception: pass
                 finally: STATE["stream_open"] -= 1
                 self.close_connection = True; return
+            if p == "/backtests/runs":
+                if self._actor("backtests"):
+                    from dewako.backtesting import report
+                    self._send(200, [report.summary(r) for r in rt.packages.runs.list(50)])
+                return
+            if p.startswith("/backtests/runs/"):
+                if not self._actor("backtests"): return
+                from dewako.backtesting import report
+                try:
+                    run = rt.packages.runs.get(int(p.rsplit("/", 1)[1]))
+                except (KeyError, ValueError):
+                    return self._send(404, {"detail": "no such backtest run"})
+                newest = rt.packages.runs.latest(run["strategy_name"], run["strategy_version"])
+                return self._send(200, report.detail(run, current=bool(newest and newest["id"] == run["id"])))
             if p == "/strategy-packages":
                 if self._actor("strategies"): self._send(200, rt.packages.list())
                 return

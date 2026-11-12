@@ -13,10 +13,13 @@ from dewako.market_data.hub import MarketDataHub
 from dewako.market_data.state_builder import build_market_state
 
 
-def make_state_provider(hub: MarketDataHub, clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
-                        ) -> Callable[[str, str], Awaitable[MarketState]]:
+FEED_HISTORY = 1210   # candles per MarketState: Dewako ETH 1.0 needs 1,200 (its 200-day average on 4h) plus a small margin
+
+
+def make_state_provider(hub: MarketDataHub, clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+                        history: int = FEED_HISTORY) -> Callable[[str, str], Awaitable[MarketState]]:
     async def provider(symbol: str, timeframe: str) -> MarketState:
-        recs, _used = await hub.candles(symbol, timeframe, limit=200)
+        recs, _used = await hub.recent_candles(symbol, timeframe, history)
         return build_market_state(symbol, [r.candle for r in recs], clock(), timeframe)
     return provider
 
