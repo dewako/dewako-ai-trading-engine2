@@ -3,6 +3,10 @@
 # (constraints-test.txt), so the image runs the versions that were tested. Base image by tag; see docs/GITHUB_CI_SECURITY_REVIEW.md.
 FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+# Debian security updates on top of the base image (the first scan found two High zlib CVEs with fixed packages available), and a pip
+# without the known advisories of the pip the base image ships (25.0.1).
+RUN apt-get update && apt-get -y upgrade --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN python -m pip install "pip==26.2.0"
 WORKDIR /app
 COPY requirements.txt constraints-test.txt ./
 RUN pip install -r requirements.txt -c constraints-test.txt

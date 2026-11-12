@@ -6,4 +6,8 @@ useDefault = true
 [allowlist]
 description = "fake test secrets used by redaction tests (never real credentials)"
 stopwords = ["LEAKCHECK", "LEAKVALUE", "FAKE", "EXAMPLE", "changeme", "boot-secret-123", "dewako_test_pw", "topsecretvalue",
-             "SECRETSECRET", "AKIA12345678", "HTTPSECRET", "AKIAHTTPLEAK", "CHANGE_ME"]
+             "SECRETSECRET", "AKIA12345678", "HTTPSECRET", "AKIAHTTPLEAK", "CHANGE_ME",
+             # 2026-11-13, first gitleaks run (commit 6e451a4): synthetic values in redaction tests, reviewed by location
+             "LIVEKEY",       # backend/tests/test_activity.py: test_secrets_and_control_characters_never_reach_an_event
+             "ABCDEFGH1234",  # backend/tests/test_adapter_contract.py: error-text redaction test
+             "s3cr3tvalue"]   # same test
