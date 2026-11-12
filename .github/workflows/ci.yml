@@ -51,7 +51,7 @@ jobs:
         run: >-
           python scripts/assert_no_skips.py sqlite-junit-${{ matrix.python }}.xml --min-tests 870 --allow-skip "PostgreSQL-only"
           --require-file .github/required-tests/common.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: "sqlite-junit-${{ matrix.python }}", path: "sqlite-junit-${{ matrix.python }}.xml", if-no-files-found: error}
   postgres16:
@@ -84,7 +84,7 @@ jobs:
         run: >-
           python scripts/assert_no_skips.py pg-junit.xml --min-tests 870
           --require-file .github/required-tests/common.txt --require-file .github/required-tests/postgres-only.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: pg-junit, path: pg-junit.xml, if-no-files-found: error}
   crash-repeat:
@@ -122,7 +122,7 @@ jobs:
             python scripts/assert_no_skips.py crash-sqlite-$i.xml --min-tests 24 $R
             python scripts/assert_no_skips.py crash-pg-$i.xml --min-tests 27 $R
           done
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: crash-junit, path: "crash-*.xml", if-no-files-found: error}
   windows-crash:
@@ -150,7 +150,7 @@ jobs:
       - run: |
           foreach ($i in 1,2,3) { python scripts/assert_no_skips.py win-crash-$i.xml --min-tests 39 --allow-skip "PostgreSQL-only" --require test_a_pending_partial_exit_survives_a_kill_and_the_exchange_report_finishes_it_without_a_second_sale --require test_repeated_kill_restart_cycles_change_nothing_and_sell_nothing --require test_take_profit_is_enforced_by_a_fresh_process_after_a_kill; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
         shell: pwsh
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: "win-crash-junit-${{ matrix.python }}", path: "win-crash-*.xml", if-no-files-found: error}
   e2e-real-app:
@@ -172,7 +172,7 @@ jobs:
       - name: nothing that looks like a secret is in the log or screenshots folder about to be uploaded
         if: always()
         run: python scripts/scan_secrets.py .
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: e2e-real
@@ -195,7 +195,7 @@ jobs:
           python3 scripts/assert_no_skips.py ci-out/docker-pg-junit.xml --min-tests 870
           --allow-skip "backend-only image" --allow-skip "node is not installed"
           --require-file .github/required-tests/postgres-only.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: docker-junit, path: ci-out/docker-pg-junit.xml, if-no-files-found: error}
   compose-smoke:
@@ -209,6 +209,6 @@ jobs:
       - name: nothing that looks like a secret is in the container logs about to be uploaded
         if: always()
         run: python3 scripts/scan_secrets.py ci-out
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: compose-smoke, path: ci-out/, if-no-files-found: error}
