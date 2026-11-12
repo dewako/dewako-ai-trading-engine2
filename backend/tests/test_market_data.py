@@ -263,3 +263,65 @@ def test_state_from_store_as_of_cannot_see_future():
     got = s.get_candles("BTC/USDT", "15m", "binance", T0, T0 + STEP * 150, as_of=as_of)
     assert len(got) == 100 and got[-1].candle.t == T0 + STEP * 99
     assert build_market_state("BTC/USDT", [g.candle for g in got], as_of).candles[-1].t == T0 + STEP * 99
+
+
+# ---- recent history for the live feed (paging backwards past the per-request cap)
+class LatestFirst(MarketDataProvider):
+    """Behaves like the real exchanges: with no start, returns the latest `limit` closed candles before `end` (oldest first)."""
+    name = "binance"
+    max_candles_per_request = 4
+
+    def __init__(self, total=10, fail_on_call=None, missing=()):
+        self.total, self.fail_on_call, self.missing, self.calls = total, fail_on_call, set(missing), []
+
+    async def get_candles(self, symbol, timeframe, start=None, end=None, limit=500):
+        self.calls.append((end, limit))
+        if self.fail_on_call == len(self.calls):
+            raise ProviderError("down mid-way")
+        out = [rec(i) for i in range(self.total) if i not in self.missing and (end is None or T0 + STEP * i < end)]
+        return out[-min(limit, self.max_candles_per_request):]
+
+
+def test_recent_candles_pages_back_past_the_cap_oldest_first_without_duplicates():
+    p = LatestFirst(total=10)
+    out, src = run(MarketDataHub([p]).recent_candles("BTC/USDT", "15m", 9))
+    assert src == "binance" and [r.candle.t for r in out] == [T0 + STEP * i for i in range(1, 10)]
+    assert len(p.calls) == 3 and p.calls[0][0] is None and p.calls[1][0] == T0 + STEP * 6   # pages end where the last one began
+    assert p.calls[2][1] == 1                                                                 # last page asks only for what is missing
+
+
+def test_recent_candles_returns_all_it_has_when_history_is_short_and_stops():
+    p = LatestFirst(total=5)
+    out, _ = run(MarketDataHub([p]).recent_candles("BTC/USDT", "15m", 1210))
+    assert [r.candle.t for r in out] == [T0 + STEP * i for i in range(5)] and len(p.calls) == 3   # 4, 1, then an empty page
+
+
+def test_recent_candles_never_mixes_sources_a_failed_page_restarts_on_the_next_provider():
+    class Other(LatestFirst):
+        name = "bybit"
+    first, second = LatestFirst(total=10, fail_on_call=2), Other(total=10)
+    out, src = run(MarketDataHub([first, second]).recent_candles("BTC/USDT", "15m", 8))
+    assert src == "bybit" and len(out) == 8 and len(second.calls) == 2   # the first provider's page 1 is thrown away
+    with pytest.raises(AllProvidersFailed):
+        run(MarketDataHub([LatestFirst(fail_on_call=1)]).recent_candles("BTC/USDT", "15m", 8))
+
+
+def test_feed_builds_state_from_1210_candles_by_default():
+    from dewako.runtime.market_feed import FEED_HISTORY, make_state_provider
+
+    class Many(LatestFirst):
+        max_candles_per_request = 1000
+    p = Many(total=1500)
+    state = run(make_state_provider(MarketDataHub([p]), clock=lambda: T0 + STEP * 1501)("BTC/USDT", "15m"))
+    assert FEED_HISTORY == 1210 and len(state.candles) == 1210 and state.candles[-1].t == T0 + STEP * 1499
+    assert [c.t for c in state.candles] == sorted({c.t for c in state.candles})
+
+
+def test_recent_candles_stops_at_once_if_a_provider_ignores_the_end_time():
+    class Stuck(LatestFirst):
+        async def get_candles(self, symbol, timeframe, start=None, end=None, limit=500):
+            self.calls.append((end, limit))
+            return [rec(i) for i in range(6, 10)]          # always the same latest page
+    p = Stuck()
+    out, _ = run(MarketDataHub([p]).recent_candles("BTC/USDT", "15m", 1210))
+    assert len(out) == 4 and len(p.calls) == 2              # second page adds nothing new: stop, do not spin through 300+ requests

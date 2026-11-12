@@ -59,6 +59,37 @@ class MarketDataHub:
                 errors.append(f"{p.name}: {e}")
         raise AllProvidersFailed("; ".join(errors))
 
+    async def recent_candles(self, symbol: str, timeframe: str, count: int) -> tuple[list[CandleRecord], str]:
+        """The latest `count` closed candles, oldest first, paging backwards past a provider's per-request cap. Every page comes from ONE
+        provider (sources are never mixed); if any page fails, the next provider starts over from scratch. A provider that has less
+        history than `count` returns what it has (strategies that need more simply stay out)."""
+        if count < 1:
+            raise ValueError("count must be positive")
+        errors = []
+        for p in self.providers:
+            try:
+                return await self._page_back(p, symbol, timeframe, count), p.name
+            except ProviderError as e:
+                errors.append(f"{p.name}: {e}")
+        raise AllProvidersFailed("; ".join(errors))
+
+    @staticmethod
+    async def _page_back(p: MarketDataProvider, symbol: str, timeframe: str, count: int) -> list[CandleRecord]:
+        page = max(1, int(getattr(p, "max_candles_per_request", count) or count))
+        by_t: dict = {}
+        end = None
+        for _ in range(count // page + 3):                  # bounded: never loops on a provider that keeps answering the same page
+            recs = await p.get_candles(symbol, timeframe, end=end, limit=min(page, count - len(by_t)))
+            new = [r for r in recs if r.candle.t not in by_t and (end is None or r.candle.t < end)]
+            if not new:
+                break
+            for r in new:
+                by_t[r.candle.t] = r
+            if len(by_t) >= count:
+                break
+            end = min(r.candle.t for r in new)
+        return [by_t[t] for t in sorted(by_t)][-count:]
+
     async def ticker(self, symbol: str):
         """First provider that answers. Returns the Ticker (its `quality` says which source and when)."""
         errors = []
