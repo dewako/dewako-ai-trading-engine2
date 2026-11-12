@@ -13,8 +13,7 @@ AI-Powered Multi-Exchange Algorithmic Trading Platform. Phase 1: UI prototype, a
 | React + TypeScript + Tailwind frontend | Not started. The prototype is the design reference. |
 | Market data (Phase 2) | Provider interface, Binance/Bybit/OKX public providers, point-in-time SQLite store, backfill, failover hub, MarketState builder, `/markets` API. Tested with fake responses only: not yet run against the live exchanges |
 | Strategy engine (Phase 3) | Momentum AI 1.4, Mean Reversion 1.2, Breakout AI 1.8, Trend AI 2.1/2.2, AI Strategy 0.3 (experimental, never live); validated deterministic signals; version fingerprint lock; explicit position policy on switching; rule-based selector (Manual / AI-Assisted / Fully-Automated with guards). Rule-based, not trained. Tested on synthetic markets only, which shows the logic works, not that it makes money |
-| Strategy engine (Phase 3) | Momentum AI 1.4, Mean Reversion 1.2, Breakout AI 1.8, Trend AI 2.1/2.2, AI Strategy 0.3 (experimental, never live); validated deterministic signals; version fingerprint lock; explicit position policy on switching; rule-based selector (Manual / AI-Assisted / Fully-Automated with guards). Rule-based, not trained. Tested on synthetic markets only, which shows the logic works, not that it makes money |
-| Hardening (Phase 2 master prompt) | Durable orders/positions/signals/risk/kill switch, explicit order state machine, unknown-order recovery, reconciliation, users + roles, audit log, vault key versions, live gate. Phase 3.2 adds PostgreSQL 16 (verified with the suite), a real startup lifecycle, supervised workers, balance reconciliation and a real-SIGKILL crash test. **No live order adapter; real FastAPI HTTP tests have not been run. Readiness: NOT READY.** See `PHASE3_2_HARDENING_AUDIT.md`, `docs/LIVE_TRADING_READINESS.md`, `docs/TESTING.md`, `docs/BACKUP_RECOVERY.md` |
+| Hardening (Phase 2 master prompt) | Durable orders/positions/signals/risk/kill switch, explicit order state machine, unknown-order recovery, reconciliation, users + roles, audit log, vault key versions, live gate. Phase 3.2 adds PostgreSQL 16 (verified with the suite), a real startup lifecycle, supervised workers, balance reconciliation and a real-SIGKILL crash test. **No live order adapter. Real FastAPI HTTP tests run in hosted CI on every push and pull request (`DEWAKO_REQUIRE_HTTP_TESTS=1`). Readiness: NOT READY.** See `PHASE3_2_HARDENING_AUDIT.md`, `docs/LIVE_TRADING_READINESS.md`, `docs/TESTING.md`, `docs/BACKUP_RECOVERY.md` |
 | PostgreSQL models, auth, WebSockets | Not started |
 | Order book / funding / open interest | Binance only; not stored historically |
 | Momentum, Mean Reversion, Breakout, AI strategies | Metadata in the prototype only |
@@ -45,7 +44,7 @@ uvicorn dewako.api.main:app --reload     # http://localhost:8000/health
 
 Prototype: open `frontend/prototype/index.html` in a browser, or `docker compose up prototype` and visit http://localhost:8080.
 
-Full stack: `cp .env.example .env`, set `ENCRYPTION_KEY`, then `docker compose up`.
+Full stack: `cp .env.example .env`, set `ENCRYPTION_KEYS`, then `docker compose up`.
 
 ## Layout
 
@@ -64,5 +63,9 @@ Phase 2 stores candles with publication time and revisions, so `as_of` queries c
 Demo figures are simulated. Historical or simulated performance does not predict future results.
 
 
-## Status (Phase 3.4)
-PHASE 3 INCOMPLETE. Live trading is LOCKED. See `PHASE3_4_FINAL_HARDENING_AUDIT.md` and `docs/LIVE_TRADING_READINESS.md`. HTTP tests, CI and Docker have not been executed.
+## Status (2026-11-13, `main` = `9172eb2`; earlier status notes above describe their own phase)
+Phase 5.2 Stage 3 (3A + 3B) is merged. Live trading is LOCKED; readiness is NOT READY (`docs/LIVE_TRADING_READINESS.md`).
+CI: `ci.yml` (SQLite on 3.12/3.13, PostgreSQL 16, crash repeats, Windows, browser e2e against the real app, Docker test image,
+production compose smoke), `security.yml`, `paper-qualification.yml`. They run on GitHub-hosted runners; see
+`docs/GITHUB_CI_FINAL_VALIDATION_REPORT.md` for the commits and runs they were verified on. CI success is not paper-trading
+qualification, and neither is live-trading readiness.

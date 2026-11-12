@@ -1,0 +1,12 @@
+# Keep the build context to what the image needs. Never send local state, secrets or caches to the Docker daemon.
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/*.db
+**/*.db-journal
+**/*.db-wal
+**/*.sqlite
+.env
+.env.*
+*.log

@@ -37,6 +37,7 @@ Hosted CI: run 41637014964, attempts 1, 2 and 3, all jobs green each time (sqlit
 4. **Single database.** A database-wide outage blocks order creation (intended) and the audit store together.
 5. **Stalled exits are not auto-resolved.** They raise an incident and block entries; a human or the order-recovery worker decides. This is deliberate (no second sale on an unknown first one).
 6. **Windows 3.14 hang (run 41311105233) is unexplained.** It has not recurred in any run since, including three runs of the audited commit, but it was not root-caused. Treat as a monitored risk.
+   *Addendum 2026-11-13:* it recurred in run 42839151033 (2026-11-10, `windows-crash (3.14)` cancelled at the 40-minute job limit). Windows 3.14 is now informational in CI (`continue-on-error`) until it is root-caused; Windows 3.13 stays blocking. See `docs/GITHUB_CI_INITIAL_AUDIT.md` F6.
 7. **Local HTTP tests skipped.** 36 HTTP tests do not run in the sandbox (no fastapi). They were run and passed in hosted CI only.
 8. **Time-stop changes need a restart with no open positions** (deliberate; no runtime API).
 9. **Stage 2 branches are stacked and not merged to main.** Merging is the owner's decision; the audited head contains all of them.

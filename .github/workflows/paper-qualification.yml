@@ -1,0 +1,94 @@
+# Paper-trading qualification (simulated money only). Nightly and by hand; it orchestrates tests, it is not a trading server.
+# 1. checklist: the tests named in .github/required-tests/paper-qualification.txt (order/position lifecycle, entries and exits,
+#    stop-loss / take-profit / time stop, partial exits, spread and slippage, delays and rejections, duplicate prevention, risk limits,
+#    persistence, crash recovery, reconciliation) must run and pass on SQLite and PostgreSQL 16.
+# 2. bounded soak: the real Application with its workers, the PAPER adapter and restarts, for a fixed number of cycles
+#    (backend/tests/paper_soak.py). Long soaks (days) run the same script on a dedicated machine; see
+#    docs/GITHUB_CI_PAPER_TRADING_QUALIFICATION_PLAN.md. A green run here is paper-trading evidence only, never live-trading readiness.
+name: paper-qualification
+on:
+  workflow_dispatch:
+    inputs:
+      cycles: {description: "soak cycles per backend", default: "3000", required: true}
+      restart_every: {description: "restart the application every N cycles", default: "250", required: true}
+  schedule:
+    - cron: "43 2 * * *"          # nightly 02:43 UTC
+permissions: {contents: read}
+concurrency: {group: paper-qualification, cancel-in-progress: false}
+jobs:
+  checklist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy: {fail-fast: false, matrix: {backend: [sqlite, postgres]}}
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: dewako, POSTGRES_PASSWORD: dewako_test_pw, POSTGRES_DB: dewako}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
+      - name: run every test file that holds a checklist test
+        working-directory: backend/tests
+        env:
+          PYTHONPATH: ".."
+          DEWAKO_REQUIRE_HTTP_TESTS: "1"
+          DEWAKO_EXPECT_PG_MAJOR: "16"
+          DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@127.0.0.1:5432/dewako
+          DEWAKO_TEST_DB: ${{ matrix.backend == 'postgres' && 'postgres' || '' }}
+        run: |
+          set -euo pipefail
+          files=$(python - <<'PY'
+          import glob, re
+          names = [l.strip() for l in open("../../.github/required-tests/paper-qualification.txt") if l.strip() and not l.startswith("#")]
+          src = {f: open(f).read() for f in sorted(glob.glob("test_*.py"))}
+          print(" ".join(sorted({f for n in names for f, s in src.items() if re.search(rf"def {n}\b", s)})))
+          PY
+          )
+          echo "files: $files"
+          python -m pytest -q -p no:cacheprovider --timeout=300 $files --junitxml=../../paper-checklist-${{ matrix.backend }}.xml
+      - name: every checklist test ran and passed (only PostgreSQL-only tests may skip, and only on SQLite)
+        run: >-
+          python scripts/assert_no_skips.py paper-checklist-${{ matrix.backend }}.xml --min-tests 39
+          --require-file .github/required-tests/paper-qualification.txt
+          ${{ matrix.backend == 'sqlite' && '--allow-skip PostgreSQL-only' || '' }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with: {name: "paper-checklist-${{ matrix.backend }}", path: "paper-checklist-${{ matrix.backend }}.xml", if-no-files-found: error}
+  soak:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy: {fail-fast: false, matrix: {backend: [sqlite, postgres]}}
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: dewako, POSTGRES_PASSWORD: dewako_test_pw, POSTGRES_DB: dewako}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
+      - name: bounded paper soak (invariants checked every cycle; see the script header)
+        working-directory: backend/tests
+        env:
+          PYTHONPATH: ".."
+          DEWAKO_EXPECT_PG_MAJOR: "16"
+          DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@127.0.0.1:5432/dewako
+          DEWAKO_TEST_DB: ${{ matrix.backend == 'postgres' && 'postgres' || '' }}
+          CYCLES: ${{ github.event.inputs.cycles || '3000' }}
+          RESTART_EVERY: ${{ github.event.inputs.restart_every || '250' }}
+        run: >-
+          python paper_soak.py --cycles "$CYCLES" --restart-every "$RESTART_EVERY" --warmup 100
+          --report ../../soak-${{ matrix.backend }}.json --junit ../../soak-${{ matrix.backend }}.xml
+      - run: python scripts/assert_no_skips.py soak-${{ matrix.backend }}.xml --require test_paper_soak_invariants_hold
+        if: always()
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with: {name: "paper-soak-${{ matrix.backend }}", path: "soak-${{ matrix.backend }}.*", if-no-files-found: error}
