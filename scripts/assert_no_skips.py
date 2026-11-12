@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Fail a CI job unless a JUnit XML report proves the required tests really executed.
 
-  assert_no_skips.py REPORT.xml [--min-tests N] [--allow-skip "substring"]... [--require test_name]...
+  assert_no_skips.py REPORT.xml [--min-tests N] [--allow-skip "substring"]... [--require test_name]... [--require-file FILE]...
 
 * any failure/error                      -> fail
 * a skipped test whose message does not contain an --allow-skip substring -> fail (a skipped critical test is not a pass)
 * fewer than --min-tests tests           -> fail
-* a --require'd test that is absent, skipped, failed or errored -> fail (proves e.g. the PostgreSQL identity test and the two HTTP
+* a --require'd test (or one listed in a --require-file, one name per line, # comments) that is absent, skipped, failed or errored -> fail (proves e.g. the PostgreSQL identity test and the two HTTP
   regressions were executed, not silently skipped or deselected)
 """
 import argparse
@@ -18,7 +18,14 @@ ap.add_argument("report")
 ap.add_argument("--min-tests", type=int, default=1)
 ap.add_argument("--allow-skip", action="append", default=[])
 ap.add_argument("--require", action="append", default=[])
+ap.add_argument("--require-file", action="append", default=[])
 a = ap.parse_args()
+for f in a.require_file:
+    with open(f) as fh:
+        names = [ln.strip() for ln in fh if ln.strip() and not ln.lstrip().startswith("#")]
+    if not names:
+        sys.exit(f"--require-file {f} lists no tests")
+    a.require += [n for n in names if n not in a.require]
 
 root = ET.parse(a.report).getroot()
 cases = list(root.iter("testcase"))

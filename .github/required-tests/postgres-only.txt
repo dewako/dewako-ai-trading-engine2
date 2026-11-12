@@ -1,0 +1,6 @@
+# Tests that must have run AND passed (scripts/assert_no_skips.py --require-file). A renamed or deleted test fails CI until
+# this list is updated on purpose. Merged from the two lists that were copied inline in ci.yml (they had drifted).
+# Required in addition on PostgreSQL 16 only (they skip by design on SQLite).
+test_pg_is_really_postgresql
+test_pg_a_held_lock_fails_closed_within_a_bound_instead_of_hanging
+test_pg_two_independent_connections_race_one_intent_one_order

@@ -368,19 +368,37 @@ def t_document_is_standards_mode_with_viewport_and_relative_assets_load(br):
     assert not errs, errs; c.close()
 
 
+CHECKS = (t_login_and_real_events_flow, t_unknown_order_prominent_and_no_controls, t_pause_resume_holds_events_but_never_hides_critical,
+                  t_disconnect_shows_state_and_resumes_without_duplicates, t_filters_search_and_details, t_viewer_cannot_import_and_denied_states,
+                  t_zip_import_valid_malicious_duplicate, t_zip_cancel_and_server_down, t_reduced_motion_disables_animation, t_csp_blocks_inline_script_and_headers_are_set,
+                  t_hostile_filename_is_inert, t_simulated_pages_are_labelled_and_real_pages_are_not, t_backtest_page_is_real_read_only_and_labelled_simulated, t_bad_login_and_logout,
+                  t_empty_login_is_blocked_by_required_fields, t_document_is_standards_mode_with_viewport_and_relative_assets_load)
+
+
 if __name__ == "__main__":
     # one admin-visible seed so history is non-empty
     with sync_playwright() as pw:
         br = pw.chromium.launch()
-        for t in (t_login_and_real_events_flow, t_unknown_order_prominent_and_no_controls, t_pause_resume_holds_events_but_never_hides_critical,
-                  t_disconnect_shows_state_and_resumes_without_duplicates, t_filters_search_and_details, t_viewer_cannot_import_and_denied_states,
-                  t_zip_import_valid_malicious_duplicate, t_zip_cancel_and_server_down, t_reduced_motion_disables_animation, t_csp_blocks_inline_script_and_headers_are_set,
-                  t_hostile_filename_is_inert, t_simulated_pages_are_labelled_and_real_pages_are_not, t_backtest_page_is_real_read_only_and_labelled_simulated, t_bad_login_and_logout,
-                  t_empty_login_is_blocked_by_required_fields, t_document_is_standards_mode_with_viewport_and_relative_assets_load):
+        for t in CHECKS:
             t(br)
         br.close()
     BK.stop()
     for n, s, d in RESULTS:
         print(f"{s}  {n}" + (("\n" + d) if d else ""))
     print(f"{sum(1 for r in RESULTS if r[1]=='PASS')} passed, {sum(1 for r in RESULTS if r[1]=='FAIL')} failed (" + ("REAL FastAPI app under Uvicorn" if MODE == "real" else "stand-in harness, NOT FastAPI") + ")")
-    sys.exit(1 if any(r[1] == "FAIL" for r in RESULTS) else 0)
+    problems = []
+    if len(RESULTS) != len(CHECKS):
+        problems.append(f"only {len(RESULTS)} of {len(CHECKS)} checks recorded a result")
+    if os.environ.get("DEWAKO_E2E_REQUIRE_REAL") == "1" and MODE != "real":
+        problems.append(f"DEWAKO_E2E_REQUIRE_REAL=1 but the run used the {MODE!r} server: this is not real-app verification")
+    junit = os.environ.get("DEWAKO_E2E_JUNIT")
+    if junit:
+        from xml.sax.saxutils import escape, quoteattr
+        rows = "".join(f'<testcase classname="browser_e2e.{MODE}" name={quoteattr(n)}>'
+                       + (f'<failure message="check failed">{escape(d)}</failure>' if s == "FAIL" else "") + "</testcase>" for n, s, d in RESULTS)
+        fails = sum(1 for r in RESULTS if r[1] == "FAIL")
+        pathlib.Path(junit).write_text(f'<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="browser_e2e" tests="{len(RESULTS)}" '
+                                       f'failures="{fails}">{rows}</testsuite></testsuites>')
+    for p_ in problems:
+        print("PROBLEM:", p_)
+    sys.exit(1 if problems or any(r[1] == "FAIL" for r in RESULTS) else 0)
