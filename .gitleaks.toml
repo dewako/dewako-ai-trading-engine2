@@ -1,0 +1,9 @@
+# gitleaks configuration: the default rules, plus an allowlist for the deliberately FAKE values the test suite uses to prove that
+# secrets are redacted (the same markers scripts/scan_secrets.py allows). Do not add a real value here; add a reason for every entry.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "fake test secrets used by redaction tests (never real credentials)"
+stopwords = ["LEAKCHECK", "LEAKVALUE", "FAKE", "EXAMPLE", "changeme", "boot-secret-123", "dewako_test_pw", "topsecretvalue",
+             "SECRETSECRET", "AKIA12345678", "HTTPSECRET", "AKIAHTTPLEAK", "CHANGE_ME"]
