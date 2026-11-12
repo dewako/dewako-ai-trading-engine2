@@ -1,5 +1,5 @@
 # Test environment: real PostgreSQL 16 + the whole suite. Run:  docker compose -f docker-compose.test.yml run --rm tests
-# STATUS: not executed by the author (no Docker daemon was available). The file is validated structurally only (see docs/TESTING.md).
+# Run by the `docker` job in .github/workflows/ci.yml on every push and pull request. JUnit goes to ./ci-out (kept as a CI artifact).
 services:
   postgres-test:
     image: postgres:16
@@ -8,7 +8,7 @@ services:
     healthcheck: {test: ["CMD-SHELL", "pg_isready -U dewako"], interval: 2s, timeout: 3s, retries: 30}
     networks: [internal]
   tests:
-    build: ./backend
+    build: {context: ./backend, target: test}      # the test stage of the image; the production stage has no tests in it
     depends_on: {postgres-test: {condition: service_healthy}}
     environment:
       PYTHONPATH: /app
@@ -18,11 +18,12 @@ services:
       DEWAKO_TEST_PG_URL: postgresql://dewako:dewako_test_pw@postgres-test:5432/dewako
     working_dir: /app/tests
     user: "10001"
-    command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--junitxml=/tmp/pg-junit.xml", "."]
+    command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--junitxml=/ci-out/docker-pg-junit.xml", "."]
     tmpfs: ["/tmp"]
     volumes:                                         # the UI tests read the sources next to the backend (ROOT = / inside the container)
       - ./frontend:/frontend:ro
       - ./scripts:/scripts:ro
+      - ./ci-out:/ci-out
     networks: [internal]
 networks:
   internal: {}
