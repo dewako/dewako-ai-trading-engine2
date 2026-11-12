@@ -28,8 +28,10 @@ trap cleanup EXIT
 [ -e .env ] && fail ".env already exists in the checkout (it must never be committed)"
 
 # 1 -------------------------------------------------------------------------------------------------------------------------
-if $P config -q > "$OUT/no-env.log" 2>&1; then fail "compose accepted a configuration with no .env file"; fi
-grep -qi "\.env" "$OUT/no-env.log" || { cat "$OUT/no-env.log"; fail "compose failed without .env, but not because of the missing .env"; }
+# the optional profile services' required variables are supplied here, so the only thing missing is the .env file itself
+if POSTGRES_PASSWORD=x REDIS_PASSWORD=x $P config -q > "$OUT/no-env.log" 2>&1; then fail "compose accepted a configuration with no .env file"; fi
+grep -qiE "env file .*\.env.*not found|\.env: no such file" "$OUT/no-env.log" \
+  || { cat "$OUT/no-env.log"; fail "compose failed without .env, but not because of the missing .env file"; }
 ok "compose refuses to start without .env: $(head -c 160 "$OUT/no-env.log")"
 
 cat > .env <<'EOF'
@@ -91,10 +93,12 @@ import hashlib, sqlite3
 from dewako.persistence.migrations import MIGRATIONS
 c = sqlite3.connect('file:/state/dewako_trading.db?mode=ro', uri=True)
 ver = c.execute('SELECT MAX(version) FROM schema_version').fetchone()[0]
-base = c.execute('SELECT key, updated_at FROM safety_state ORDER BY key').fetchall()
-print(ver, max(v for v, _, _ in MIGRATIONS), len(base), hashlib.sha256(repr(base).encode()).hexdigest()[:16])"
+base = c.execute('SELECT COUNT(*) FROM safety_state').fetchone()[0]
+first = c.execute('SELECT id, created_at, row_hash FROM audit_log ORDER BY id LIMIT 1').fetchone()
+n_audit = c.execute('SELECT COUNT(*) FROM audit_log').fetchone()[0]
+print(ver, max(v for v, _, _ in MIGRATIONS), base, hashlib.sha256(repr(first).encode()).hexdigest()[:16], n_audit)"
 }
-read -r ver want nbase h1 <<< "$(probe)"
+read -r ver want nbase h1 na1 <<< "$(probe)"
 [ "$ver" = "$want" ] || fail "schema version $ver after startup, expected $want"
 [ "$nbase" -gt 0 ] || fail "no baseline safety records after startup"
 ok "migrations applied at startup (schema version $ver of $want; $nbase baseline safety records)"
@@ -102,9 +106,12 @@ ok "migrations applied at startup (schema version $ver of $want; $nbase baseline
 # 5 -------------------------------------------------------------------------------------------------------------------------
 $P restart backend > /dev/null
 wait_healthy || fail "backend did not become healthy after a restart"
-read -r ver2 _ nbase2 h2 <<< "$(probe)"
-[ "$ver2" = "$ver" ] && [ "$nbase2" = "$nbase" ] && [ "$h2" = "$h1" ] || fail "state changed across a restart ($ver/$nbase -> $ver2/$nbase2)"
-ok "restart keeps the database (same schema version and baseline safety records)"
+read -r ver2 _ nbase2 h2 na2 <<< "$(probe)"
+# the same database file must still be there: same schema, same baseline records, the same first audit record, and the audit log
+# only grows (a restart appends startup events; a recreated database would start a new chain)
+[ "$ver2" = "$ver" ] && [ "$nbase2" = "$nbase" ] && [ "$h2" = "$h1" ] && [ "$na2" -ge "$na1" ] \
+  || fail "database changed across a restart (schema $ver->$ver2, safety rows $nbase->$nbase2, first audit $h1->$h2, audit rows $na1->$na2)"
+ok "restart keeps the database (schema $ver2, $nbase2 safety records, same first audit record, audit rows $na1 -> $na2)"
 
 # 6 -------------------------------------------------------------------------------------------------------------------------
 t0=$(date +%s)
