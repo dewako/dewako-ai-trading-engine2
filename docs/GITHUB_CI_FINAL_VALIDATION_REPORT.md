@@ -48,7 +48,7 @@ The branch could not be deleted from this session (write access to that API path
 | No important test silently skipped | Met: proven by run 43314394409 |
 | Paper-trading safety tests pass | Met (bounded): run 43316069726 |
 | Documentation reflects the repository | Met for the documents in `GITHUB_CI_DOCUMENTATION_REVIEW.md`; other historical audits unchanged |
-| No critical/high unresolved regression | Met. One coverage reduction by decision: Windows 3.14 is informational |
+| No critical/high unresolved regression | Met. One coverage reduction by decision: Windows 3.14 is informational. Open: intermittent Windows 3.13 cleanup failure (below) |
 | Live trading remains locked | Met |
 | `main` protected by the required checks | **Not met: needs the owner** (blocked through this session) |
 
@@ -61,6 +61,17 @@ The branch could not be deleted from this session (write access to that API path
 4. Review the 10 Dependabot pull requests (#8-#17). Each must pass ci + security before a merge. Major action upgrades (#9-#12) and the
    base-image jump to `3.15-slim` (#8) need care; moving the image to `3.13-slim` (the version CI tests most) is the safer change.
 5. Approve or reject the documented security exceptions and the long-soak acceptance numbers.
+
+## Open finding after validation: Windows flakiness (found on PR #18, documentation only)
+CI run 43325349303 attempt 1 on `ci-final-report`, a commit that only adds this file:
+* `windows-crash (3.13)` (blocking) FAILED: `test_process_cleanup.py::test_a_launcher_stub_architecture_is_handled_the_launched_pid_is_not_the_interpreter`
+  raised `CleanupError: processes still alive after the kill` (2 of 6 processes in the tree).
+* `windows-crash (3.14)` (informational) ran 45 minutes and was cancelled at the job limit: the known hang, third occurrence.
+Attempt 2 (failed jobs re-run once) passed both in 3 minutes. Nothing was skipped or loosened. So the Windows process-cleanup path is
+intermittent: either the test's wait for process exit is too short on a busy runner, or a child really outlives the kill. This is not
+resolved. Until it is, a red Windows 3.13 job on an unrelated change should be re-run once and, if it fails twice, investigated before
+merging, never skipped. Root-causing it (logging the surviving processes' command lines, measuring how long they take to exit) is the
+next CI task.
 
 ## Known limits
 * Soak memory rose 8 MB over 3,000 cycles (0.9 MB over 300 locally): within the limit, but not flat. The multi-day soak will show
