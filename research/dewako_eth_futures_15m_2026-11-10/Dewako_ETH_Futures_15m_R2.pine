@@ -1,0 +1,182 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Dewako ETH rules — futures 15m, reading R2 (research indicator, not a strategy, places no orders)
+//
+//  Dewako ETH 1.0 (4h) stretched to the same TIME spans on a 15m chart:
+//    regime  : 200-day SMA            = 19,200 bars of 15m
+//    entry   : 320-bar breakout       = 20 bars of 4h  (80 hours)
+//    exit    : 160-bar channel        = 10 bars of 4h  (40 hours)
+//    stop    : 8 x ATR(224)           = 2 x ATR(14) on 4h, scaled by sqrt(16); ATR = simple mean of true range
+//  LONG  : close above the SMA and above the highest high of the previous 320 bars.
+//  SHORT : close below the SMA and below the lowest low of the previous 320 bars (optional).
+//  EXIT  : long  — close below the lowest low of the previous 160 bars, or below the SMA;
+//          short — close above the highest high of the previous 160 bars, or above the SMA.
+//  Signals are decided on a bar close; the trade is taken at the NEXT bar's open (what a bot can get).
+//  Stop: an intrabar touch exits at the stop, a gap through it at the open. One position at a time.
+//
+//  TESTED 2020-01..2026-11 on Binance ETHUSDT (taker 0.05% + spread/slippage): 318 trades, +1,655 on 10,000,
+//  DD 6.9% — FAILED the promotion gate: the last quarter of trades lose money, ~95% of the profit came from
+//  2020-01..2021-09, shorts lost at every fee, and without its 3 best trades the result is +218.
+//  Funding (~8 funding times per trade) was not included. Treat this as a chart study, not a trading signal.
+//
+//  HISTORY NOTE: the exact 19,200-bar SMA needs 19,200 bars of 15m history loaded. Many TradingView plans load
+//  fewer, so "Auto" uses the 1,200-bar SMA of 4h closes (the same 200 days) until the chart SMA exists.
+// ═══════════════════════════════════════════════════════════════════════════════
+indicator("Dewako ETH Futures 15m (R2) — research", shorttitle="Dewako R2", overlay=true, max_labels_count=500)
+
+gR = "Rules (R2)"
+regimeLen  = input.int(19200, "Regime SMA length (chart bars)", minval=10, group=gR, tooltip="200 days on a 15m chart = 19,200 bars.")
+regimeSrc  = input.string("Auto", "Regime source", options=["Auto", "Chart (exact)", "4h (approximate)"], group=gR, tooltip="Chart: the exact SMA, needs that many bars loaded. 4h: SMA of the last closed 4h bars over the same 200 days (length / 16), never repaints. Auto: chart SMA when it exists, else 4h. The 4h option assumes a 15m chart.")
+entryLen   = input.int(320, "Entry breakout (bars)", minval=2, group=gR)
+exitLen    = input.int(160, "Exit channel (bars)", minval=2, group=gR)
+atrLen     = input.int(224, "ATR length (simple mean of true range)", minval=2, group=gR)
+atrMult    = input.float(8.0, "Stop distance (ATR x)", step=0.5, minval=0.5, group=gR)
+allowShort = input.bool(true, "Allow shorts", group=gR, tooltip="Tested: the short side lost money at every fee level; the profit was the long side.")
+
+gS = "Stats panel (simulated sizing)"
+riskPct = input.float(0.5, "Risk per trade (% of equity)", step=0.1, minval=0.1, group=gS)
+capPct  = input.float(10, "Max position (% of equity)", step=1, minval=1, group=gS, tooltip="The engine's cap. Raising it scales profit and drawdown together.")
+feePct  = input.float(0.05, "Fee per side (%)", step=0.01, minval=0, group=gS, tooltip="Binance futures taker ~0.05%. Spread, slippage and funding are NOT in these stats.")
+
+gV = "Visuals"
+showSma    = input.bool(true, "Regime SMA", group=gV)
+showEntryC = input.bool(false, "Entry channel (320)", group=gV)
+showExitC  = input.bool(true, "Exit channel (160) while in a trade", group=gV)
+showBg     = input.bool(true, "Tint background by regime", group=gV)
+showPanel  = input.bool(true, "Panel", group=gV)
+cBull = input.color(#26a69a, "Bull", group=gV)
+cBear = input.color(#ef5350, "Bear", group=gV)
+cSma  = input.color(#ff9800, "SMA", group=gV)
+
+// ───────────────────────────── INDICATORS ─────────────────────────────
+float smaChart = ta.sma(close, regimeLen)
+int   len4h    = math.max(2, int(math.round(regimeLen / 16.0)))
+float sma4h    = request.security(syminfo.tickerid, "240", ta.sma(close, len4h)[1], lookahead=barmerge.lookahead_on)
+bool  useChart = regimeSrc == "Chart (exact)" or (regimeSrc == "Auto" and not na(smaChart))
+float regime   = regimeSrc == "4h (approximate)" ? sma4h : useChart ? smaChart : sma4h
+
+float atrS = ta.sma(ta.tr(true), atrLen)
+float dist = atrMult * atrS
+float eHi  = ta.highest(high, entryLen)[1]       // previous 320 bars, this bar excluded
+float eLo  = ta.lowest(low, entryLen)[1]
+float xHi  = ta.highest(high, exitLen)[1]        // previous 160 bars, this bar excluded
+float xLo  = ta.lowest(low, exitLen)[1]
+bool  ready = not na(regime) and not na(eHi) and not na(xLo) and not na(atrS) and atrS > 0
+
+// decided on this bar's close, acted on at the next bar's open
+bool longSig      = ready and close > regime and close > eHi and close - dist > 0
+bool shortSig     = ready and allowShort and close < regime and close < eLo
+bool exitLongSig  = ready and (close < xLo or close < regime)
+bool exitShortSig = ready and (close > xHi or close > regime)
+
+// ───────────────────────────── TRACKER ─────────────────────────────
+type State
+    int   pos     = 0
+    float entry   = na
+    float stop    = na
+    float qty     = na
+    int   eBar    = na
+    float eq      = 100.0
+    float peak    = 100.0
+    float maxDD   = 0.0
+    int   n       = 0
+    int   wins    = 0
+    int   nLong   = 0
+    int   nShort  = 0
+    float lastPnl = na
+    string lastWhy = "no trades yet"
+
+var State s = State.new()
+
+closeTrade(State st, float px, string why) =>
+    float pnl = st.pos * st.qty * (px - st.entry) - feePct / 100.0 * st.qty * (st.entry + px)
+    float pct = pnl / st.eq * 100.0
+    st.eq      := st.eq + pnl
+    st.peak    := math.max(st.peak, st.eq)
+    st.maxDD   := math.max(st.maxDD, (st.peak - st.eq) / st.peak * 100.0)
+    st.n       := st.n + 1
+    st.wins    := st.wins + (pnl > 0 ? 1 : 0)
+    st.lastPnl := pct
+    st.lastWhy := why
+    label.new(bar_index, st.pos == 1 ? high : low, "✕ " + why + "\n" + str.tostring(pct, "+#.##;-#.##") + "% of equity", style=st.pos == 1 ? label.style_label_down : label.style_label_up, color=color.new(pnl > 0 ? cBull : cBear, 30), textcolor=color.white, size=size.tiny)
+    st.pos   := 0
+    st.entry := na
+    st.stop  := na
+    st.qty   := na
+
+openTrade(State st, int side, float px, float stopPx) =>
+    float d = math.abs(px - stopPx)
+    st.pos   := side
+    st.entry := px
+    st.stop  := stopPx
+    st.qty   := math.min(riskPct / 100.0 * st.eq / math.max(d, syminfo.mintick), capPct / 100.0 * st.eq / px)
+    st.eBar  := bar_index
+    if side == 1
+        st.nLong := st.nLong + 1
+    else
+        st.nShort := st.nShort + 1
+    label.new(bar_index, side == 1 ? low : high, (side == 1 ? "▲ LONG" : "▼ SHORT") + "\nstop " + str.tostring(stopPx, format.mintick), style=side == 1 ? label.style_label_up : label.style_label_down, color=side == 1 ? cBull : cBear, textcolor=color.white, size=size.tiny)
+
+if barstate.isconfirmed and bar_index > 0
+    // 1. a stop the bar opens through fills at the open
+    if s.pos == 1 and open <= s.stop
+        closeTrade(s, open, "stop (gap)")
+    else if s.pos == -1 and open >= s.stop
+        closeTrade(s, open, "stop (gap)")
+    // 2. the previous bar's close decides; the order fills at this bar's open
+    if s.pos == 1 and exitLongSig[1]
+        closeTrade(s, open, "exit rule")
+    else if s.pos == -1 and exitShortSig[1]
+        closeTrade(s, open, "exit rule")
+    else if s.pos == 0
+        int side = longSig[1] ? 1 : shortSig[1] ? -1 : 0
+        if side != 0
+            openTrade(s, side, open, side == 1 ? close[1] - dist[1] : close[1] + dist[1])
+    // 3. the bar's path: an intrabar touch exits at the stop
+    if s.pos == 1 and low <= s.stop
+        closeTrade(s, s.stop, "stop")
+    else if s.pos == -1 and high >= s.stop
+        closeTrade(s, s.stop, "stop")
+
+// ───────────────────────────── ALERTS (on the signal bar's close) ─────────────────────────────
+if barstate.isconfirmed and ready
+    if s.pos == 0 and longSig
+        alert("Dewako R2 " + syminfo.ticker + ": LONG at the next open. Stop " + str.tostring(close - dist, format.mintick) + " (8 x ATR below this close).", alert.freq_once_per_bar_close)
+    else if s.pos == 0 and shortSig
+        alert("Dewako R2 " + syminfo.ticker + ": SHORT at the next open. Stop " + str.tostring(close + dist, format.mintick) + " (8 x ATR above this close).", alert.freq_once_per_bar_close)
+    else if s.pos == 1 and exitLongSig
+        alert("Dewako R2 " + syminfo.ticker + ": EXIT LONG at the next open (" + (close < regime ? "below the 200-day SMA" : "160-bar low broken") + ").", alert.freq_once_per_bar_close)
+    else if s.pos == -1 and exitShortSig
+        alert("Dewako R2 " + syminfo.ticker + ": EXIT SHORT at the next open (" + (close > regime ? "above the 200-day SMA" : "160-bar high broken") + ").", alert.freq_once_per_bar_close)
+
+// ───────────────────────────── PLOTS ─────────────────────────────
+plot(showSma ? regime : na, "Regime SMA (200 days)", cSma, 2)
+plot(showEntryC ? eHi : na, "Entry high (320)", color.new(cBull, 50), 1)
+plot(showEntryC ? eLo : na, "Entry low (320)", color.new(cBear, 50), 1)
+plot(showExitC and s.pos == 1 ? xLo : na, "Exit low (160)", color.new(cBear, 30), 1, plot.style_linebr)
+plot(showExitC and s.pos == -1 ? xHi : na, "Exit high (160)", color.new(cBull, 30), 1, plot.style_linebr)
+plot(s.pos != 0 ? s.stop : na, "Stop", color.new(cBear, 0), 2, plot.style_linebr)
+plot(s.pos != 0 ? s.entry : na, "Entry", color.new(#ffd600, 0), 1, plot.style_linebr)
+bgcolor(showBg and not na(regime) ? color.new(close > regime ? cBull : cBear, 94) : na)
+
+// ───────────────────────────── PANEL ─────────────────────────────
+var table T = table.new(position.top_right, 2, 12, bgcolor=color.new(#131722, 0), border_width=1, border_color=color.new(#2a2e39, 0), frame_width=1, frame_color=color.new(#2a2e39, 0))
+row(int r, string k, string v, color vc) =>
+    table.cell(T, 0, r, k, text_color=color.new(#9598a1, 0), text_size=size.tiny, text_halign=text.align_left)
+    table.cell(T, 1, r, v, text_color=vc, text_size=size.tiny)
+
+if showPanel and barstate.islast
+    color cT = color.new(#d1d4dc, 0)
+    table.cell(T, 0, 0, "DEWAKO R2 · research", text_color=color.white, text_size=size.small, bgcolor=color.new(#3b3515, 0))
+    table.cell(T, 1, 0, timeframe.period == "15" ? "15m" : "NOT 15m — rules assume 15m", text_color=timeframe.period == "15" ? cT : cBear, text_size=size.tiny, bgcolor=color.new(#3b3515, 0))
+    row(1, "regime source", regimeSrc == "4h (approximate)" or not useChart ? "4h SMA (approx.)" : "chart SMA (exact)", cT)
+    row(2, "trend", na(regime) ? "not ready" : close > regime ? "ABOVE 200-day SMA" : "BELOW 200-day SMA", na(regime) ? cT : close > regime ? cBull : cBear)
+    row(3, "position", s.pos == 1 ? "LONG" : s.pos == -1 ? "SHORT" : "flat", s.pos == 1 ? cBull : s.pos == -1 ? cBear : cT)
+    row(4, "entry / stop", s.pos != 0 ? str.tostring(s.entry, format.mintick) + " / " + str.tostring(s.stop, format.mintick) : "—", cT)
+    row(5, "trades (long / short)", str.tostring(s.n) + " (" + str.tostring(s.nLong) + " / " + str.tostring(s.nShort) + ")", cT)
+    row(6, "win rate", s.n > 0 ? str.tostring(100.0 * s.wins / s.n, "#") + "%" : "—", cT)
+    row(7, "net (fees only)", str.tostring(s.eq - 100.0, "+#.##;-#.##") + "%", s.eq >= 100 ? cBull : cBear)
+    row(8, "max drawdown", str.tostring(s.maxDD, "#.##") + "%", cT)
+    row(9, "last trade", na(s.lastPnl) ? s.lastWhy : str.tostring(s.lastPnl, "+#.##;-#.##") + "% · " + s.lastWhy, cT)
+    row(10, "not included", "spread, slippage, funding", cBear)
+    row(11, "backtest verdict", "FAILED gate (2020-26)", cBear)
