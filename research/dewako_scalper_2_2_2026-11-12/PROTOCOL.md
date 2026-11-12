@@ -1,5 +1,7 @@
 # Dewako Scalper 2.2 (owner's Pine strategy) — test protocol (pre-registered 2026-11-12, before any run)
 
+**Status: REJECTED — scrapped by the owner on 2026-11-12. Kept as a record; not to be retested or tuned.**
+
 Owner request: "check this strategy if it passes". Source: `Dewako_Scalper_2.2_STRATEGY.pine` (copied unchanged). Futures, long + short,
 so it cannot run in the engine (no shorts); `harness.py` re-implements the script's own trade tracker bar by bar. Not added to the engine.
 
