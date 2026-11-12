@@ -1,0 +1,285 @@
+{
+ "symbol": "BTC/USDT",
+ "timeframe": "15m",
+ "preset": "15m / 30m",
+ "bars": 239463,
+ "raw_signals": 48116,
+ "signals_after_filters": 16714,
+ "gate_mode": {
+  "script_0.04": {
+   "trades": 2688,
+   "net_pnl": -8143.008601421503,
+   "max_drawdown_pct": 0.9022244647864565,
+   "win_rate": 0.2619047619047619,
+   "sum_r": -118.8993088529104,
+   "long_pnl": 1367.223366758533,
+   "short_pnl": -9510.231968180042,
+   "funding": -20.311561340384042,
+   "by_type_r": {
+    "PB": -177.6,
+    "RS": 26.76,
+    "ST": -11.42,
+    "AL": 43.36
+   },
+   "exit_reasons": {
+    "stopped out": 1756,
+    "trail / break-even": 738,
+    "gap through stop": 7,
+    "all targets hit": 186,
+    "end of data": 1
+   },
+   "net_pnl_2x": -9884.975901648337,
+   "oos_expectancy": -0.6618577465831971,
+   "is_expectancy": -3.818571525653569,
+   "period_pnl": [
+    -3560.4063540350953,
+    -3220.809818541192,
+    -941.2844775243893,
+    -420.5079513208273
+   ],
+   "by_year_pnl": {
+    "2020": -1061.15,
+    "2021": -3202.51,
+    "2022": -1189.4,
+    "2023": -1912.58,
+    "2024": -349.24,
+    "2025": -1043.72,
+    "2026": 615.59
+   },
+   "split": {
+    "before_2023_11": {
+     "trades": 1543,
+     "net_pnl": -7204.931735221736,
+     "sum_r": -98.97428273185588,
+     "avg_r": -0.06414405880223971
+    },
+    "from_2023_11": {
+     "trades": 1145,
+     "net_pnl": -938.0768661997686,
+     "sum_r": -19.925026121054557,
+     "avg_r": -0.017401769538038864
+    }
+   },
+   "checks": [
+    {
+     "name": "enough trades",
+     "ok": true
+    },
+    {
+     "name": "positive at 2x costs",
+     "ok": false
+    },
+    {
+     "name": "drawdown within limit",
+     "ok": false
+    },
+    {
+     "name": "out-of-sample holds up",
+     "ok": false
+    },
+    {
+     "name": "consistent across periods",
+     "ok": false
+    }
+   ],
+   "verdict": "FAILED"
+  },
+  "taker_0.05+0.01": {
+   "trades": 2711,
+   "net_pnl": -9595.22923072134,
+   "max_drawdown_pct": 0.9733939877565143,
+   "win_rate": 0.2567318332718554,
+   "sum_r": -271.7482728001574,
+   "long_pnl": -208.6181172886608,
+   "short_pnl": -9386.611113432686,
+   "funding": -55.24622333580595,
+   "by_type_r": {
+    "PB": -266.13,
+    "RS": 3.71,
+    "ST": -26.19,
+    "AL": 16.87
+   },
+   "exit_reasons": {
+    "stopped out": 1775,
+    "trail / break-even": 748,
+    "gap through stop": 7,
+    "all targets hit": 180,
+    "end of data": 1
+   },
+   "net_pnl_2x": -9994.646416288042,
+   "oos_expectancy": -0.5764392369971884,
+   "is_expectancy": -4.525555490301986,
+   "period_pnl": [
+    -5436.36908871645,
+    -2908.1911119544448,
+    -903.3746612334631,
+    -347.2943688169859
+   ],
+   "by_year_pnl": {
+    "2020": -3063.85,
+    "2021": -3293.64,
+    "2022": -1180.29,
+    "2023": -1300.7,
+    "2024": -382.87,
+    "2025": -462.72,
+    "2026": 88.83
+   },
+   "split": {
+    "before_2023_11": {
+     "trades": 1551,
+     "net_pnl": -8673.49181734076,
+     "sum_r": -173.6537367321044,
+     "avg_r": -0.11196243503037033
+    },
+    "from_2023_11": {
+     "trades": 1160,
+     "net_pnl": -921.7374133805971,
+     "sum_r": -98.09453606805288,
+     "avg_r": -0.08456425523108017
+    }
+   },
+   "checks": [
+    {
+     "name": "enough trades",
+     "ok": true
+    },
+    {
+     "name": "positive at 2x costs",
+     "ok": false
+    },
+    {
+     "name": "drawdown within limit",
+     "ok": false
+    },
+    {
+     "name": "out-of-sample holds up",
+     "ok": false
+    },
+    {
+     "name": "consistent across periods",
+     "ok": false
+    }
+   ],
+   "verdict": "FAILED"
+  },
+  "owner_0.10+0.02": {
+   "trades": 2732,
+   "net_pnl": -9994.646416288042,
+   "max_drawdown_pct": 0.9994944383812113,
+   "win_rate": 0.246705710102489,
+   "sum_r": -703.0917730118755,
+   "long_pnl": -1887.7314259106995,
+   "short_pnl": -8106.9149903773505,
+   "funding": -48.931169308084314,
+   "by_type_r": {
+    "PB": -483.04,
+    "RS": -40.07,
+    "ST": -78.66,
+    "AL": -101.32
+   },
+   "exit_reasons": {
+    "stopped out": 1800,
+    "trail / break-even": 746,
+    "gap through stop": 6,
+    "all targets hit": 179,
+    "end of data": 1
+   },
+   "net_pnl_2x": -9999.999168992095,
+   "oos_expectancy": -0.04503842889872079,
+   "is_expectancy": -4.862803889385171,
+   "period_pnl": [
+    -8240.13799757456,
+    -1540.849747038158,
+    -186.485314244876,
+    -27.173357430452956
+   ],
+   "by_year_pnl": {
+    "2020": -6421.16,
+    "2021": -2383.2,
+    "2022": -775.2,
+    "2023": -315.1,
+    "2024": -69.28,
+    "2025": -29.23,
+    "2026": -1.47
+   },
+   "split": {
+    "before_2023_11": {
+     "trades": 1560,
+     "net_pnl": -9864.468668095687,
+     "sum_r": -401.20862092677027,
+     "avg_r": -0.2571850134145966
+    },
+    "from_2023_11": {
+     "trades": 1172,
+     "net_pnl": -130.17774819233875,
+     "sum_r": -301.88315208510477,
+     "avg_r": -0.25757948130128405
+    }
+   },
+   "checks": [
+    {
+     "name": "enough trades",
+     "ok": true
+    },
+    {
+     "name": "positive at 2x costs",
+     "ok": false
+    },
+    {
+     "name": "drawdown within limit",
+     "ok": false
+    },
+    {
+     "name": "out-of-sample holds up",
+     "ok": false
+    },
+    {
+     "name": "consistent across periods",
+     "ok": false
+    }
+   ],
+   "verdict": "FAILED"
+  }
+ },
+ "reference_close_fill": {
+  "trades": 2687,
+  "net_pnl": -8139.127654367484,
+  "max_drawdown_pct": 0.9030928697931947,
+  "win_rate": 0.26237439523632305,
+  "sum_r": -118.68991015575067,
+  "long_pnl": 1514.5615134370785,
+  "short_pnl": -9653.689167804558,
+  "funding": -18.99551072097637,
+  "by_type_r": {
+   "PB": -176.32,
+   "RS": 26.74,
+   "ST": -11.42,
+   "AL": 42.31
+  },
+  "exit_reasons": {
+   "stopped out": 1756,
+   "trail / break-even": 737,
+   "gap through stop": 7,
+   "all targets hit": 186,
+   "end of data": 1
+  },
+  "split": {
+   "before_2023_11": {
+    "trades": 1542,
+    "net_pnl": -7199.228743124128,
+    "sum_r": -98.7698844427131,
+    "avg_r": -0.06405310275143522
+   },
+   "from_2023_11": {
+    "trades": 1145,
+    "net_pnl": -939.8989112433674,
+    "sum_r": -19.9200257130376,
+    "avg_r": -0.01739740236946511
+   }
+  },
+  "last_12_months": {
+   "trades": 340,
+   "sum_r": 37.9965665711237
+  }
+ }
+}
