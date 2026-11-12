@@ -1,0 +1,723 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Dewako Scalper 2.2 — STRATEGY version (same logic as the FINAL indicator, plus real orders for the
+//  Strategy Tester). Commission is set in strategy() below: 0.04% per side = 0.08% round trip.
+//  Position size: risk % of equity per trade (stop distance), capped by max leverage.
+//  Dewako Scalper 2.2 — FINAL. Crypto trend-following scalper for Binance BTC/ETH.
+//  HOW TO USE
+//    • 15m / 30m chart → Timeframe preset "15m / 30m" (default).
+//        12-month test, 0.08% fees: +197R, 1,095 trades, profitable in all 8 tuning/unseen periods.
+//    • 3m / 5m chart   → Timeframe preset "3m / 5m".
+//        EMA 34/89, SuperTrend 20×5, 13–17 UTC only, 4h SuperTrend must agree, stop 2.5–4 ATR,
+//        targets 2/4/6/10R, skip if fees > 0.10R. 12-month test: +69R, 416 trades, all 8 periods positive.
+//    • STRICT MODE (optional): PB + RS only, ADX ≥ 20, volume ≥ 1.2× average, targets 1.5/2.5/3.5/5R.
+//        ~24% fewer trades, smaller drawdown, a bit less profit (+148R vs +197R on 15m/30m).
+//    • Win rate is ~30–40% by design: many small losses, a few large trend wins. Paper-trade first.
+//    • Extra slippage = 0.02 if you use market orders.
+//    • 3-YEAR TEST (Nov 2023 – Nov 2026, fees + funding): BTC/ETH profitable on 30m and ETH 15m / ETH 5m;
+//      BTC 15m lost in 2025; SOL and BNB (never used for tuning) LOST money — use on BTC / ETH only.
+//    • Risk limits (day loss, max trades/day, pause after N losses) are optional, off by default.
+//  2.2 changes vs 2.0: RS fix (+18R), break-even after TP1 (+6R), richer stats, short trades leave no box,
+//  closed boxes shrink to stop → furthest target reached.
+//  Layer 1: VWAP (UTC day) + dual EMA.
+//  Layer 2: SuperTrend (ATR 10, multiplier 4.0). Tighter multipliers lost money after fees on the tune.
+//  Layer 3: Adaptive RSI (length shortens in trends, lengthens in chop).
+//  A trade needs all three layers aligned.
+//  Initial stop is the recent swing (at least min ATR ×). If it is wider than max ATR ×, it is clamped to max
+//  by default (best in testing), or the trade is skipped if you choose that option.
+//  After TP1 is touched, the stop trails SuperTrend and only tightens. TP1–TP3 are markers unless a partial is set.
+//  A SuperTrend flip does not exit unless that option is on.
+//  Stats are net of trading fees. A stop gapped through fills at the open, not at the stop.
+// ═══════════════════════════════════════════════════════════════════════════════
+strategy("Dewako Scalper 2.2 Strategy", shorttitle="Dewako 2.2 S", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500, initial_capital=1000, currency=currency.USDT, default_qty_type=strategy.fixed, default_qty_value=1, commission_type=strategy.commission.percent, commission_value=0.04, slippage=0, pyramiding=0, process_orders_on_close=true, margin_long=10, margin_short=10, calc_on_every_tick=false)
+
+// ───────────────────────────── INPUTS ─────────────────────────────
+gR = "Strategy (orders)"
+riskPct = input.float(1.0, "Risk per trade (% of equity)", step=0.1, minval=0.1, maxval=10, group=gR, tooltip="Position size = equity × risk% ÷ stop distance. A stopped-out trade loses about this % plus fees.")
+maxLev  = input.float(10, "Max leverage (position value ÷ equity)", step=1, minval=1, maxval=50, group=gR, tooltip="Caps the position when the stop is very tight. Margin in strategy() allows up to 10×.")
+
+gP = "Preset"
+preset = input.string("15m / 30m", "Timeframe preset", options=["15m / 30m", "3m / 5m"], group=gP, tooltip="3m / 5m: EMA 34/89, SuperTrend 20 × 5, only 13–17 UTC, 4h SuperTrend must agree, stop 2.5–4 ATR, targets 2/4/6/10 R, skip if fees > 0.10 R, no break-even. 12-month test on BTC/ETH 3m+5m: +69R, 416 trades, profitable in all 8 tuning/unseen periods (2.2 defaults on 3m/5m: −127R). Overrides the matching settings below.")
+bool ltf = preset == "3m / 5m"
+
+g1 = "Layer 1 — VWAP + dual EMA"
+emaFastLenIn = input.int(9, "EMA fast", minval=2, group=g1)
+emaSlowLenIn = input.int(21, "EMA slow", minval=3, group=g1)
+useVwap    = input.bool(true, "Require price on the right side of VWAP", group=g1)
+
+g2 = "Layer 2 — SuperTrend"
+stAtrLenIn = input.int(10, "ATR length", minval=1, group=g2)
+stMultIn = input.float(4.0, "Multiplier", step=0.1, minval=0.5, group=g2, tooltip="Tuned on 12 months of BTC/ETH: 4.0 was profitable after fees; 3.0, 2.5 and 2.0 lost money on most charts.")
+
+g3 = "Layer 3 — Adaptive RSI"
+arsiMin  = input.int(8, "Shortest RSI length (strong trend)", minval=2, group=g3)
+arsiMax  = input.int(28, "Longest RSI length (chop)", minval=3, group=g3)
+arsiEr   = input.int(10, "Efficiency-ratio lookback", minval=2, group=g3)
+arsiBull = input.float(50, "Long needs ARSI above", group=g3)
+arsiBear = input.float(50, "Short needs ARSI below", group=g3)
+arsiOB   = input.float(80, "No longs above (overbought)", group=g3)
+arsiOS   = input.float(20, "No shorts below (oversold)", group=g3)
+
+gS = "Signals"
+strictMode = input.bool(false, "STRICT MODE – fewer, higher-quality trades", group=gS, tooltip="Only PB + RS signals, ADX(14) ≥ 20, volume ≥ 1.2 × 20-bar average, targets 1.5 / 2.5 / 3.5 / 5 R. 12-month test on BTC/ETH 15m+30m: 24% fewer trades, win 32%, profit factor 1.27, +148R (normal: +197R), smaller drawdown. Overrides the AL/ST, volume and TP settings below.")
+usePB      = input.bool(true, "PB – pullback to EMA fast / VWAP while layers 1 + 2 agree", group=gS)
+useRS      = input.bool(true, "RS – Adaptive RSI dips toward 50 and turns back up in the trend", group=gS)
+useALIn    = input.bool(true, "AL – all three layers just aligned", group=gS)
+useSTIn    = input.bool(true, "ST – SuperTrend flip with layers 1 + 3 agreeing", group=gS)
+pbTouchATRIn = input.float(0.5, "Pullback touch zone (ATR ×)", step=0.05, group=gS)
+rsDip      = input.float(8, "RS: after dipping to ~50, ARSI must rise above 50 + N (min 5)", step=1, minval=5, group=gS)
+minAtrPct  = input.float(0.0, "Min ATR as % of price (0 = off)", step=0.01, minval=0, group=gS, tooltip="Skips trades when the market is too quiet. The fee filter below usually does this job.")
+maxFeeRIn = input.float(0.25, "Skip trade if fees > this many R", step=0.05, minval=0, group=gS, tooltip="Fee cost ÷ stop distance. 0.25 = fees may eat at most 25% of one R. 0 = off.")
+useSess    = input.bool(true, "Only enter during session hours (UTC)", group=gS, tooltip="Tuning on 12 months: 12–21 UTC (US session) was profitable; trading all day lost money.")
+sessStartIn = input.int(12, "Session start hour (UTC)", minval=0, maxval=23, group=gS)
+sessEndIn = input.int(21, "Session end hour (UTC)", minval=0, maxval=24, group=gS, tooltip="Exclusive. 12 and 21 means 12:00–20:59 UTC. If the start hour is after the end hour, the window wraps midnight.")
+cooldownIn = input.int(0, "Cooldown bars after entry / exit", minval=0, group=gS)
+adxMinStr  = input.float(20, "Strict mode: min ADX(14)", step=1, minval=0, group=gS)
+labelMode  = input.string("Trades only", "Labels", options=["Trades only", "All signals"], group=gS)
+
+gT = "Trade management"
+swingLookIn = input.int(5, "Stop below swing low / above swing high of last N bars", minval=2, group=gT)
+minRiskATRIn = input.float(1.0, "Min stop distance (ATR ×)", step=0.1, group=gT, tooltip="If the swing stop is tighter than this, it is pushed further from price. It is never pulled closer.")
+maxRiskATRIn = input.float(4.0, "Max stop distance (ATR ×)", step=0.1, group=gT)
+wideMode   = input.string("Clamp to max", "If the swing stop is wider than max", options=["Clamp to max", "Skip trade"], group=gT, tooltip="Clamp to max: take the trade with the stop at max ATR × (12-month test: +152R on BTC/ETH 15m+30m). Skip trade: never pull the stop inside the swing (same test: +131R; worse on 3m/5m).")
+tp1RIn    = input.float(2.0, "TP1 (R)", step=0.1, group=gT)
+tp2RIn    = input.float(3.0, "TP2 (R)", step=0.1, group=gT)
+tp3RIn    = input.float(4.0, "TP3 (R)", step=0.1, group=gT)
+tp4RIn    = input.float(6.0, "TP4 (R)", step=0.1, group=gT)
+partPct   = input.float(0, "Take partial at TP1 (%)", minval=0, maxval=100, step=5, group=gT, tooltip="0 = TP1, TP2 and TP3 are only marks. The position stays on until the stop or TP4. Above 0, that percent is booked at TP1.")
+trailST   = input.bool(true, "After TP1, trail the stop on the SuperTrend line", group=gT)
+breakEvenIn = input.bool(true, "Move stop to break-even when TP1 is touched", group=gT, tooltip="2.2: tested +6R on 12 months of BTC/ETH 15m+30m.")
+timeStop  = input.int(0, "Time stop: exit after N bars if TP1 not reached (0 = off)", minval=0, group=gT)
+exitFlip  = input.bool(false, "Exit when SuperTrend flips against the trade", group=gT)
+feePct    = input.float(0.08, "Round-trip fee (% of price)", step=0.01, minval=0, group=gT, tooltip="Binance futures: ≈ 0.04% per side with limit orders mixed in → 0.08% round trip; market orders ≈ 0.10%.")
+slipPct   = input.float(0.0, "Extra slippage (% of price)", step=0.01, minval=0, group=gT, tooltip="Added to the fee. Use 0.02 if you enter and exit with market orders.")
+fundPct   = input.float(0.01, "Funding rate per 8h (%)", step=0.005, group=gT, tooltip="Binance perpetuals charge funding every 8h (00/08/16 UTC). Positive = longs pay, shorts receive. ~0.01% is typical. Counted in the R stats (3-year test: only −0.4 to −4R per chart, trades are short). 0 = spot.")
+
+gL = "Risk limits (off by default)"
+dayLossR     = input.float(0, "Stop new entries after a day loss of N R (0 = off)", step=0.5, minval=0, group=gL, tooltip="UTC day. 3-year test: 2R/3R day limits LOWERED profit — trends often start after a few losses.")
+maxTradesDay = input.int(0, "Max entries per UTC day (0 = off)", minval=0, group=gL)
+lossStreakN  = input.int(0, "Pause after N losses in a row (0 = off)", minval=0, group=gL, tooltip="3-year test: pausing 24h after 5 losses was roughly neutral (+48R over 10 charts, mixed per chart). Use it to protect the account, not to add profit.")
+pauseHours   = input.int(24, "Pause length (hours)", minval=1, group=gL)
+
+gX = "Optional filters (off by default — tested worse)"
+useVolFIn = input.bool(false, "Require volume > SMA × multiplier", group=gX)
+volLen    = input.int(20, "Volume SMA length", minval=5, group=gX)
+volMultIn = input.float(1.2, "Volume multiplier", step=0.1, minval=1.0, group=gX)
+chopLen   = input.int(0, "Chop filter: efficiency-ratio lookback (0 = off)", minval=0, group=gX, tooltip="Tested: ER(20) ≥ 0.20 cost −118R over 12 months — it blocks the start of trends. Left here for experiments.")
+chopMin   = input.float(0.20, "Chop filter: min efficiency ratio", minval=0, maxval=1, step=0.05, group=gX)
+
+// timeframe preset overrides
+emaFastLen = ltf ? 34 : emaFastLenIn
+emaSlowLen = ltf ? 89 : emaSlowLenIn
+stAtrLen   = ltf ? 20 : stAtrLenIn
+stMult     = ltf ? 5.0 : stMultIn
+pbTouchATR = ltf ? 0.5 : pbTouchATRIn
+maxFeeR    = ltf ? 0.10 : maxFeeRIn
+sessStart  = ltf ? 13 : sessStartIn
+sessEnd    = ltf ? 17 : sessEndIn
+cooldown   = ltf ? 0 : cooldownIn
+swingLook  = ltf ? 5 : swingLookIn
+minRiskATR = ltf ? 2.5 : minRiskATRIn
+maxRiskATR = ltf ? 4.0 : maxRiskATRIn
+breakEven  = ltf ? false : breakEvenIn
+useHtf     = ltf
+
+// strict mode overrides
+useAL   = useALIn and not strictMode
+useST   = useSTIn and not strictMode
+tp1R    = strictMode ? 1.5 : ltf ? 2.0 : tp1RIn
+tp2R    = strictMode ? 2.5 : ltf ? 4.0 : tp2RIn
+tp3R    = strictMode ? 3.5 : ltf ? 6.0 : tp3RIn
+tp4R    = strictMode ? 5.0 : ltf ? 10.0 : tp4RIn
+useVolF = useVolFIn or strictMode
+volMult = strictMode ? 1.2 : volMultIn
+
+gV = "Visuals"
+brand      = input.string("◆ DEWAKO SCALPER 2.2", "Panel title", group=gV)
+showRibbon = input.bool(true, "EMA ribbon", group=gV)
+showVwap   = input.bool(true, "VWAP", group=gV)
+showST     = input.bool(true, "SuperTrend line", group=gV)
+showBoxes  = input.bool(true, "Trade boxes", group=gV)
+showLvlLbl = input.bool(true, "Level labels (ENTRY / SL / TP1–TP4)", group=gV)
+minBoxBars = input.int(3, "Hide boxes of trades shorter than (bars)", minval=0, group=gV, tooltip="Removes the thin box left by trades stopped out within a few bars. 0 = keep all.")
+showLabels = input.bool(true, "Signal labels", group=gV)
+showPanels = input.bool(true, "Panels", group=gV)
+showStats  = input.bool(true, "Signal stats panel", group=gV)
+cBull  = input.color(#26a69a, "Bull", group=gV)
+cBear  = input.color(#ef5350, "Bear", group=gV)
+cNeut  = input.color(#787b86, "Neutral", group=gV)
+cEntry = input.color(#ffd600, "Entry line", group=gV)
+cVwap  = input.color(#ff9800, "VWAP", group=gV)
+cPanel = input.color(#131722, "Panel background", group=gV)
+
+// ───────────────────────────── LAYER 1: VWAP + DUAL EMA ─────────────────────────────
+emaF = ta.ema(close, emaFastLen)
+emaS = ta.ema(close, emaSlowLen)
+// Session filter is UTC, so VWAP must reset on the UTC day — not the chart timezone.
+int  utcDay    = dayofmonth(time, "UTC")
+bool newUtcDay = na(utcDay[1]) or utcDay != utcDay[1]
+var float cumPV = 0.0
+var float cumV  = 0.0
+float barVol = nz(volume)
+if newUtcDay
+    cumPV := hlc3 * barVol
+    cumV  := barVol
+else
+    cumPV += hlc3 * barVol
+    cumV  += barVol
+float vwap = cumV > 0 ? cumPV / cumV : na
+atr = ta.atr(stAtrLen)
+
+bool l1Bull = emaF > emaS and (not useVwap or close > vwap)
+bool l1Bear = emaF < emaS and (not useVwap or close < vwap)
+
+// ribbon: 10 EMAs spread evenly from EMA fast to EMA slow (same look as v1)
+float rStep = (emaSlowLen - emaFastLen) / 9.0
+r1  = ta.ema(close, emaFastLen)
+r2  = ta.ema(close, emaFastLen + int(math.round(rStep * 1)))
+r3  = ta.ema(close, emaFastLen + int(math.round(rStep * 2)))
+r4  = ta.ema(close, emaFastLen + int(math.round(rStep * 3)))
+r5  = ta.ema(close, emaFastLen + int(math.round(rStep * 4)))
+r6  = ta.ema(close, emaFastLen + int(math.round(rStep * 5)))
+r7  = ta.ema(close, emaFastLen + int(math.round(rStep * 6)))
+r8  = ta.ema(close, emaFastLen + int(math.round(rStep * 7)))
+r9  = ta.ema(close, emaFastLen + int(math.round(rStep * 8)))
+r10 = ta.ema(close, emaSlowLen)
+
+// ───────────────────────────── LAYER 2: SUPERTREND ─────────────────────────────
+[stLine, stDirRaw] = ta.supertrend(stMult, stAtrLen)
+int  stDir  = na(stDirRaw) ? 0 : stDirRaw < 0 ? 1 : -1   // 1 = up, -1 = down, 0 = not ready
+bool l2Bull = stDir == 1
+bool l2Bear = stDir == -1
+bool stFlipUp = stDir == 1 and stDir[1] == -1
+bool stFlipDn = stDir == -1 and stDir[1] == 1
+
+// ───────────────────────────── LAYER 3: ADAPTIVE RSI ─────────────────────────────
+// Kaufman efficiency ratio: 1 = clean trend, 0 = pure noise. Trend → short RSI length (fast), chop → long (slow).
+float erNum = math.abs(close - close[arsiEr])
+float erDen = math.sum(math.abs(close - close[1]), arsiEr)
+float er    = erDen > 0 ? erNum / erDen : 0.0
+float arsiLen = arsiMin + (1 - nz(er)) * (arsiMax - arsiMin)
+float alpha   = 1.0 / arsiLen
+float chg = close - nz(close[1], close)
+var float avgUp = 0.0
+var float avgDn = 0.0
+avgUp := avgUp + alpha * (math.max(chg, 0) - avgUp)
+avgDn := avgDn + alpha * (math.max(-chg, 0) - avgDn)
+float arsi = avgDn == 0 ? 100.0 : 100.0 - 100.0 / (1.0 + avgUp / avgDn)
+
+bool l3Bull = arsi > arsiBull and arsi < arsiOB
+bool l3Bear = arsi < arsiBear and arsi > arsiOS
+
+// ───────────────────────────── PLOTS ─────────────────────────────
+bool allBull = l1Bull and l2Bull and l3Bull
+bool allBear = l1Bear and l2Bear and l3Bear
+ribCol = allBull ? cBull : allBear ? cBear : cNeut
+
+plot(showRibbon ? r1  : na, "EMA 1",  color.new(ribCol, 0),  1)
+plot(showRibbon ? r2  : na, "EMA 2",  color.new(ribCol, 5),  1)
+plot(showRibbon ? r3  : na, "EMA 3",  color.new(ribCol, 10), 1)
+plot(showRibbon ? r4  : na, "EMA 4",  color.new(ribCol, 15), 1)
+plot(showRibbon ? r5  : na, "EMA 5",  color.new(ribCol, 20), 1)
+plot(showRibbon ? r6  : na, "EMA 6",  color.new(ribCol, 25), 1)
+plot(showRibbon ? r7  : na, "EMA 7",  color.new(ribCol, 30), 1)
+plot(showRibbon ? r8  : na, "EMA 8",  color.new(ribCol, 35), 1)
+plot(showRibbon ? r9  : na, "EMA 9",  color.new(ribCol, 40), 1)
+plot(showRibbon ? r10 : na, "EMA 10", color.new(ribCol, 45), 1)
+plot(showVwap and not newUtcDay ? vwap : na, "VWAP", cVwap, 2, plot.style_linebr)
+plot(showST and stDir == 1  and stDir[1] == 1  ? stLine : na, "SuperTrend up",   color.new(cBull, 20), 2, plot.style_linebr)
+plot(showST and stDir == -1 and stDir[1] == -1 ? stLine : na, "SuperTrend down", color.new(cBear, 20), 2, plot.style_linebr)
+
+// ───────────────────────────── SIGNALS ─────────────────────────────
+bool volOK  = minAtrPct <= 0 or (not na(atr) and atr > 0 and atr / close * 100 >= minAtrPct)
+int  hrUTC  = hour(time, "UTC")
+bool inSess = not useSess or (sessStart < sessEnd ? (hrUTC >= sessStart and hrUTC < sessEnd) : sessStart > sessEnd ? (hrUTC >= sessStart or hrUTC < sessEnd) : false)
+
+alLong  = useAL and allBull and not allBull[1] and not stFlipUp
+alShort = useAL and allBear and not allBear[1] and not stFlipDn
+stLong  = useST and stFlipUp and l1Bull and l3Bull
+stShort = useST and stFlipDn and l1Bear and l3Bear
+// Layers 1 + 2 are the trend FILTER; the trigger is a pullback that turns back with the trend.
+bool trendUp = l1Bull and l2Bull
+bool trendDn = l1Bear and l2Bear
+float zoneL = useVwap ? math.max(emaF, vwap) : emaF
+float zoneS = useVwap ? math.min(emaF, vwap) : emaF
+// PB: price dipped into EMA-fast / VWAP zone in the last 3 bars, then closes above the prior high, ARSI > 50
+pbLong  = usePB and trendUp and trendUp[1] and ta.lowest(low, 3) <= zoneL + atr * pbTouchATR and close > high[1] and close > emaF and arsi > arsiBull and arsi < arsiOB
+pbShort = usePB and trendDn and trendDn[1] and ta.highest(high, 3) >= zoneS - atr * pbTouchATR and close < low[1] and close < emaF and arsi < arsiBear and arsi > arsiOS
+// RS: momentum reset — ARSI pulled back to near 50 within the last 5 bars, now crosses back up through 50 + a few points
+// 2.2 fix: ARSI must have really dipped to ~50 (within 3 points) in the last 5 bars,
+// then cross back beyond 50 ± rsDip (the old dip check was nearly always true).
+float rsUpLvl = arsiBull + math.max(rsDip, 5)
+float rsDnLvl = arsiBear - math.max(rsDip, 5)
+rsLong  = useRS and trendUp and ta.lowest(arsi, 5) <= arsiBull + 3 and ta.crossover(arsi, rsUpLvl) and close > emaF
+rsShort = useRS and trendDn and ta.highest(arsi, 5) >= arsiBear - 3 and ta.crossunder(arsi, rsDnLvl) and close < emaF
+
+int    sigDir  = 0
+string sigType = ""
+if pbLong
+    sigDir  := 1
+    sigType := "PB"
+else if pbShort
+    sigDir  := -1
+    sigType := "PB"
+else if rsLong
+    sigDir  := 1
+    sigType := "RS"
+else if rsShort
+    sigDir  := -1
+    sigType := "RS"
+else if stLong
+    sigDir  := 1
+    sigType := "ST"
+else if stShort
+    sigDir  := -1
+    sigType := "ST"
+else if alLong
+    sigDir  := 1
+    sigType := "AL"
+else if alShort
+    sigDir  := -1
+    sigType := "AL"
+
+int    rawDir  = sigDir
+string rawType = sigType
+
+// Stop sits beyond the swing. Min distance pushes it further away.
+// Wider than max: clamped to max (default) or the trade is skipped.
+float swingL  = ta.lowest(low, swingLook) - atr * 0.1
+float swingH  = ta.highest(high, swingLook) + atr * 0.1
+float rawStop = rawDir == 1 ? close - swingL : rawDir == -1 ? swingH - close : na
+bool  stopBad = rawDir != 0 and (na(rawStop) or rawStop <= 0 or na(atr) or atr <= 0)
+float floored = stopBad ? na : math.max(rawStop, atr * minRiskATR)
+bool  stopWide = wideMode == "Skip trade" and rawDir != 0 and not stopBad and (rawStop > atr * maxRiskATR or floored > atr * maxRiskATR)
+float sigRisk = stopBad or stopWide ? na : math.min(floored, atr * maxRiskATR)
+float sigFeeR = na(sigRisk) or sigRisk <= 0 ? na : (feePct + slipPct) / 100.0 * close / sigRisk
+// optional filters (off by default)
+float volSma  = ta.sma(nz(volume), volLen)
+bool  volFOK  = not useVolF or nz(volume) >= volSma * volMult
+[_dip, _dim, adxVal] = ta.dmi(14, 14)
+bool  adxOK   = not strictMode or adxVal >= adxMinStr
+htfDirF() =>
+    [_hl, _hd] = ta.supertrend(3.0, 10)
+    _hd
+float htfDir = request.security(syminfo.tickerid, "240", htfDirF()[1], lookahead=barmerge.lookahead_on)
+bool  htfOK   = not useHtf or (rawDir == 1 and htfDir < 0) or (rawDir == -1 and htfDir > 0)
+float chopNum = chopLen > 0 ? math.abs(close - nz(close[chopLen], close)) : 0.0
+float chopDen = chopLen > 0 ? math.sum(math.abs(close - nz(close[1], close)), math.max(chopLen, 1)) : 0.0
+float chopEr  = chopDen > 0 ? chopNum / chopDen : 1.0
+bool  chopOK  = chopLen <= 0 or chopEr >= chopMin
+bool  blkSess = rawDir != 0 and not inSess
+bool  blkVol  = rawDir != 0 and not blkSess and not volOK
+bool  blkStop = rawDir != 0 and not blkSess and not blkVol and (stopBad or stopWide or na(sigRisk) or sigRisk <= 0)
+bool  blkFilt = rawDir != 0 and not blkSess and not blkVol and not blkStop and (not volFOK or not chopOK or not adxOK or not htfOK)
+bool  blkFee  = rawDir != 0 and not blkSess and not blkVol and not blkStop and not blkFilt and maxFeeR > 0 and (na(sigFeeR) or sigFeeR > maxFeeR)
+if blkSess or blkVol or blkStop or blkFilt or blkFee
+    sigDir  := 0
+    sigType := ""
+
+// ───────────────────────────── TRADE ENGINE ─────────────────────────────
+var int    tDir    = 0
+var string tType   = ""
+var float  tEntry  = na
+var float  tStop   = na
+var float  tRisk   = na
+var float  tTP1    = na
+var float  tTP2    = na
+var float  tTP3    = na
+var float  tTP4    = na
+var int    tBar    = na
+var int    tHit    = 0
+var float  tPeak   = 0.0
+var float  tBanked = 0.0
+var float  tSize   = 1.0
+var float  tFeeR   = 0.0
+var float  lastR   = na
+var string lastWhy = "no trades yet"
+var box    tBox = na   // reward zone: entry → TP4
+var box    rBox = na   // risk zone: entry → stop
+var label  lbE = na
+var label  lbS = na
+var label  lb1 = na
+var label  lb2 = na
+var label  lb3 = na
+var label  lb4 = na
+var line   lnE  = na
+var line   lnS  = na
+var line   ln1  = na
+var line   ln2  = na
+var line   ln3  = na
+var line   ln4  = na
+var int    lastEntryBar = -100000
+var int    lastExitBar  = -100000
+var int    nRaw = 0
+var int    nSess = 0
+var int    nVol = 0
+var int    nStopBlk = 0
+var int    nFee = 0
+var int    nBusy = 0
+var int    nOpened = 0
+var int    nTrades = 0
+var int    nWins = 0
+var int    nTP1 = 0
+var float  sumR = 0.0
+var float  sumFee = 0.0
+var float  eqPeak = 0.0
+var float  maxDD = 0.0
+var float  tFund = 0.0
+var float  sumFund = 0.0
+var int    curDay = -1
+var float  dayR = 0.0
+var int    dayN = 0
+var int    lossStreak = 0
+var int    pauseUntil = 0
+var int    nRisk = 0
+var int    nFilt = 0
+var int    nLoss = 0
+var float  sumWin = 0.0
+var float  sumLossAbs = 0.0
+var int    consecLoss = 0
+var int    maxConsecLoss = 0
+var array<int>   tyCnt = array.new_int(4, 0)    // PB, RS, ST, AL
+var array<int>   tyWin = array.new_int(4, 0)
+var array<float> tyR   = array.new_float(4, 0.0)
+
+// --- manage open trade ---
+if tDir != 0 and barstate.isconfirmed and (na(tRisk) or tRisk <= 0)
+    lastWhy := "invalid risk"
+    lastR := na
+    tDir := 0
+    lastExitBar := bar_index
+else if tDir != 0 and barstate.isconfirmed
+    tPeak := math.max(tPeak, tDir == 1 ? (high - tEntry) / tRisk : (tEntry - low) / tRisk)
+    // funding: charged at 00/08/16 UTC while the position is open (long pays a positive rate)
+    if fundPct != 0 and time % 28800000 == 0
+        tFund -= tDir * fundPct / 100.0 * tEntry / tRisk
+    bool stopHit = tDir == 1 ? low <= tStop : high >= tStop      // stop in force before this bar
+    int hits = 0
+    if tDir == 1
+        hits := (high >= tTP1 ? 1 : 0) + (high >= tTP2 ? 1 : 0) + (high >= tTP3 ? 1 : 0) + (high >= tTP4 ? 1 : 0)
+    else
+        hits := (low <= tTP1 ? 1 : 0) + (low <= tTP2 ? 1 : 0) + (low <= tTP3 ? 1 : 0) + (low <= tTP4 ? 1 : 0)
+    int prevHit = tHit
+    tHit := math.max(tHit, hits)
+    if not stopHit and prevHit == 0 and tHit >= 1 and partPct > 0
+        tBanked := partPct / 100.0 * tp1R
+        tSize   := 1.0 - partPct / 100.0
+    // 2.2: break-even when TP1 is first touched (applies from the next bar)
+    if not stopHit and prevHit == 0 and tHit >= 1 and breakEven
+        tStop := tDir == 1 ? math.max(tStop, tEntry) : math.min(tStop, tEntry)
+        if not na(lnS)
+            line.set_y1(lnS, tStop)
+            line.set_y2(lnS, tStop)
+        if not na(lbS)
+            label.set_y(lbS, tStop)
+            label.set_text(lbS, (tHit >= 1 ? "TRAIL SL " : "SL ") + str.tostring(tStop, format.mintick))
+
+    float  exitPx = na
+    string why    = ""
+    if stopHit
+        // A gap through the stop fills at the open (worse). An intra-bar touch still fills at the stop.
+        bool gapThru = tDir == 1 ? open <= tStop : open >= tStop
+        exitPx := tDir == 1 ? math.min(open, tStop) : math.max(open, tStop)
+        bool locked = tDir == 1 ? tStop >= tEntry : tStop <= tEntry
+        why := gapThru ? "gap through stop" : locked ? "trail / break-even" : "stopped out"
+    else if tHit >= 4
+        exitPx := tTP4
+        why    := "all targets hit"
+    else if timeStop > 0 and bar_index - tBar >= timeStop and tHit == 0
+        exitPx := close
+        why    := "time stop"
+    else if exitFlip and stDir == -tDir
+        exitPx := close
+        why    := "SuperTrend flipped"
+
+    if not na(exitPx)
+        float rawR = tDir == 1 ? (exitPx - tEntry) / tRisk : (tEntry - exitPx) / tRisk
+        lastR   := na(rawR) ? na : tBanked + tSize * rawR - tFeeR + tFund
+        lastWhy := why
+        string exitSide = tDir == 1 ? "long" : "short"
+        string exitSig  = tType
+        int    exitHits = tHit
+        string rJson    = na(lastR) ? "null" : str.tostring(lastR, "#.####")
+        alert("{\"event\":\"exit\",\"side\":\"" + exitSide + "\",\"signal\":\"" + exitSig + "\",\"reason\":\"" + why + "\",\"ticker\":\"" + syminfo.ticker + "\",\"interval\":\"" + timeframe.period + "\",\"exit\":" + str.tostring(exitPx, "#.########") + ",\"r\":" + rJson + ",\"targetsTouched\":" + str.tostring(exitHits) + "}", alert.freq_once_per_bar_close)
+        tDir    := 0
+        lastExitBar := bar_index
+        nTrades += 1
+        sumFund += tFund
+        int dK = int(time / 86400000)
+        if dK != curDay
+            curDay := dK
+            dayR := 0.0
+            dayN := 0
+        if not na(lastR)
+            dayR += lastR
+            lossStreak := lastR > 0 ? 0 : lossStreak + 1
+            if lossStreakN > 0 and lossStreak >= lossStreakN
+                pauseUntil := time + pauseHours * 3600000
+                lossStreak := 0
+        nTP1    += tHit >= 1 ? 1 : 0
+        int ti = exitSig == "PB" ? 0 : exitSig == "RS" ? 1 : exitSig == "ST" ? 2 : 3
+        array.set(tyCnt, ti, array.get(tyCnt, ti) + 1)
+        if not na(lastR)
+            nWins  += lastR > 0 ? 1 : 0
+            nLoss  += lastR > 0 ? 0 : 1
+            sumWin += lastR > 0 ? lastR : 0.0
+            sumLossAbs += lastR > 0 ? 0.0 : -lastR
+            consecLoss := lastR > 0 ? 0 : consecLoss + 1
+            maxConsecLoss := math.max(maxConsecLoss, consecLoss)
+            sumR   += lastR
+            sumFee += tFeeR
+            eqPeak := math.max(eqPeak, sumR)
+            maxDD  := math.max(maxDD, eqPeak - sumR)
+            array.set(tyWin, ti, array.get(tyWin, ti) + (lastR > 0 ? 1 : 0))
+            array.set(tyR,   ti, array.get(tyR, ti) + lastR)
+        if not na(tBox)
+            if minBoxBars > 0 and bar_index - tBar < minBoxBars
+                box.delete(tBox)
+                box.delete(rBox)
+                line.delete(lnE)
+                line.delete(lnS)
+                line.delete(ln1)
+                line.delete(ln2)
+                line.delete(ln3)
+                line.delete(ln4)
+                label.delete(lbE)
+                label.delete(lbS)
+                label.delete(lb1)
+                label.delete(lb2)
+                label.delete(lb3)
+                label.delete(lb4)
+                tBox := na
+                rBox := na
+            else
+                // closed trade: keep the zones and every level, just fade them
+                box.set_bgcolor(tBox, color.new(cBull, 92))
+                box.set_border_color(tBox, color.new(cBull, 60))
+                box.set_bgcolor(rBox, color.new(cBear, 92))
+                box.set_border_color(rBox, color.new(cBear, 60))
+    else if trailST and tHit >= 1 and stDir == tDir and not na(stLine)
+        // after TP1 the stop follows the SuperTrend line (only ever tightens)
+        tStop := tDir == 1 ? math.max(tStop, stLine) : math.min(tStop, stLine)
+        if not na(lnS)
+            line.set_y1(lnS, tStop)
+            line.set_y2(lnS, tStop)
+        if not na(lbS)
+            label.set_y(lbS, tStop)
+            label.set_text(lbS, (tHit >= 1 ? "TRAIL SL " : "SL ") + str.tostring(tStop, format.mintick))
+
+if not na(tBox) and tDir != 0
+    box.set_right(tBox, bar_index)
+    box.set_right(rBox, bar_index)
+    label.set_x(lbE, bar_index)
+    label.set_x(lbS, bar_index)
+    label.set_x(lb1, bar_index)
+    label.set_x(lb2, bar_index)
+    label.set_x(lb3, bar_index)
+    label.set_x(lb4, bar_index)
+    line.set_x2(lnE, bar_index)
+    line.set_x2(lnS, bar_index)
+    line.set_x2(ln1, bar_index)
+    line.set_x2(ln2, bar_index)
+    line.set_x2(ln3, bar_index)
+    line.set_x2(ln4, bar_index)
+
+// --- open a new trade (an ST flip may reverse on the same bar the old trade closed) ---
+bool coolOK = sigType == "ST" or (bar_index - lastEntryBar >= cooldown and bar_index - lastExitBar >= cooldown and bar_index != lastExitBar)
+bool opened = false
+int dKey = int(time / 86400000)
+if dKey != curDay
+    curDay := dKey
+    dayR := 0.0
+    dayN := 0
+bool riskOK  = (dayLossR <= 0 or dayR > -dayLossR) and (maxTradesDay <= 0 or dayN < maxTradesDay) and time >= pauseUntil
+bool blkRisk = tDir == 0 and sigDir != 0 and coolOK and barstate.isconfirmed and not na(sigRisk) and sigRisk > 0 and not riskOK
+if blkRisk
+    nRisk += 1
+if tDir == 0 and sigDir != 0 and coolOK and barstate.isconfirmed and not na(sigRisk) and sigRisk > 0 and riskOK
+    dayN    += 1
+    tFund   := 0.0
+    opened  := true
+    lastEntryBar := bar_index
+    tDir    := sigDir
+    tType   := sigType
+    tEntry  := close
+    tRisk   := sigRisk
+    tStop   := tEntry - tDir * tRisk
+    tTP1    := tEntry + tDir * tRisk * tp1R
+    tTP2    := tEntry + tDir * tRisk * tp2R
+    tTP3    := tEntry + tDir * tRisk * tp3R
+    tTP4    := tEntry + tDir * tRisk * tp4R
+    tFeeR   := (feePct + slipPct) / 100.0 * tEntry / tRisk
+    tBar    := bar_index
+    tHit    := 0
+    tPeak   := 0.0
+    tBanked := 0.0
+    tSize   := 1.0
+    color col = tDir == 1 ? cBull : cBear
+    if showBoxes
+        // position-tool style: green reward zone (entry → TP4) and red risk zone (entry → stop)
+        tBox := box.new(bar_index, math.max(tEntry, tTP4), bar_index, math.min(tEntry, tTP4), border_color=color.new(cBull, 30), border_width=1, bgcolor=color.new(cBull, 82))
+        rBox := box.new(bar_index, math.max(tEntry, tStop), bar_index, math.min(tEntry, tStop), border_color=color.new(cBear, 30), border_width=1, bgcolor=color.new(cBear, 78))
+        lnE  := line.new(bar_index, tEntry, bar_index, tEntry, color=cEntry, width=2)
+        lnS  := line.new(bar_index, tStop,  bar_index, tStop,  color=cBear,  width=2)
+        ln1  := line.new(bar_index, tTP1,   bar_index, tTP1,   color=cBull, width=1, style=line.style_dashed)
+        ln2  := line.new(bar_index, tTP2,   bar_index, tTP2,   color=cBull, width=1, style=line.style_dashed)
+        ln3  := line.new(bar_index, tTP3,   bar_index, tTP3,   color=cBull, width=1, style=line.style_dashed)
+        ln4  := line.new(bar_index, tTP4,   bar_index, tTP4,   color=cBull, width=2)
+        if showLvlLbl
+            lbE := label.new(bar_index, tEntry, "ENTRY " + str.tostring(tEntry, format.mintick), style=label.style_label_left, color=color.new(cEntry, 100), textcolor=cEntry, size=size.small)
+            lbS := label.new(bar_index, tStop,  "SL " + str.tostring(tStop, format.mintick), style=label.style_label_left, color=color.new(cBear, 100), textcolor=cBear, size=size.small)
+            lb1 := label.new(bar_index, tTP1,   "TP1 " + str.tostring(tp1R, "#.#") + "R", style=label.style_label_left, color=color.new(cBull, 100), textcolor=cBull, size=size.small)
+            lb2 := label.new(bar_index, tTP2,   "TP2 " + str.tostring(tp2R, "#.#") + "R", style=label.style_label_left, color=color.new(cBull, 100), textcolor=cBull, size=size.small)
+            lb3 := label.new(bar_index, tTP3,   "TP3 " + str.tostring(tp3R, "#.#") + "R", style=label.style_label_left, color=color.new(cBull, 100), textcolor=cBull, size=size.small)
+            lb4 := label.new(bar_index, tTP4,   "TP4 " + str.tostring(tp4R, "#.#") + "R", style=label.style_label_left, color=color.new(cBull, 100), textcolor=cBull, size=size.small)
+    string side = tDir == 1 ? "long" : "short"
+    alert("{\"event\":\"entry\",\"side\":\"" + side + "\",\"signal\":\"" + tType + "\",\"ticker\":\"" + syminfo.ticker + "\",\"interval\":\"" + timeframe.period + "\",\"entry\":" + str.tostring(tEntry, "#.########") + ",\"stop\":" + str.tostring(tStop, "#.########") + ",\"risk\":" + str.tostring(tRisk, "#.########") + ",\"tp1\":" + str.tostring(tTP1, "#.########") + ",\"tp2\":" + str.tostring(tTP2, "#.########") + ",\"tp3\":" + str.tostring(tTP3, "#.########") + ",\"tp4\":" + str.tostring(tTP4, "#.########") + ",\"feeR\":" + str.tostring(tFeeR, "#.####") + "}", alert.freq_once_per_bar_close)
+
+if barstate.isconfirmed and rawDir != 0
+    nRaw     += 1
+    nSess    += blkSess ? 1 : 0
+    nVol     += blkVol ? 1 : 0
+    nStopBlk += blkStop ? 1 : 0
+    nFee     += blkFee ? 1 : 0
+    nFilt    += blkFilt ? 1 : 0
+    nBusy    += sigDir != 0 and not opened ? 1 : 0
+    nOpened  += opened ? 1 : 0
+
+// --- labels ---
+bool   doLabel = labelMode == "Trades only" ? opened : rawDir != 0
+int    lDir    = labelMode == "Trades only" ? sigDir : rawDir
+string lType   = labelMode == "Trades only" ? sigType : rawType
+bool   dimmed  = labelMode == "All signals" and not opened
+if showLabels and doLabel and barstate.isconfirmed
+    string whyB = not dimmed ? "" : blkSess ? " ·session" : blkVol ? " ·quiet" : blkStop ? " ·stop" : blkFilt ? " ·filter" : blkFee ? " ·fees" : sigDir != 0 ? (tDir != 0 ? " ·in trade" : " ·cooldown") : ""
+    string txt  = (lDir == 1 ? "▲ " : "▼ ") + lType + whyB
+    color  lc   = color.new(lDir == 1 ? cBull : cBear, dimmed ? 70 : 0)
+    label.new(bar_index, lDir == 1 ? low - atr * 0.6 : high + atr * 0.6, txt, style=lDir == 1 ? label.style_label_up : label.style_label_down, color=lc, textcolor=color.new(color.white, dimmed ? 40 : 0), size=size.small)
+
+plot(tDir != 0 ? tEntry : na, "Entry", cEntry, display=display.price_scale)
+plot(tDir != 0 ? tStop  : na, "Stop",  cBear,  display=display.price_scale)
+plot(tDir != 0 ? tTP1   : na, "TP1",   cBull,  display=display.price_scale)
+plot(tDir != 0 ? tTP2   : na, "TP2",   cBull,  display=display.price_scale)
+plot(tDir != 0 ? tTP3   : na, "TP3",   cBull,  display=display.price_scale)
+plot(tDir != 0 ? tTP4   : na, "TP4",   cBull,  display=display.price_scale)
+
+// ───────────────────────────── PANELS ─────────────────────────────
+fmtR(float r) => na(r) ? "—" : str.tostring(r, "#.##") + "R"
+fmtP(float p) => na(p) ? "—" : str.tostring(p, format.mintick)
+
+cDark  = color.new(cPanel, 0)
+cHead  = color.new(#3b3515, 0)
+cText  = color.new(#d1d4dc, 0)
+cMuted = color.new(#9598a1, 0)
+
+var table biasT  = table.new(position.top_right, 3, 7, bgcolor=cDark, border_width=1, border_color=color.new(#2a2e39, 0), frame_width=1, frame_color=color.new(#2a2e39, 0))
+var table tradeT = table.new(position.bottom_right, 3, 9, bgcolor=cDark, border_width=1, border_color=color.new(#2a2e39, 0), frame_width=1, frame_color=color.new(#2a2e39, 0))
+var table statT  = table.new(position.middle_left, 2, 26, bgcolor=cDark, border_width=1, border_color=color.new(#2a2e39, 0), frame_width=1, frame_color=color.new(#2a2e39, 0))
+
+if barstate.isfirst
+    table.merge_cells(biasT, 0, 0, 2, 0)
+    table.merge_cells(tradeT, 0, 0, 1, 0)
+    table.merge_cells(statT, 0, 0, 1, 0)
+
+biasRow(int row, string k, string v, color vc, string tag, color tagCol) =>
+    table.cell(biasT, 0, row, k, text_color=cText, text_size=size.tiny, bgcolor=cDark)
+    table.cell(biasT, 1, row, v, text_color=vc, text_size=size.tiny, bgcolor=cDark)
+    table.cell(biasT, 2, row, tag, text_color=color.white, text_size=size.tiny, bgcolor=color.new(tagCol, 25))
+
+tradeRow(int row, string k, string v, color vc, string r, color rc, color rbg) =>
+    table.cell(tradeT, 0, row, k, text_color=cMuted, text_size=size.tiny, bgcolor=cDark, text_halign=text.align_left)
+    table.cell(tradeT, 1, row, v, text_color=vc, text_size=size.tiny, bgcolor=cDark)
+    table.cell(tradeT, 2, row, r, text_color=rc, text_size=size.tiny, bgcolor=rbg)
+
+statRow(int row, string k, string v, color vc) =>
+    table.cell(statT, 0, row, k, text_color=cMuted, text_size=size.tiny, bgcolor=cDark, text_halign=text.align_left)
+    table.cell(statT, 1, row, v, text_color=vc, text_size=size.tiny, bgcolor=cDark)
+
+layerTag(bool bull, bool bear) => bull ? "BULL" : bear ? "BEAR" : "MIXED"
+layerCol(bool bull, bool bear) => bull ? cBull : bear ? cBear : cNeut
+
+if showPanels and barstate.islast
+    int nAlign = math.max((l1Bull ? 1 : 0) + (l2Bull ? 1 : 0) + (l3Bull ? 1 : 0), (l1Bear ? 1 : 0) + (l2Bear ? 1 : 0) + (l3Bear ? 1 : 0))
+    table.cell(biasT, 0, 0, "LAYERS", text_color=color.white, text_size=size.small, bgcolor=cHead)
+    bool  vwapOk = not na(vwap) and not na(atr) and atr > 0
+    float vd = vwapOk ? (close - vwap) / atr : na
+    biasRow(1, "L1 VWAP", na(vd) ? "—" : str.tostring(vd, "+#.0;-#.0") + " ATR", na(vd) ? cMuted : vd >= 0 ? cBull : cBear, not na(vwap) ? (close >= vwap ? "ABOVE" : "BELOW") : "—", na(vd) ? cNeut : vd >= 0 ? cBull : cBear)
+    biasRow(2, "L1 EMA", str.tostring(emaFastLen) + "/" + str.tostring(emaSlowLen), cText, emaF > emaS ? "BULL" : "BEAR", emaF > emaS ? cBull : cBear)
+    biasRow(3, "L2 ST", str.tostring(stAtrLen) + " × " + str.tostring(stMult, "#.0"), cText, l2Bull ? "UP" : l2Bear ? "DOWN" : "—", l2Bull ? cBull : l2Bear ? cBear : cNeut)
+    biasRow(4, "L3 ARSI", str.tostring(arsi, "#") + " (" + str.tostring(arsiLen, "#") + ")", cText, layerTag(l3Bull, l3Bear), layerCol(l3Bull, l3Bear))
+    biasRow(5, "ALIGN", str.tostring(nAlign) + "/3", cText, allBull ? "ALL BULL" : allBear ? "ALL BEAR" : "WAIT", layerCol(allBull, allBear))
+    biasRow(6, "ATR", fmtP(atr), cText, na(atr) or close == 0 ? "—" : str.tostring(atr / close * 100, "#.###") + "%", volOK ? cNeut : cBear)
+
+    bool   isOpen  = tDir != 0 and not na(tRisk) and tRisk > 0
+    float  openR   = isOpen ? tBanked + tSize * (tDir == 1 ? (close - tEntry) / tRisk : (tEntry - close) / tRisk) : na
+    int    held    = isOpen ? bar_index - tBar : 0
+    float  nextTP  = isOpen ? (tHit == 0 ? tTP1 : tHit == 1 ? tTP2 : tHit == 2 ? tTP3 : tTP4) : na
+    string nextLbl = isOpen ? "TP" + str.tostring(math.min(tHit + 1, 4)) : "—"
+    float  dist    = isOpen ? math.abs(nextTP - close) : na
+    int    barN    = isOpen and not na(openR) and tp4R > 0 ? int(math.round(math.max(0.0, math.min(1.0, openR / tp4R)) * 10)) : 0
+    string pBar    = str.repeat("▓", barN) + str.repeat("░", 10 - barN)
+    string dots    = str.repeat("●", tHit) + str.repeat("○", 4 - tHit)
+    color  dirCol  = tDir == 1 ? cBull : tDir == -1 ? cBear : cNeut
+    string stateTx = tDir == 1 ? "▲ LONG " + tType : tDir == -1 ? "▼ SHORT " + tType : "FLAT"
+    table.cell(tradeT, 0, 0, brand + (ltf ? " · 3m/5m" : "") + (strictMode ? " · STRICT" : ""), text_color=color.white, text_size=size.small, bgcolor=cHead, text_halign=text.align_left)
+    table.cell(tradeT, 2, 0, timeframe.period, text_color=cMuted, text_size=size.tiny, bgcolor=cHead)
+    tradeRow(1, "STATE", stateTx, color.white, allBull ? "ALIGNED UP" : allBear ? "ALIGNED DOWN" : "NOT ALIGNED", color.white, color.new(layerCol(allBull, allBear), 20))
+    table.cell(tradeT, 1, 1, stateTx, text_color=color.white, text_size=size.tiny, bgcolor=color.new(dirCol, 25))
+    tradeRow(2, "ENTRY", isOpen ? fmtP(tEntry) : "—", cText, isOpen ? str.tostring(held) + " bars held" : "—", cMuted, cDark)
+    tradeRow(3, "STOP", isOpen ? fmtP(tStop) : "—", cBear, isOpen ? (tHit >= 1 and trailST ? "trail armed" : "risk " + fmtP(tRisk)) : "—", cMuted, cDark)
+    tradeRow(4, "TARGETS", isOpen ? dots : "○○○○", cText, isOpen ? str.tostring(tHit) + " of 4 touched" : "—", color.white, isOpen ? color.new(cBull, 40) : cDark)
+    tradeRow(5, "NEXT", fmtP(nextTP), cEntry, isOpen ? nextLbl + " · " + fmtP(dist) + " away" : "—", cMuted, cDark)
+    tradeRow(6, "OPEN P/L", fmtR(openR), isOpen ? (openR >= 0 ? cBull : cBear) : cMuted, pBar, cBull, cDark)
+    tradeRow(7, "PEAK", isOpen ? fmtR(tPeak) : "—", cText, isOpen ? "fee " + fmtR(tFeeR) : "—", cMuted, cDark)
+    tradeRow(8, "LAST", fmtR(lastR), na(lastR) ? cMuted : lastR >= 0 ? cBull : cBear, lastWhy, cMuted, cDark)
+
+if showStats and barstate.islast
+    table.cell(statT, 0, 0, "SIGNAL STATS (after fees)", text_color=color.white, text_size=size.tiny, bgcolor=cHead)
+    statRow(1, "raw signals", str.tostring(nRaw), cText)
+    statRow(2, "blocked: session", str.tostring(nSess), cText)
+    statRow(3, "blocked: too quiet (ATR %)", str.tostring(nVol), cText)
+    statRow(4, wideMode == "Skip trade" ? "blocked: stop too wide" : "blocked: bad stop", str.tostring(nStopBlk), cText)
+    statRow(5, "blocked: vol / ADX / 4h / chop", str.tostring(nFilt), cText)
+    statRow(6, "blocked: fees > " + str.tostring(maxFeeR, "#.##") + "R", str.tostring(nFee), cText)
+    statRow(7, "blocked: in trade / cooldown", str.tostring(nBusy), cText)
+    statRow(8, "entries", str.tostring(nOpened), cText)
+    statRow(9, "closed trades", str.tostring(nTrades), cText)
+    statRow(10, "win rate", nTrades > 0 ? str.tostring(100.0 * nWins / nTrades, "#") + "%" : "—", cText)
+    statRow(11, "TP1 touched", nTrades > 0 ? str.tostring(100.0 * nTP1 / nTrades, "#") + "%" : "—", cText)
+    statRow(12, "net R (after fees)", na(sumR) ? "—" : str.tostring(sumR, "#.#") + "R", na(sumR) ? cMuted : sumR >= 0 ? cBull : cBear)
+    float pf = sumLossAbs > 0 ? sumWin / sumLossAbs : na
+    statRow(13, "profit factor", na(pf) ? "—" : str.tostring(pf, "#.##"), na(pf) ? cMuted : pf >= 1 ? cBull : cBear)
+    statRow(14, "avg R / trade (expectancy)", nTrades > 0 and not na(sumR) ? str.tostring(sumR / nTrades, "#.##") + "R" : "—", na(sumR) ? cMuted : sumR >= 0 ? cBull : cBear)
+    statRow(15, "avg win / avg loss", (nWins > 0 ? str.tostring(sumWin / nWins, "#.##") : "—") + "R / " + (nLoss > 0 ? str.tostring(sumLossAbs / nLoss, "#.##") : "—") + "R", cText)
+    statRow(16, "fees paid", str.tostring(sumFee, "#.#") + "R", cBear)
+    statRow(17, "max drawdown", str.tostring(maxDD, "#.#") + "R", cText)
+    statRow(18, "longest losing streak", str.tostring(maxConsecLoss), cText)
+    for i = 0 to 3
+        int    c  = array.get(tyCnt, i)
+        float  r  = array.get(tyR, i)
+        string nm = i == 0 ? "PB" : i == 1 ? "RS" : i == 2 ? "ST" : "AL"
+        statRow(19 + i, nm + " trades · win% · R", str.tostring(c) + " · " + (c > 0 ? str.tostring(100.0 * array.get(tyWin, i) / c, "#") + "%" : "—") + " · " + str.tostring(r, "#.#") + "R", r >= 0 ? cBull : cBear)
+    statRow(23, "blocked: risk limits", str.tostring(nRisk), cText)
+    statRow(24, "funding (in net R)", str.tostring(sumFund, "#.#") + "R", sumFund >= 0 ? cBull : cBear)
+    bool symTested = syminfo.basecurrency == "BTC" or syminfo.basecurrency == "ETH"
+    statRow(25, "symbol", symTested ? "tested (BTC / ETH)" : "UNTESTED – lost on SOL/BNB", symTested ? cBull : cBear)
+
+// alert() is the webhook payload (create the alert with "Any alert() function call").
+
+// ───────────────────────────── STRATEGY ORDERS ─────────────────────────────
+// The trade tracker above decides everything; these calls mirror it as orders.
+// Entries fill at the signal bar close (process_orders_on_close). Stop / TP4 are resting orders that are
+// refreshed every bar, so break-even and the SuperTrend trail move the real stop too.
+if opened
+    float qty = math.min(strategy.equity * riskPct / 100.0 / tRisk, strategy.equity * maxLev / close)
+    strategy.entry(tDir == 1 ? "Long" : "Short", tDir == 1 ? strategy.long : strategy.short, qty=qty, comment=tType)
+if tDir != 0
+    string eid = tDir == 1 ? "Long" : "Short"
+    if partPct > 0 and tHit == 0
+        strategy.exit("TP1", eid, qty_percent=partPct, limit=tTP1, stop=tStop, comment_profit="TP1", comment_loss="SL")
+    strategy.exit("Exit", eid, stop=tStop, limit=tTP4, comment_profit="TP4", comment_loss=tHit >= 1 ? "Trail / BE" : "SL")
+// time stop / SuperTrend-flip exits happen at the bar close in the tracker; close the real position too
+if tDir == 0 and not opened and strategy.position_size != 0
+    strategy.close_all(comment=lastWhy)
