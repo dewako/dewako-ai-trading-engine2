@@ -107,8 +107,11 @@ if WINDOWS:
     _k32.Process32FirstW.restype = _k32.Process32NextW.restype = wintypes.BOOL
     _k32.Process32FirstW.argtypes = _k32.Process32NextW.argtypes = [wintypes.HANDLE, ctypes.POINTER(_PROCESSENTRY32W)]
 
-    def _process_parents():
-        """{pid: parent_pid} for every process on the machine (ToolHelp snapshot)."""
+    _k32.GetProcessTimes.restype = wintypes.BOOL
+    _k32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+
+    def _process_parents(names=None):
+        """{pid: parent_pid} for every process on the machine (ToolHelp snapshot); fills `names` {pid: exe} when given."""
         snap = _k32.CreateToolhelp32Snapshot(0x2, 0)                       # TH32CS_SNAPPROCESS
         if snap in (None, 0, ctypes.c_void_p(-1).value):
             raise OSError(ctypes.get_last_error(), "CreateToolhelp32Snapshot")
@@ -119,6 +122,8 @@ if WINDOWS:
             ok = _k32.Process32FirstW(snap, ctypes.byref(e))
             while ok:
                 out[int(e.th32ProcessID)] = int(e.th32ParentProcessID)
+                if names is not None:
+                    names[int(e.th32ProcessID)] = e.szExeFile
                 ok = _k32.Process32NextW(snap, ctypes.byref(e))
         finally:
             _k32.CloseHandle(snap)
@@ -170,8 +175,40 @@ if WINDOWS:
             pass
 
 
-def pid_alive(pid):
-    """True while a process with this pid is running. Zombies (already dead, not yet reaped) count as dead."""
+def start_stamp(pid):
+    """Creation stamp of the process that holds `pid` NOW (None if it is gone or cannot be read). A pid is reused once its process
+    exits (on Windows within seconds on a busy machine), so a process is identified by (pid, stamp), never by the pid alone."""
+    if WINDOWS:
+        h = _k32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if not h:
+            return None
+        try:
+            t = [wintypes.FILETIME() for _ in range(4)]
+            if not _k32.GetProcessTimes(h, *(ctypes.byref(x) for x in t)):
+                return None
+            return (t[0].dwHighDateTime << 32) | t[0].dwLowDateTime
+        finally:
+            _k32.CloseHandle(h)
+    try:
+        with open(f"/proc/{int(pid)}/stat") as f:
+            return int(f.read().rsplit(")", 1)[1].split()[19])               # field 22: start time in clock ticks since boot
+    except (OSError, IndexError, ValueError):
+        return None
+
+
+def pid_alive(pid, stamp=None):
+    """True while the process with this pid (and, if `stamp` is given, this creation stamp) is running. Zombies count as dead.
+    With `stamp`, a pid now held by a different, newer process counts as dead: the process we meant has exited."""
+    if not _pid_running(pid):
+        return False
+    if stamp is not None:
+        now = start_stamp(pid)
+        if now is not None and now != stamp:
+            return False
+    return True
+
+
+def _pid_running(pid):
     if WINDOWS:
         h = _k32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
         if not h:
@@ -194,13 +231,15 @@ def pid_alive(pid):
         return True
 
 
-def wait_until_dead(pids, timeout=10.0):
-    """Poll until none of `pids` is alive; returns the list still alive after `timeout`."""
+def wait_until_dead(pids, timeout=10.0, stamps=None):
+    """Poll until none of `pids` is alive; returns the list still alive after `timeout`. `stamps` {pid: creation stamp} makes a
+    reused pid count as dead (see start_stamp)."""
+    stamps = stamps or {}
     end = time.monotonic() + timeout
-    alive = [p for p in pids if pid_alive(p)]
+    alive = [p for p in pids if pid_alive(p, stamps.get(p))]
     while alive and time.monotonic() < end:
         time.sleep(0.1)
-        alive = [p for p in alive if pid_alive(p)]
+        alive = [p for p in alive if pid_alive(p, stamps.get(p))]
     return alive
 
 
@@ -231,20 +270,54 @@ def descendants(pid):
         parents = _parent_map()
     except Exception:
         return []
+    cache = {}
+
+    def stamp(x):
+        if x not in cache:
+            cache[x] = start_stamp(x)
+        return cache[x]
+
+    def plausible(child, par):        # an older process cannot be a child: its recorded parent was a dead process with a reused pid
+        c, p = stamp(child), stamp(par)
+        return c is None or p is None or c >= p
+
     found, frontier = [], [pid]
     while frontier:
-        nxt = [c for c, par in parents.items() if par in frontier and c not in found and c != pid]
+        nxt = [c for c, par in parents.items() if par in frontier and c not in found and c != pid and plausible(c, par)]
         found += nxt
         frontier = nxt
     return found
+
+
+def describe(pids, stamps=None):
+    """One line per pid for diagnostics: executable, parent, whether the creation stamp still matches."""
+    stamps, names = stamps or {}, {}
+    try:
+        parents = _process_parents(names) if WINDOWS else _parent_map()
+    except Exception:
+        parents = {}
+    out = []
+    for p in pids:
+        name = names.get(p)
+        if name is None and not WINDOWS:
+            try:
+                with open(f"/proc/{int(p)}/comm") as f:
+                    name = f.read().strip()
+            except OSError:
+                name = "?"
+        now = start_stamp(p)
+        same = "unknown" if stamps.get(p) is None or now is None else ("same process" if now == stamps[p] else "pid REUSED")
+        out.append(f"{p} exe={name} ppid={parents.get(p)} stamp={now} ({same})")
+    return "; ".join(out)
 
 
 # ------------------------------------------------------------------------------------------------ process tree runner
 class WorkerHung(AssertionError):
     """A child exceeded its time limit and its whole process tree was killed. Carries diagnostics."""
 
-    def __init__(self, msg, pid=None, out="", err="", elapsed=0.0, tree=()):
+    def __init__(self, msg, pid=None, out="", err="", elapsed=0.0, tree=(), stamps=None):
         super().__init__(msg)
+        self.stamps = dict(stamps or {})        # {pid: creation stamp} at the kill: lets callers check THESE processes, not reused pids
         # pid  = the process run_process LAUNCHED (argv[0]); on a Windows venv this is the launcher stub, not the interpreter.
         # tree = every descendant alive at the moment of the kill (real interpreter, grandchildren, ...).
         self.pid, self.out, self.err, self.elapsed, self.tree = pid, out, err, elapsed, list(tree)
@@ -267,8 +340,11 @@ def _kill_tree(p, job):
             pass
 
 
-def _kill_pid(pid):
-    """Last resort for one pid that survived the tree kill (idempotent: an already-dead pid is fine)."""
+def _kill_pid(pid, stamp=None):
+    """Last resort for one pid that survived the tree kill (idempotent: an already-dead pid is fine). Never kills a different
+    process that has since been given the same pid."""
+    if stamp is not None and start_stamp(pid) not in (None, stamp):
+        return
     if WINDOWS:
         try:
             subprocess.run(["taskkill", "/F", "/PID", str(int(pid))], capture_output=True, timeout=20)
@@ -284,20 +360,22 @@ def _kill_pid(pid):
 def _verified_cleanup(p, job, label):
     """Snapshot the tree, kill it, then PROVE every pid is gone. Returns the snapshot. Raises CleanupError otherwise."""
     tree = descendants(p.pid) if p.poll() is None else []
+    stamps = {x: start_stamp(x) for x in tree + [p.pid]}   # identity taken BEFORE the kill: afterwards the pids may be reused
     _kill_tree(p, job)
     try:
         p.wait(timeout=10)                                  # reap the launched process (a zombie would look alive on some systems)
     except subprocess.TimeoutExpired:
         pass
     pids = tree + ([p.pid] if p.poll() is None else [])
-    left = wait_until_dead(pids, 10.0)
+    left = wait_until_dead(pids, 10.0, stamps)
     if left:
         for pid in left:
-            _kill_pid(pid)
-        left = wait_until_dead(left, 10.0)
+            _kill_pid(pid, stamps.get(pid))
+        left = wait_until_dead(left, 10.0, stamps)
     if left:
-        raise CleanupError(f"[{label}] processes still alive after the kill: {left} (launched pid {p.pid}, tree {tree})")
-    return tree
+        raise CleanupError(f"[{label}] processes still alive after the kill: {left} (launched pid {p.pid}, tree {tree}); "
+                           f"survivors: {describe(left, stamps)}")
+    return tree, stamps
 
 
 def run_process(argv, env, timeout, label=""):
@@ -324,7 +402,7 @@ def run_process(argv, env, timeout, label=""):
             raise
     out = err = ""
     hung = False
-    tree = []
+    tree, stamps = [], {}
     try:
         try:
             out, err = p.communicate(timeout=timeout)
@@ -332,7 +410,7 @@ def run_process(argv, env, timeout, label=""):
             hung = True
     finally:
         try:
-            tree = _verified_cleanup(p, job, label)             # nothing may outlive the test, not even a grandchild
+            tree, stamps = _verified_cleanup(p, job, label)     # nothing may outlive the test, not even a grandchild
         finally:
             if hung:
                 try:
@@ -351,7 +429,7 @@ def run_process(argv, env, timeout, label=""):
     if hung:
         raise WorkerHung(f"worker hung for {timeout}s and was killed (elapsed {elapsed:.1f}s) [{label}] launched pid {p.pid}, "
                          f"descendants at kill {tree} argv={argv[1:]}\n"
-                         f"--- stdout tail ---\n{_tail(out)}\n--- stderr tail ---\n{_tail(err)}", p.pid, out, err, elapsed, tree)
+                         f"--- stdout tail ---\n{_tail(out)}\n--- stderr tail ---\n{_tail(err)}", p.pid, out, err, elapsed, tree, stamps)
     return p.returncode, out, err
 
 
