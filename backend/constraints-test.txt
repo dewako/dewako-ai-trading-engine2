@@ -1,7 +1,7 @@
 # Resolved with the documented requirements install and checked with pip-audit on Python 3.13.15 (Windows).
 annotated-doc==0.0.5
 annotated-types==0.8.0
-anyio==4.15.1
+anyio==4.16.0
 certifi==2026.10.23
 cffi==2.1.1
 click==8.5.1
