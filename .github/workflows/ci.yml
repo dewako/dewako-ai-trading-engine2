@@ -138,6 +138,22 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "${{ matrix.python }}", allow-prereleases: true}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt pytest-timeout
+      - name: PC paper-run scripts self-test under Windows PowerShell 5.1 and PowerShell 7 (D1 row counts, D2 watchdog)
+        # The real Invoke-RestMethod against a local HTTP server, the scheduled-task registration, and a parse of both scripts.
+        shell: pwsh
+        run: |
+          $d = New-Item -ItemType Directory -Force -Path (Join-Path $env:RUNNER_TEMP "rows")
+          '[]' | Set-Content (Join-Path $d "rows0.json"); '[{"id":1}]' | Set-Content (Join-Path $d "rows1.json")
+          '[{"id":1},{"id":2}]' | Set-Content (Join-Path $d "rows2.json")
+          $srv = Start-Process python -ArgumentList "-m", "http.server", "8765", "--bind", "127.0.0.1", "--directory", "$d" -PassThru -WindowStyle Hidden
+          try {
+            $up = $false; foreach ($i in 1..30) { try { Invoke-WebRequest http://127.0.0.1:8765/rows0.json -UseBasicParsing | Out-Null; $up = $true; break } catch { Start-Sleep 1 } }
+            if (-not $up) { throw "test HTTP server did not start" }
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/windows/dewako_paper.ps1 -Action selftest -TestUrl http://127.0.0.1:8765 -TestTasks
+            if ($LASTEXITCODE -ne 0) { throw "selftest failed under Windows PowerShell 5.1" }
+            pwsh -NoProfile -File scripts/windows/dewako_paper.ps1 -Action selftest -TestUrl http://127.0.0.1:8765 -TestTasks
+            if ($LASTEXITCODE -ne 0) { throw "selftest failed under PowerShell 7" }
+          } finally { Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue }
       - name: process cleanup helper + crash matrix + crash/recovery, x3
         working-directory: backend/tests
         shell: bash
