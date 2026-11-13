@@ -229,5 +229,18 @@ class HttpReadinessAndRisk(unittest.TestCase):
                 self.assertIn(429, codes)
 
 
+class HttpEngineLogging(unittest.TestCase):
+    def test_server_startup_sends_engine_log_lines_to_the_log(self):
+        """D3: the real app's lifespan configures the "dewako" logger, so engine lines (bot ticks, workers) reach the log file."""
+        import logging
+        lg = logging.getLogger("dewako")
+        lg.handlers[:] = [h for h in lg.handlers if not getattr(h, "_dewako_handler", False)]
+        with _Env():
+            with _client(_target()):
+                marked = [h for h in lg.handlers if getattr(h, "_dewako_handler", False)]
+                self.assertEqual(len(marked), 1)
+                self.assertEqual(lg.getEffectiveLevel(), logging.INFO)
+
+
 if __name__ == "__main__":
     unittest.main()

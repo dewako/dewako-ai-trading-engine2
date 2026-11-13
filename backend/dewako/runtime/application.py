@@ -33,7 +33,7 @@ from dewako.risk.engine import RiskEngine
 from dewako.risk.limits_store import RiskLimitsStore
 from dewako.execution.validation import validate_executable_quote
 from dewako.risk.state import RiskStateStore
-from dewako.runtime.bot_runner import BotConfig, BotRunner
+from dewako.runtime.bot_runner import BotConfig, BotRunner, TickMonitor
 from dewako.runtime.health import health_report
 from dewako.runtime.startup import StrategyRegistryStore
 from dewako.runtime.lease import WorkerLease
@@ -175,6 +175,7 @@ class Application:
     exit_monitor: Optional[ExitMonitor] = None
     limits_store: Optional[RiskLimitsStore] = None
     clock: Callable[[], datetime] = utcnow
+    tick_monitor: TickMonitor = field(default_factory=TickMonitor)
 
     def _step(self, name: str, ok: bool, detail: str = "", critical: bool = True) -> bool:
         self.steps.append(StartupStep(name, ok, detail, critical))
@@ -418,8 +419,13 @@ class Application:
             with rt.db.read() as c:
                 rows = [dict(r) for r in c.execute("SELECT * FROM bots WHERE enabled=1")]
             for b in rows:
-                await runner.tick(BotConfig(b["bot_id"], b["strategy_id"], b["strategy_version"], b["symbol"], b["timeframe"],
-                                            b["environment"], b["exchange"], b["risk_scope"]))
+                res = await runner.tick(BotConfig(b["bot_id"], b["strategy_id"], b["strategy_version"], b["symbol"], b["timeframe"],
+                                                  b["environment"], b["exchange"], b["risk_scope"]))
+                self.tick_monitor.observe(b["bot_id"], res)
+            self.tick_monitor.forget_except(r["bot_id"] for r in rows)
+            bad = self.tick_monitor.failing()
+            if bad:   # every bot has been ticked first; raising marks this critical worker DEGRADED (it never blocks exits)
+                raise RuntimeError(f"bot tick failing repeatedly: {', '.join(bad)}")
 
         sup.add("order_recovery", order_recovery, cfg.recover_interval)
         sup.add("reconciliation", reconcile, cfg.recon_interval)       # covers orders, positions and balances per live exchange

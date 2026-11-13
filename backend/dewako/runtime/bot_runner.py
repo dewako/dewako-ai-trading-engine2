@@ -5,6 +5,7 @@ the same signal id, and the execution intent's UNIQUE constraint stops a second 
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -19,6 +20,8 @@ from dewako.risk.engine import RiskEngine
 from dewako.risk.state import RiskStateStore
 from dewako.strategies import base
 from dewako.strategies.signal_engine import SignalEngine
+
+log = logging.getLogger("dewako.bots")
 
 
 @dataclass
@@ -39,6 +42,7 @@ class TickResult:
     detail: str = ""
     signal_id: str = ""
     order_id: Optional[int] = None
+    bar: str = ""     # open time of the last candle the tick evaluated ("" if no market data was obtained)
 
 
 class BotRunner:
@@ -52,6 +56,12 @@ class BotRunner:
         self._sig_engines: dict[str, SignalEngine] = {}
 
     async def tick(self, bot: BotConfig) -> TickResult:
+        self._bar = ""
+        res = await self._tick(bot)
+        res.bar = res.bar or self._bar
+        return res
+
+    async def _tick(self, bot: BotConfig) -> TickResult:
         cid = uuid.uuid4().hex
         if bot.environment == "LIVE" and self.engine.safety.kill_switch_active():
             return TickResult("HALTED", "kill switch active or safety state unknown")
@@ -63,6 +73,8 @@ class BotRunner:
         except Exception as e:
             return TickResult("ERROR", f"{type(e).__name__}")  # no data / bad data -> no trade
         try:
+            last_t = getattr(state.candles[-1], "t", None) if state.candles else None
+            self._bar = last_t.isoformat() if hasattr(last_t, "isoformat") else ""
             if state.symbol != bot.symbol:
                 raise CandleFreshnessError("market-state symbol does not match the bot symbol")
             validate_candles(state.candles, bot.timeframe, self.clock())
@@ -111,3 +123,39 @@ class BotRunner:
                 c.execute("UPDATE signals SET status='REJECTED', rejection_reason=? WHERE signal_id=? AND status='NEW'", (reason, sig.signal_id))
             if new:
                 self.audit.record("SIGNAL_CREATED", "OK", cid, resource=f"signal:{sig.signal_id}", metadata={"strategy": sig.strategy}, conn=c)
+
+
+class TickMonitor:
+    """Makes bot ticks observable. The worker discards nothing silently any more:
+    * one INFO log line when a bot's outcome or evaluated bar changes (so every new candle leaves exactly one line);
+    * a WARNING line for every change into a failing outcome (ERROR, BLOCKED), and once when a bot reaches `fail_after`
+      consecutive failing ticks; `failing()` then names it, and the bot worker raises so the system shows DEGRADED.
+    It only reports: it never changes a decision, a limit or an order."""
+    FAILING = ("ERROR", "BLOCKED")
+
+    def __init__(self, fail_after: int = 3, logger: logging.Logger = log):
+        self.fail_after, self.log = fail_after, logger
+        self._last: dict[str, tuple] = {}
+        self._fails: dict[str, int] = {}
+
+    def observe(self, bot_id: str, res: TickResult) -> None:
+        key = (res.bar, res.outcome, res.detail)
+        failing = res.outcome in self.FAILING
+        n = self._fails[bot_id] = (self._fails.get(bot_id, 0) + 1) if failing else 0
+        if key != self._last.get(bot_id):
+            self.log.log(logging.WARNING if failing else logging.INFO, "bot %s bar %s: %s%s", bot_id, res.bar or "-", res.outcome,
+                         f" ({res.detail})" if res.detail else "")
+        if failing and n == self.fail_after:
+            self.log.warning("bot %s: %d consecutive failing ticks (last: %s %s); system health is DEGRADED until a tick succeeds",
+                             bot_id, n, res.outcome, res.detail)
+        self._last[bot_id] = key
+
+    def failing(self) -> list[str]:
+        return sorted(b for b, n in self._fails.items() if n >= self.fail_after)
+
+    def forget_except(self, bot_ids) -> None:
+        """A disabled or deleted bot no longer counts as failing."""
+        keep = set(bot_ids)
+        for d in (self._last, self._fails):
+            for b in [b for b in d if b not in keep]:
+                del d[b]
