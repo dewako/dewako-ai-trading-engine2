@@ -11,9 +11,11 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       # pinned to one exact version by their parent package: they move with it (pydantic, playwright), never alone.
+      # pydantic itself still gets proposed, and fails until pydantic-core is bumped in the same change (done by hand, e.g. PR #24 -> #26).
       # Proposed alone they cannot install (PRs #13 and #17 failed with ResolutionImpossible).
       - dependency-name: "pydantic-core"
       - dependency-name: "greenlet"
+      - dependency-name: "pyee"          # pinned by playwright (PR #23 failed the same way)
   - package-ecosystem: docker
     directory: "/backend"
     schedule: {interval: weekly}
