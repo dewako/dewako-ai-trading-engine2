@@ -1,7 +1,8 @@
 # Three stages from one base. `production` (the default, last stage) contains the application only: no tests, no test tools.
 # `test` adds the test suite; docker-compose.test.yml builds it. Dependencies are installed with the same pins CI tests against
-# (constraints-test.txt), so the image runs the versions that were tested. Base image by tag; see docs/GITHUB_CI_SECURITY_REVIEW.md.
-FROM python:3.12-slim AS base
+# (constraints-test.txt), so the image runs the versions that were tested. Python 3.13: the version every CI backend job runs
+# (3.12 stays covered by the sqlite (3.12) job; 3.12 had Medium CVEs fixed only in newer Python lines). Base image by tag; see docs/GITHUB_CI_SECURITY_REVIEW.md.
+FROM python:3.13-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 # Debian security updates on top of the base image (the first scan found two High zlib CVEs with fixed packages available), and a pip
 # without the known advisories of the pip the base image ships (25.0.1).

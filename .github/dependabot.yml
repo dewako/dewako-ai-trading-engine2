@@ -9,7 +9,16 @@ updates:
     directory: "/backend"
     schedule: {interval: weekly}
     open-pull-requests-limit: 5
+    ignore:
+      # pinned to one exact version by their parent package: they move with it (pydantic, playwright), never alone.
+      # Proposed alone they cannot install (PRs #13 and #17 failed with ResolutionImpossible).
+      - dependency-name: "pydantic-core"
+      - dependency-name: "greenlet"
   - package-ecosystem: docker
     directory: "/backend"
     schedule: {interval: weekly}
     open-pull-requests-limit: 3
+    ignore:
+      # a new Python line is a deliberate change (the CI matrix moves with it), not a weekly bump; patch updates still come
+      - dependency-name: "python"
+        versions: [">=3.14"]
