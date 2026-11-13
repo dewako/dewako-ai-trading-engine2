@@ -64,7 +64,7 @@ print("installed in the image but not pinned by constraints-test.txt:" if extra 
 print("\n".join(extra))
 PY
 cat "$OUT/image-unpinned-packages.txt"
-docker image inspect python:3.12-slim --format '{{index .RepoDigests 0}}' > "$OUT/base-image-digest.txt" 2>/dev/null || true
+docker image inspect python:3.13-slim --format '{{index .RepoDigests 0}}' > "$OUT/base-image-digest.txt" 2>/dev/null || true
 
 # 3 -------------------------------------------------------------------------------------------------------------------------
 $P up -d backend > /dev/null
