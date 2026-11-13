@@ -21,6 +21,7 @@ from dewako.api.security import correlation_id, current_actor, permission
 from dewako.auth.service import AuthError, Forbidden, RateLimited
 from dewako.exchanges.manager import ExchangeRejected
 from dewako.runtime.application import Application, Config
+from dewako.logging_setup import configure_logging
 from dewako.runtime.health import health_report
 from dewako.safety.controller import NotAuthorized, ReadinessError
 from dewako.market_data.backfill import backfill
@@ -54,6 +55,7 @@ async def lifespan(app_: FastAPI):
     """Startup: ordered, recorded steps (runtime/application.py). A failed critical step leaves the process up but live BLOCKED.
     A strategy fingerprint conflict does NOT stop the API (so an admin can inspect it) but it does block live trading.
     Shutdown: stop accepting, drain workers, close adapters and the database."""
+    configure_logging()
     existing = get_runtime_if_set()
     factory = get_application_factory()
     application = factory(existing) if factory is not None else Application(Config.from_env(), rt=existing)
