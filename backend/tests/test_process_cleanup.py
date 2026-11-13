@@ -30,7 +30,7 @@ def test_unexpected_hang_fails_with_diagnostics_and_the_whole_process_tree_dies(
     assert grandchild in e.tree, f"grandchild {grandchild} was not found in the process tree snapshot {e.tree}"
     assert grandchild != child
     everything = {e.pid, child, grandchild, *e.tree}
-    assert wait_until_dead(sorted(everything), 10) == [], "a process of the hung tree survived the timeout cleanup"
+    assert wait_until_dead(sorted(everything), 10, e.stamps) == [], "a process of the hung tree survived the timeout cleanup"
 
 
 def test_cleanup_is_verified_and_idempotent_and_an_unkillable_survivor_is_reported():
@@ -39,7 +39,7 @@ def test_cleanup_is_verified_and_idempotent_and_an_unkillable_survivor_is_report
     # idempotent: cleaning up an already finished process is a no-op, twice
     p = subprocess.Popen([sys.executable, "-c", "pass"])
     p.wait()
-    assert _verified_cleanup(p, None, "done") == [] and _verified_cleanup(p, None, "again") == []
+    assert _verified_cleanup(p, None, "done")[0] == [] and _verified_cleanup(p, None, "again")[0] == []
     # descendants() really finds a grandchild
     parent = subprocess.Popen([sys.executable, "-c", "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); time.sleep(60)"])
     try:
@@ -55,6 +55,53 @@ def test_cleanup_is_verified_and_idempotent_and_an_unkillable_survivor_is_report
             from bounded import _kill_pid
             _kill_pid(k)
         assert wait_until_dead(kids, 10) == []
+
+
+def test_a_reused_pid_is_a_different_process_it_is_never_counted_alive_or_killed(monkeypatch):
+    # Windows reuses a pid within seconds of its process exiting. Identity is (pid, creation stamp): a pid now held by a NEWER process
+    # means ours is gone, and the last-resort kill must never hit that stranger. Simulated by changing the stamp of a live process.
+    import bounded
+    me = os.getpid()
+    real = bounded.start_stamp(me)
+    assert real is not None, "no creation stamp for a live process on this platform"
+    import subprocess
+    time.sleep(0.05)
+    newer = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        assert bounded.start_stamp(newer.pid) > real, "a process started later must carry a later creation stamp"
+    finally:
+        newer.kill()
+        newer.wait()
+    assert pid_alive(me, real) and pid_alive(me)                      # same process: alive; no stamp: plain pid check
+    assert not pid_alive(me, real - 1)                                # the pid is held by a different (newer) process
+    assert wait_until_dead([me], 1, {me: real - 1}) == []
+    killed = []
+    monkeypatch.setattr(bounded.os, "kill", lambda pid, sig: killed.append(pid))
+    monkeypatch.setattr(bounded.subprocess, "run", lambda *a, **k: killed.append(a))
+    bounded._kill_pid(me, real - 1)
+    assert killed == [], "the last-resort kill hit a process that only shares the pid"
+    bounded._kill_pid(me, real)
+    assert killed, "the last-resort kill skipped the process it was meant for"
+
+
+def test_an_older_process_is_never_adopted_as_a_child_through_a_stale_parent_pid(monkeypatch):
+    # Windows keeps a dead parent's pid as ppid; once that pid is reused, an old unrelated process would look like our child.
+    import bounded
+    table = {10: 1, 11: 10, 12: 11, 5: 10}                            # 5 claims parent 10 but is older than 10
+    stamps = {1: 100, 10: 200, 11: 300, 12: 400, 5: 50}
+    monkeypatch.setattr(bounded, "_parent_map", lambda: table)
+    monkeypatch.setattr(bounded, "start_stamp", lambda pid: stamps.get(pid))
+    assert sorted(bounded.descendants(10)) == [11, 12]
+    stamps[5] = 250                                                   # a genuinely newer child is found
+    assert sorted(bounded.descendants(10)) == [5, 11, 12]
+
+
+def test_a_survivor_report_names_the_process(monkeypatch):
+    import bounded
+    me = os.getpid()
+    line = bounded.describe([me], {me: bounded.start_stamp(me)})
+    assert f"{me} exe=" in line and "same process" in line and "ppid=" in line
+    assert "pid REUSED" in bounded.describe([me], {me: bounded.start_stamp(me) - 1})
 
 
 def test_a_normal_exit_returns_output_and_leaves_nothing_running():
@@ -163,7 +210,7 @@ def test_a_launcher_stub_architecture_is_handled_the_launched_pid_is_not_the_int
     e = ei.value
     child, grandchild = _pids(e.out)
     assert child != e.pid and child in e.tree and grandchild in e.tree, (e.pid, child, grandchild, e.tree)
-    assert wait_until_dead(sorted({e.pid, child, grandchild, *e.tree}), 10) == []
+    assert wait_until_dead(sorted({e.pid, child, grandchild, *e.tree}), 10, e.stamps) == []
 
 
 def test_nested_watchdogs_in_diagnostic_mode_each_keep_their_own_diagnostics():

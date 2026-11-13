@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 30
     strategy: {fail-fast: false, matrix: {python: ["3.12", "3.13"]}}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "${{ matrix.python }}"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
@@ -65,7 +65,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
@@ -99,7 +99,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
@@ -134,7 +134,7 @@ jobs:
     continue-on-error: ${{ matrix.python == '3.14' }}
     strategy: {fail-fast: false, matrix: {python: ["3.13", "3.14"]}}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "${{ matrix.python }}", allow-prereleases: true}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt pytest-timeout
@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
@@ -184,7 +184,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: full suite inside the test image against PostgreSQL 16 (compose)
         run: |
           set -euo pipefail
@@ -204,7 +204,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: bash scripts/compose_smoke.sh
       - name: nothing that looks like a secret is in the container logs about to be uploaded
         if: always()
