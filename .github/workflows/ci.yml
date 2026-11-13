@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: {node-version: "22"}
@@ -40,7 +40,7 @@ jobs:
     strategy: {fail-fast: false, matrix: {python: ["3.12", "3.13"]}}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "${{ matrix.python }}"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - name: tests on SQLite (PostgreSQL-only tests are expected to skip here; HTTP and Node-based UI tests must run)
@@ -66,7 +66,7 @@ jobs:
           --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - name: full suite on PostgreSQL 16 (HTTP, concurrency, process-kill crash matrix, migrations); ZERO skips allowed
@@ -100,7 +100,7 @@ jobs:
           --health-cmd "pg_isready -U dewako" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - name: crash/recovery suite x3 (fresh processes), SQLite then PostgreSQL 16; any failure or skip fails the job
@@ -135,7 +135,7 @@ jobs:
     strategy: {fail-fast: false, matrix: {python: ["3.13", "3.14"]}}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "${{ matrix.python }}", allow-prereleases: true}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt pytest-timeout
       - name: process cleanup helper + crash matrix + crash/recovery, x3
@@ -159,7 +159,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: "3.13"}
       - run: pip install -r backend/requirements.txt -c backend/constraints-test.txt -r backend/requirements-test.txt
       - run: python -m playwright install --with-deps chromium
