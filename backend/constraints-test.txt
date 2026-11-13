@@ -22,7 +22,7 @@ pluggy==1.7.0
 pycparser==3.12
 pydantic==2.14.1
 pydantic-core==2.50.1
-pyee==12.0.0
+pyee==13.0.1
 Pygments==2.21.0
 pytest==9.1.1
 pytest-timeout==2.4.0
