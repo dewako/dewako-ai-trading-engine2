@@ -1,7 +1,7 @@
 # GitHub CI/CD final validation report
 
-**Final status: PARTIALLY VERIFIED.** Every workflow job passes on the evaluated commit and the failure-propagation proof holds, but two
-acceptance items need repository settings this session could not change (branch protection on `main`; secret-scanning settings).
+**Final status: PASSED** (updated 2026-11-13, `main` = `40ef897`). First issued as PARTIALLY VERIFIED: two acceptance items needed repository
+settings this session could not change. The owner has since set them, and they were verified through the GitHub API (see *Follow-up* below).
 Live trading remains **LOCKED**; readiness remains **NOT READY**.
 
 Evaluated commit: `main` = `74e74640a7e0fb9ad0e693401f33b36e17a8c248` (merge of PR #7). Date: 2026-11-13.
@@ -50,7 +50,7 @@ The branch could not be deleted from this session (write access to that API path
 | Documentation reflects the repository | Met for the documents in `GITHUB_CI_DOCUMENTATION_REVIEW.md`; other historical audits unchanged |
 | No critical/high unresolved regression | Met. One coverage reduction by decision: Windows 3.14 is informational. Open: intermittent Windows 3.13 cleanup failure (below) |
 | Live trading remains locked | Met |
-| `main` protected by the required checks | **Not met: needs the owner** (blocked through this session) |
+| `main` protected by the required checks | Met (owner, 2026-11-13): 12 required checks, up to date before merging, no force pushes or deletions; verified via the API |
 
 ## Owner actions
 1. Settings -> Branches -> rule for `main`: require status checks (`static`, `sqlite (3.12)`, `sqlite (3.13)`, `postgres16`,
@@ -72,6 +72,18 @@ intermittent: either the test's wait for process exit is too short on a busy run
 resolved. Until it is, a red Windows 3.13 job on an unrelated change should be re-run once and, if it fails twice, investigated before
 merging, never skipped. Root-causing it (logging the surviving processes' command lines, measuring how long they take to exit) is the
 next CI task.
+
+## Follow-up (2026-11-13, after the first issue of this report)
+* **Windows cleanup failure: fixed in PR #20** (`4ee955a`). Cause: processes were identified by pid alone; Windows reuses pids within
+  seconds and keeps a dead parent's pid as ppid, so unrelated processes were adopted into the tree and reported as survivors (each failure
+  listed an unrelated low pid, e.g. 1544, 1348). Processes are now identified by pid + creation time. Windows 3.13 and 3.14 green in all
+  4 runs of the PR (12 cleanup-suite executions each, no 3.14 hang); a fourth occurrence on PR #21 was on a branch without the fix.
+* **Repository settings (owner):** branch protection on `main` with the 12 required checks listed above; secret scanning and push
+  protection enabled; `ci-failure-proof` deleted. Verified via the API. Dependabot alerts could not be read from this session.
+* **Image:** `python:3.13-slim` (PR #19), which clears the Medium Python 3.12 advisories.
+* **Dependencies:** Dependabot PRs merged after green CI (#9-#12, #14-#16, #21, #22, #25) or replaced (#26 = pydantic + pydantic-core
+  together); #8, #13, #17, #23, #24 closed with reasons; pinned transitive packages (pydantic-core, greenlet, pyee) ignored alone.
+* **Still open:** the nightly paper-qualification schedule has not fired yet (only the manual run exists); Dependabot #27-#29 pending.
 
 ## Known limits
 * Soak memory rose 8 MB over 3,000 cycles (0.9 MB over 300 locally): within the limit, but not flat. The multi-day soak will show
