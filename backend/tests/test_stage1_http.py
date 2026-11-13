@@ -240,6 +240,9 @@ class HttpEngineLogging(unittest.TestCase):
                 marked = [h for h in lg.handlers if getattr(h, "_dewako_handler", False)]
                 self.assertEqual(len(marked), 1)
                 self.assertEqual(lg.getEffectiveLevel(), logging.INFO)
+        for h in marked:          # do not leave a handler bound to this test's captured stderr
+            lg.removeHandler(h)
+        lg.setLevel(logging.NOTSET)
 
 
 if __name__ == "__main__":

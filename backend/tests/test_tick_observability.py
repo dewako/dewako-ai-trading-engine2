@@ -181,6 +181,9 @@ class WorkerShowsDegraded(unittest.TestCase):
 
 
 class LoggingSetup(unittest.TestCase):
+    def setUp(self):              # an earlier test (the HTTP lifespan) may have configured the handler on another stderr
+        self.tearDown()
+
     def tearDown(self):
         lg = logging.getLogger("dewako")
         lg.handlers[:] = [h for h in lg.handlers if not getattr(h, "_dewako_handler", False)]
