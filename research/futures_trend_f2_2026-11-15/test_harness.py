@@ -90,6 +90,27 @@ class Trades(unittest.TestCase):
         self.assertEqual((tr.side, tr.exit_ms), ("SHORT", 11 * D))
         self.assertAlmostEqual(tr.pnl, -qty * (stop9 - 97), places=6)       # shorts receive no funding in the verdict setting
 
+    def test_a_stop_touched_on_the_entry_day_exits_that_day(self):
+        # long at day 9 open 103, stop 103 - 8.5 = 94.5; the same day falls to 94 and closes back at 104
+        bars = series([(100, 103.5, 99, 103), (103, 104.5, 94, 104), (104, 106, 103, 105)])
+        tr = H.run({"X": bars}, **self.KW)["trades"][0]
+        qty = int(10_000 * 0.01 / 8.5 / 0.001 + 1e-9) * 0.001
+        self.assertEqual((tr.entry_ms, tr.exit_ms), (9 * D, 9 * D))
+        self.assertAlmostEqual(tr.pnl, -qty * 8.5, places=6)
+
+    def test_a_trade_profit_counts_only_its_own_symbol(self):
+        win = series([(100, 103.5, 99, 103), (103, 106, 102.5, 105), (105, 111, 104, 110), (110, 110.5, 90, 91)])
+        lose = series([(100, 103.5, 99, 103), (103, 103.5, 90, 91), (91, 92, 90, 91), (91, 92, 90, 91)])
+        alone = {s: H.run({s: b}, **self.KW)["trades"][0].pnl for s, b in (("W", win), ("L", lose))}
+        both = H.run({"W": win, "L": lose}, **self.KW)
+        got = {t.symbol: t.pnl for t in both["trades"]}
+        self.assertLess(alone["L"], alone["W"])
+        self.assertLess(alone["W"], 0)
+        # L closes while W is open: neither result may include the other's (sizes differ a little: equity had moved)
+        self.assertAlmostEqual(got["L"], alone["L"], delta=abs(alone["L"]) * 0.01)
+        self.assertAlmostEqual(got["W"], alone["W"], delta=abs(alone["W"]) * 0.01)
+        self.assertAlmostEqual(sum(got.values()), both["final"] - 10_000, places=6)
+
     def test_costs_and_long_funding_reduce_the_result_and_leverage_scales_the_size(self):
         bars = series([(100, 103.5, 99, 103), (103, 106, 102.5, 105), (105, 111, 104, 110), (110, 110.5, 90, 91)])
         free = H.run({"X": bars}, **self.KW)["trades"][0]

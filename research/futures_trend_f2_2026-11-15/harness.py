@@ -97,12 +97,10 @@ def run(data: dict, n: int = 55, atr_n: int = 20, k: float = 3.0, leverage: int 
     curve: list = []
     skipped = 0
 
-    def money() -> float:          # realized account money, used to measure one trade's profit
-        return acct.wallet + sum(p.isolated_margin for p in acct.positions.values())
-
     def finish(s, t, liquidated=False):
-        st = open_.pop(s)
-        trades.append(Trade(s, st["side"], st["entry_ms"], t, money() - st["money0"], st["risked"], liquidated))
+        st = open_.pop(s)      # one trade's profit = this symbol's ledger entries since its entry (fees, funding, P&L, liquidation)
+        pnl = sum(a for _, sym, a in acct.ledger[st["ledger0"]:] if sym == s)
+        trades.append(Trade(s, st["side"], st["entry_ms"], t, pnl, st["risked"], liquidated))
 
     for t in days:
         for s, bars in data.items():
@@ -136,9 +134,16 @@ def run(data: dict, n: int = 55, atr_n: int = 20, k: float = 3.0, leverage: int 
                 if stop <= 0 or entry_guard(side, b.o, stop, liq if liq > 0 else None, leverage, acct.config.max_leverage):
                     skipped += 1
                 else:
-                    m0 = money()
+                    l0 = len(acct.ledger)
                     f = acct.market_order(s, "BUY" if side == "LONG" else "SELL", qty)
-                    open_[s] = dict(side=side, stop=stop, best=b.o, entry_ms=t, risked=f.qty * k * a, money0=m0)
+                    open_[s] = dict(side=side, stop=stop, best=b.o, entry_ms=t, risked=f.qty * k * a, ledger0=l0)
+                    if b.l <= stop if side == "LONG" else b.h >= stop:      # stopped on the entry day itself
+                        acct.set_mark(s, stop)
+                        if s in acct.positions:
+                            acct.close(s)
+                            finish(s, t)
+                        else:
+                            finish(s, t, True)
             # the close: marks, liquidation, funding, trailing stop, next signal
             acct.set_mark(s, b.c)
             if s in open_ and s not in acct.positions:

@@ -1,0 +1,441 @@
+{
+ "data": {
+  "BTC/USDT": {
+   "days": 2496,
+   "first": 1577836800000,
+   "last": 1793404800000
+  },
+  "ETH/USDT": {
+   "days": 2496,
+   "first": 1577836800000,
+   "last": 1793404800000
+  },
+  "SOL/USDT": {
+   "days": 2273,
+   "first": 1597104000000,
+   "last": 1793404800000
+  }
+ },
+ "1x by cost": {
+  "verdict (0.10% + 0.05%)": {
+   "trades": 116,
+   "wins": 57,
+   "win_rate": 0.491,
+   "net": 5709.37,
+   "max_dd_pct": 11.06,
+   "sum_r": 47.18,
+   "avg_r": 0.407,
+   "net_over_dd": 5.16,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 2
+  },
+  "2x stress (0.20% + 0.10%)": {
+   "trades": 116,
+   "wins": 55,
+   "win_rate": 0.474,
+   "net": 5286.04,
+   "max_dd_pct": 11.47,
+   "sum_r": 44.63,
+   "avg_r": 0.385,
+   "net_over_dd": 4.61,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 2
+  },
+  "Binance taker (0.05% + 0.01%)": {
+   "trades": 116,
+   "wins": 57,
+   "win_rate": 0.491,
+   "net": 5936.27,
+   "max_dd_pct": 10.86,
+   "sum_r": 48.7,
+   "avg_r": 0.42,
+   "net_over_dd": 5.46,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 2
+  }
+ },
+ "verdict checks": {
+  "1 trades >= 100": {
+   "passed": true,
+   "value": 116
+  },
+  "2 positive at 2x costs": {
+   "passed": true,
+   "value": 5286.04
+  },
+  "3 max drawdown <= 15%": {
+   "passed": true,
+   "value": 11.06
+  },
+  "4 out-of-sample avg R positive and >= 50% of in-sample": {
+   "passed": false,
+   "value": {
+    "in_sample_avg_r": 0.546,
+    "n_in": 69,
+    "oos_avg_r": 0.201,
+    "n_oos": 47
+   }
+  },
+  "5 at least 2 of 4 periods profitable": {
+   "passed": true,
+   "value": [
+    3005.34,
+    651.23,
+    1167.35,
+    885.45
+   ]
+  },
+  "6 max drawdown below buy-and-hold": {
+   "passed": true,
+   "value": {
+    "strategy": 11.06,
+    "buy_and_hold": 88.88
+   }
+  }
+ },
+ "VERDICT": "FAIL",
+ "buy and hold": {
+  "net": 195897.64,
+  "max_dd_pct": 88.88,
+  "net_over_dd": 22.04
+ },
+ "by coin (verdict cost, each coin alone with the whole account)": {
+  "BTC/USDT": {
+   "trades": 41,
+   "wins": 19,
+   "win_rate": 0.463,
+   "net": 1181.73,
+   "max_dd_pct": 5.47,
+   "sum_r": 11.96,
+   "avg_r": 0.292,
+   "net_over_dd": 2.16,
+   "liquidations": 0,
+   "skipped": 0,
+   "open_at_end": 0
+  },
+  "ETH/USDT": {
+   "trades": 40,
+   "wins": 21,
+   "win_rate": 0.525,
+   "net": 1048.5,
+   "max_dd_pct": 3.81,
+   "sum_r": 10.23,
+   "avg_r": 0.256,
+   "net_over_dd": 2.75,
+   "liquidations": 0,
+   "skipped": 1,
+   "open_at_end": 1
+  },
+  "SOL/USDT": {
+   "trades": 35,
+   "wins": 17,
+   "win_rate": 0.486,
+   "net": 2707.42,
+   "max_dd_pct": 4.84,
+   "sum_r": 24.99,
+   "avg_r": 0.714,
+   "net_over_dd": 5.59,
+   "liquidations": 0,
+   "skipped": 2,
+   "open_at_end": 1
+  }
+ },
+ "by side": {
+  "LONG": {
+   "trades": 77,
+   "net": 4863.87,
+   "sum_r": 40.7,
+   "wins": 35
+  },
+  "SHORT": {
+   "trades": 39,
+   "net": 849.25,
+   "sum_r": 6.48,
+   "wins": 22
+  }
+ },
+ "by year (trades by entry year)": {
+  "2020": {
+   "trades": 14,
+   "net": 736.42,
+   "sum_r": 7.31
+  },
+  "2021": {
+   "trades": 18,
+   "net": 2314.16,
+   "sum_r": 20.06
+  },
+  "2022": {
+   "trades": 15,
+   "net": 293.34,
+   "sum_r": 2.39
+  },
+  "2023": {
+   "trades": 22,
+   "net": 1023.14,
+   "sum_r": 7.94
+  },
+  "2024": {
+   "trades": 16,
+   "net": 569.45,
+   "sum_r": 4.13
+  },
+  "2025": {
+   "trades": 17,
+   "net": 223.58,
+   "sum_r": 1.61
+  },
+  "2026": {
+   "trades": 14,
+   "net": 553.04,
+   "sum_r": 3.73
+  }
+ },
+ "without best trades (sum of trade P&L)": {
+  "all": 5713.13,
+  "without best 1": 4744.83,
+  "without best 3": 2865.97,
+  "without best 5": 1989.75
+ },
+ "best 5 trades": [
+  {
+   "symbol": "SOL/USDT",
+   "side": "LONG",
+   "entry": "2021-08-14",
+   "pnl": 968.3,
+   "r": 8.0
+  },
+  {
+   "symbol": "SOL/USDT",
+   "side": "LONG",
+   "entry": "2021-01-09",
+   "pnl": 959.81,
+   "r": 8.72
+  },
+  {
+   "symbol": "SOL/USDT",
+   "side": "LONG",
+   "entry": "2023-10-20",
+   "pnl": 919.04,
+   "r": 7.15
+  },
+  {
+   "symbol": "BTC/USDT",
+   "side": "LONG",
+   "entry": "2024-10-16",
+   "pnl": 538.96,
+   "r": 3.89
+  },
+  {
+   "symbol": "BTC/USDT",
+   "side": "LONG",
+   "entry": "2024-02-13",
+   "pnl": 337.26,
+   "r": 2.41
+  }
+ ],
+ "neighbours (1x, verdict cost)": {
+  "40 days, 2.5 ATR": {
+   "trades": 162,
+   "wins": 70,
+   "win_rate": 0.432,
+   "net": 6211.74,
+   "max_dd_pct": 13.52,
+   "sum_r": 51.69,
+   "avg_r": 0.319,
+   "net_over_dd": 4.6,
+   "liquidations": 0,
+   "skipped": 1,
+   "open_at_end": 3
+  },
+  "40 days, 3.0 ATR": {
+   "trades": 143,
+   "wins": 65,
+   "win_rate": 0.455,
+   "net": 6481.69,
+   "max_dd_pct": 14.1,
+   "sum_r": 53.15,
+   "avg_r": 0.372,
+   "net_over_dd": 4.6,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 3
+  },
+  "40 days, 3.5 ATR": {
+   "trades": 123,
+   "wins": 57,
+   "win_rate": 0.463,
+   "net": 7840.06,
+   "max_dd_pct": 11.75,
+   "sum_r": 62.02,
+   "avg_r": 0.504,
+   "net_over_dd": 6.67,
+   "liquidations": 0,
+   "skipped": 7,
+   "open_at_end": 3
+  },
+  "55 days, 2.5 ATR": {
+   "trades": 133,
+   "wins": 60,
+   "win_rate": 0.451,
+   "net": 5666.79,
+   "max_dd_pct": 10.35,
+   "sum_r": 47.84,
+   "avg_r": 0.36,
+   "net_over_dd": 5.48,
+   "liquidations": 0,
+   "skipped": 1,
+   "open_at_end": 2
+  },
+  "55 days, 3.0 ATR": {
+   "trades": 116,
+   "wins": 57,
+   "win_rate": 0.491,
+   "net": 5709.37,
+   "max_dd_pct": 11.06,
+   "sum_r": 47.18,
+   "avg_r": 0.407,
+   "net_over_dd": 5.16,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 2
+  },
+  "55 days, 3.5 ATR": {
+   "trades": 99,
+   "wins": 53,
+   "win_rate": 0.535,
+   "net": 7053.17,
+   "max_dd_pct": 8.69,
+   "sum_r": 56.32,
+   "avg_r": 0.569,
+   "net_over_dd": 8.11,
+   "liquidations": 0,
+   "skipped": 7,
+   "open_at_end": 2
+  },
+  "70 days, 2.5 ATR": {
+   "trades": 115,
+   "wins": 53,
+   "win_rate": 0.461,
+   "net": 4527.41,
+   "max_dd_pct": 9.46,
+   "sum_r": 39.61,
+   "avg_r": 0.344,
+   "net_over_dd": 4.78,
+   "liquidations": 0,
+   "skipped": 1,
+   "open_at_end": 0
+  },
+  "70 days, 3.0 ATR": {
+   "trades": 98,
+   "wins": 48,
+   "win_rate": 0.49,
+   "net": 5150.05,
+   "max_dd_pct": 9.44,
+   "sum_r": 43.33,
+   "avg_r": 0.442,
+   "net_over_dd": 5.45,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 0
+  },
+  "70 days, 3.5 ATR": {
+   "trades": 83,
+   "wins": 45,
+   "win_rate": 0.542,
+   "net": 6359.41,
+   "max_dd_pct": 8.73,
+   "sum_r": 51.6,
+   "avg_r": 0.622,
+   "net_over_dd": 7.28,
+   "liquidations": 0,
+   "skipped": 7,
+   "open_at_end": 0
+  }
+ },
+ "leverage (verdict cost)": {
+  "1x": {
+   "trades": 116,
+   "wins": 57,
+   "win_rate": 0.491,
+   "net": 5709.37,
+   "max_dd_pct": 11.06,
+   "sum_r": 47.18,
+   "avg_r": 0.407,
+   "net_over_dd": 5.16,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 2
+  },
+  "2x": {
+   "trades": 105,
+   "wins": 50,
+   "win_rate": 0.476,
+   "net": 10224.57,
+   "max_dd_pct": 20.75,
+   "sum_r": 38.8,
+   "avg_r": 0.37,
+   "net_over_dd": 4.93,
+   "liquidations": 0,
+   "skipped": 44,
+   "open_at_end": 2
+  },
+  "3x": {
+   "trades": 74,
+   "wins": 34,
+   "win_rate": 0.459,
+   "net": 6527.09,
+   "max_dd_pct": 22.43,
+   "sum_r": 20.25,
+   "avg_r": 0.274,
+   "net_over_dd": 2.91,
+   "liquidations": 0,
+   "skipped": 168,
+   "open_at_end": 2
+  }
+ },
+ "funding paid by both sides (1x, verdict cost)": {
+  "trades": 116,
+  "wins": 55,
+  "win_rate": 0.474,
+  "net": 5367.68,
+  "max_dd_pct": 11.4,
+  "sum_r": 45.21,
+  "avg_r": 0.39,
+  "net_over_dd": 4.71,
+  "liquidations": 0,
+  "skipped": 3,
+  "open_at_end": 2
+ },
+ "long only / short only (1x, verdict cost)": {
+  "long only": {
+   "trades": 77,
+   "wins": 35,
+   "win_rate": 0.455,
+   "net": 4742.08,
+   "max_dd_pct": 8.38,
+   "sum_r": 40.7,
+   "avg_r": 0.529,
+   "net_over_dd": 5.66,
+   "liquidations": 0,
+   "skipped": 0,
+   "open_at_end": 0
+  },
+  "short only": {
+   "trades": 39,
+   "wins": 22,
+   "win_rate": 0.564,
+   "net": 611.7,
+   "max_dd_pct": 10.18,
+   "sum_r": 6.48,
+   "avg_r": 0.166,
+   "net_over_dd": 0.6,
+   "liquidations": 0,
+   "skipped": 3,
+   "open_at_end": 2
+  }
+ }
+}
