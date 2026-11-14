@@ -59,5 +59,11 @@ position stays open below maintenance margin. Mutation check: 22 deliberate faul
 | F5 | Live | everything above, plus a strategy that passes the gate; LOCKED |
 
 ## Owner decisions recorded here
-* Leverage cap default 3 (changeable up to 20 with `DEWAKO_FUTURES_MAX_LEVERAGE`). Proposed by Claude, not yet confirmed by the owner.
-* Margin mode default ISOLATED. Proposed by Claude, not yet confirmed by the owner.
+* 2026-11-15, owner: "Yes 3x and isolate are default configurations." Leverage cap default **3** (the hard ceiling of 20 stays),
+  margin mode default **ISOLATED**.
+* 2026-11-15, owner: F2 next.
+
+## F2 result (2026-11-15)
+`research/futures_trend_f2_2026-11-15/PROTOCOL.md`: 55-day breakout with a 3 ATR trailing stop, long + short, daily, BTC + ETH + SOL,
+through this paper core. **FAIL**: 5 of 6 checks passed (+5,709 on 10,000 at 1x, 11.1% drawdown, positive at double costs and in
+every year), but the out-of-sample edge is 37% of the in-sample edge (the limit is 50%). Not retuned.
