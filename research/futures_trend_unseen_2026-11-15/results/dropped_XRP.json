@@ -1,0 +1,44 @@
+[
+ {
+  "file": "XRPUSDT-5m-2020-02.csv",
+  "open_ms": 1582112100000,
+  "close_ms": 1582112135062,
+  "duration_s": 35.062
+ },
+ {
+  "file": "XRPUSDT-5m-2020-03.csv",
+  "open_ms": 1583313600000,
+  "close_ms": 1583313708203,
+  "duration_s": 108.203
+ },
+ {
+  "file": "XRPUSDT-5m-2020-12.csv",
+  "open_ms": 1608559500000,
+  "close_ms": 1608558441656,
+  "duration_s": -1058.344
+ },
+ {
+  "file": "XRPUSDT-5m-2021-02.csv",
+  "open_ms": 1613014800000,
+  "close_ms": 1613014859081,
+  "duration_s": 59.081
+ },
+ {
+  "file": "XRPUSDT-5m-2021-04.csv",
+  "open_ms": 1619323200000,
+  "close_ms": 1619323262802,
+  "duration_s": 62.802
+ },
+ {
+  "file": "XRPUSDT-5m-2021-08.csv",
+  "open_ms": 1628819700000,
+  "close_ms": 1628819999000,
+  "duration_s": 299.0
+ },
+ {
+  "file": "XRPUSDT-5m-2023-03.csv",
+  "open_ms": 1679661300000,
+  "close_ms": 1679661588301,
+  "duration_s": 288.301
+ }
+]
