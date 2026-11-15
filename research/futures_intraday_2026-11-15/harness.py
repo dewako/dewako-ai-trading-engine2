@@ -127,6 +127,7 @@ class Trade:
     exit_ms: int
     pnl: float
     risked: float
+    value: float = 0.0      # position value at entry
 
     @property
     def r(self):
@@ -155,7 +156,7 @@ def simulate(t, o, h, l, c, rule: Rule, tf: str, fee: float, slip: float, cash: 
         f = qty * fill * fee
         pnl = side * qty * (fill - entry) - fees - f - funding
         eq += pnl
-        trades.append(Trade(side, int(t[entry_i]), int(t[i]), pnl, qty * stop_dist))
+        trades.append(Trade(side, int(t[entry_i]), int(t[i]), pnl, qty * stop_dist, qty * entry))
         side = 0
 
     for i in range(n):

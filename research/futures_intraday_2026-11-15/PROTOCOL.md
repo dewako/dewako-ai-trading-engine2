@@ -47,3 +47,49 @@ Per cell and cost: trades, win rate, net, drawdown, average R; long and short se
 * Drawdown is measured on realized equity sampled daily, so losses inside open trades and inside a day are not seen.
 
 ## Results (added after the runs; nothing above was changed)
+
+**Verdict: all 8 cells FAIL. Each passes only check 1 (trade count). At the verdict cost every cell loses the whole account. Nothing retuned.**
+
+### Net result on 10,000 USDT, 2020-01..2026-10, BTC + ETH + SOL (drawdown in brackets)
+| Cell | Trades | **Verdict 0.10% + 0.05%** | Taker 0.05% + 0.01% | Maker-like 0.02% | No costs |
+|---|---|---|---|---|---|
+| BRK 5m | 15,648 | **-10,000** (100%) | -9,947 | -7,519 | +7,020 (35%) |
+| BRK 15m | 10,006 | **-9,994** (100%) | -9,241 | -2,837 | +11,647 (29%) |
+| MR 5m | 48,095 | **-10,000** (100%) | -10,000 | -9,928 | +9,317 (57%) |
+| MR 15m | 16,247 | **-10,000** (100%) | -9,968 | -9,428 | -7,341 (74%) |
+| PB 5m | 84,921 | **-10,000** (100%) | -10,000 | -9,989 | +124,549 (52%) |
+| PB 15m | 25,937 | **-10,000** (100%) | -9,984 | -6,429 | +43,724 (32%) |
+| SQZ 5m | 49,343 | **-10,000** (100%) | -10,000 | -9,963 | +2,477 (91%) |
+| SQZ 15m | 19,775 | **-10,000** (100%) | -9,986 | -9,268 | -3,632 (64%) |
+Most of each loss falls in 2020 and 2021 because the account is nearly empty after that; the average R per trade is as bad or
+worse from 2024 on (for example BRK 15m: -0.27 R before 2024, -0.39 R after). Long and short both lose in every cell.
+
+### Why: the move per trade is about one tenth of the cost, or less
+Average result per trade as a percentage of the position value:
+| Cell | Before costs | At the verdict cost | Average hold |
+|---|---|---|---|
+| BRK 5m | -0.025% | -0.326% | 9 bars |
+| BRK 15m | -0.031% | -0.329% | 11 bars |
+| MR 5m | +0.018% | -0.282% | 7 bars |
+| MR 15m | +0.007% | -0.295% | 8 bars |
+| PB 5m | +0.008% | -0.291% | 11 bars |
+| PB 15m | +0.017% | -0.282% | 12 bars |
+| SQZ 5m | -0.010% | -0.309% | 12 bars |
+| SQZ 15m | -0.023% | -0.324% | 12 bars |
+Before costs the four ideas earn between -0.03% and +0.02% of the position per trade: no measurable edge. A round trip at the
+verdict cost is 0.30%. Even at a maker-like 0.02% per side (0.04% a round trip) all eight lose. The "no costs" column is positive
+for six cells only through position sizing and compounding on a near-zero average; it is not evidence of an edge.
+
+### What this shows
+* The failure is not in the settings. To survive a 0.30% round trip, a rule holding about an hour would need to earn roughly
+  twenty times what these standard ideas earn before costs. Tuning does not close a gap of that size; it only fits noise.
+* Leverage multiplies the position, so it multiplies the cost in the same proportion. It cannot help.
+* Together with Scalper 2.2 (6 charts) this makes 14 short-timeframe cells tested, 14 failed.
+* What the numbers leave open on these timeframes: (a) the move per trade must be many times larger, which means holding for
+  hours to days and using 5m/15m only to time entries of a slower signal; (b) costs far lower than a taker's, which means resting
+  limit orders, and that cannot be tested honestly on candles (no queue position, no knowledge of whether a limit order filled).
+
+### Harness notes
+The first run crashed while saving (a numpy value in the JSON output); the printed numbers were identical on the rerun. A
+position-value field was added to each trade after the first results, for the "per trade" table only; it changed no result (checked:
+every cell's figures are identical before and after). In every run the trades' profits add up to the account's change (asserted).

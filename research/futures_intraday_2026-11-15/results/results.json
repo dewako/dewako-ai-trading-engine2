@@ -1,0 +1,745 @@
+{
+ "bars": {
+  "5m": {
+   "BTC/USDT": 718378,
+   "ETH/USDT": 718378,
+   "SOL/USDT": 654263
+  },
+  "15m": {
+   "BTC/USDT": 239463,
+   "ETH/USDT": 239463,
+   "SOL/USDT": 218090
+  }
+ },
+ "cells": {
+  "BRK 5m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 15648,
+     "win_rate": 0.22,
+     "net": -9999.99,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.5587
+    },
+    "2x stress": {
+     "trades": 16133,
+     "win_rate": 0.154,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -1.1778
+    },
+    "taker": {
+     "trades": 15423,
+     "win_rate": 0.284,
+     "net": -9947.09,
+     "max_dd_pct": 99.47,
+     "avg_r": -0.2055
+    },
+    "maker-like": {
+     "trades": 15381,
+     "win_rate": 0.32,
+     "net": -7519.41,
+     "max_dd_pct": 81.06,
+     "avg_r": -0.0516
+    },
+    "no costs": {
+     "trades": 15381,
+     "win_rate": 0.339,
+     "net": 7020.15,
+     "max_dd_pct": 34.8,
+     "avg_r": 0.0251
+    }
+   },
+   "in_sample_avg_r": -0.4512,
+   "oos_avg_r": -0.6849,
+   "periods": [
+    -9415.73,
+    -569.14,
+    -14.9,
+    -0.23
+   ],
+   "by_side": {
+    "long": {
+     "trades": 8632,
+     "net": -6340.56
+    },
+    "short": {
+     "trades": 7016,
+     "net": -3659.43
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 5259,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 5092,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 5297,
+     "net": -3333.33
+    }
+   },
+   "by_year": {
+    "2020": -6941.14,
+    "2021": -2782.59,
+    "2022": -246.9,
+    "2023": -24.32,
+    "2024": -4.75,
+    "2025": -0.24,
+    "2026": -0.03
+   },
+   "move_per_trade_pct_before_costs": -0.0254,
+   "move_per_trade_pct_at_verdict_cost": -0.3255,
+   "avg_hold_bars": 9.4
+  },
+  "BRK 15m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 10006,
+     "win_rate": 0.261,
+     "net": -9994.03,
+     "max_dd_pct": 99.94,
+     "avg_r": -0.3216
+    },
+    "2x stress": {
+     "trades": 10127,
+     "win_rate": 0.205,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.6775
+    },
+    "taker": {
+     "trades": 9937,
+     "win_rate": 0.303,
+     "net": -9241.0,
+     "max_dd_pct": 93.09,
+     "avg_r": -0.1136
+    },
+    "maker-like": {
+     "trades": 9915,
+     "win_rate": 0.33,
+     "net": -2836.51,
+     "max_dd_pct": 55.81,
+     "avg_r": -0.0198
+    },
+    "no costs": {
+     "trades": 9915,
+     "win_rate": 0.341,
+     "net": 11647.27,
+     "max_dd_pct": 28.65,
+     "avg_r": 0.0263
+    }
+   },
+   "in_sample_avg_r": -0.2666,
+   "oos_avg_r": -0.3892,
+   "periods": [
+    -6960.53,
+    -2600.06,
+    -403.27,
+    -30.17
+   ],
+   "by_side": {
+    "long": {
+     "trades": 5389,
+     "net": -4572.91
+    },
+    "short": {
+     "trades": 4617,
+     "net": -5421.12
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 3375,
+     "net": -3333.02
+    },
+    "ETH/USDT": {
+     "trades": 3280,
+     "net": -3329.01
+    },
+    "SOL/USDT": {
+     "trades": 3351,
+     "net": -3332.0
+    }
+   },
+   "by_year": {
+    "2020": -4650.59,
+    "2021": -3449.62,
+    "2022": -1212.55,
+    "2023": -460.03,
+    "2024": -190.95,
+    "2025": -22.1,
+    "2026": -8.19
+   },
+   "move_per_trade_pct_before_costs": -0.0306,
+   "move_per_trade_pct_at_verdict_cost": -0.3292,
+   "avg_hold_bars": 11.2
+  },
+  "MR 5m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 48095,
+     "win_rate": 0.352,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.7063
+    },
+    "2x stress": {
+     "trades": 50760,
+     "win_rate": 0.202,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -1.4598
+    },
+    "taker": {
+     "trades": 46207,
+     "win_rate": 0.455,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.262
+    },
+    "maker-like": {
+     "trades": 45808,
+     "win_rate": 0.482,
+     "net": -9928.0,
+     "max_dd_pct": 99.3,
+     "avg_r": -0.0744
+    },
+    "no costs": {
+     "trades": 45808,
+     "win_rate": 0.487,
+     "net": 9316.97,
+     "max_dd_pct": 57.26,
+     "avg_r": 0.0181
+    }
+   },
+   "in_sample_avg_r": -0.6289,
+   "oos_avg_r": -0.8057,
+   "periods": [
+    -9920.19,
+    -3.51,
+    -0.0,
+    -0.0
+   ],
+   "by_side": {
+    "long": {
+     "trades": 24043,
+     "net": -4441.87
+    },
+    "short": {
+     "trades": 24052,
+     "net": -5558.13
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 16443,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 16957,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 14695,
+     "net": -3333.33
+    }
+   },
+   "by_year": {
+    "2020": -9581.13,
+    "2021": -417.58,
+    "2022": -1.29,
+    "2023": -0.0,
+    "2024": -0.0,
+    "2025": -0.0,
+    "2026": -0.0
+   },
+   "move_per_trade_pct_before_costs": 0.0182,
+   "move_per_trade_pct_at_verdict_cost": -0.282,
+   "avg_hold_bars": 7.2
+  },
+  "MR 15m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 16247,
+     "win_rate": 0.418,
+     "net": -9999.93,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.3732
+    },
+    "2x stress": {
+     "trades": 16679,
+     "win_rate": 0.323,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.7225
+    },
+    "taker": {
+     "trades": 15954,
+     "win_rate": 0.466,
+     "net": -9967.76,
+     "max_dd_pct": 99.68,
+     "avg_r": -0.1652
+    },
+    "maker-like": {
+     "trades": 15875,
+     "win_rate": 0.478,
+     "net": -9428.15,
+     "max_dd_pct": 94.28,
+     "avg_r": -0.0726
+    },
+    "no costs": {
+     "trades": 15875,
+     "win_rate": 0.482,
+     "net": -7341.23,
+     "max_dd_pct": 74.42,
+     "avg_r": -0.027
+    }
+   },
+   "in_sample_avg_r": -0.3351,
+   "oos_avg_r": -0.4251,
+   "periods": [
+    -8496.58,
+    -1400.92,
+    -54.3,
+    -3.25
+   ],
+   "by_side": {
+    "long": {
+     "trades": 8008,
+     "net": -3133.47
+    },
+    "short": {
+     "trades": 8239,
+     "net": -6866.46
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 5511,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 5741,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 4995,
+     "net": -3333.26
+    }
+   },
+   "by_year": {
+    "2020": -7095.37,
+    "2021": -1972.76,
+    "2022": -818.68,
+    "2023": -90.88,
+    "2024": -17.91,
+    "2025": -3.95,
+    "2026": -0.37
+   },
+   "move_per_trade_pct_before_costs": 0.0069,
+   "move_per_trade_pct_at_verdict_cost": -0.2949,
+   "avg_hold_bars": 7.9
+  },
+  "PB 5m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 84921,
+     "win_rate": 0.267,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -1.1387
+    },
+    "2x stress": {
+     "trades": 98317,
+     "win_rate": 0.171,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -2.4859
+    },
+    "taker": {
+     "trades": 78220,
+     "win_rate": 0.327,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.4091
+    },
+    "maker-like": {
+     "trades": 77012,
+     "win_rate": 0.341,
+     "net": -9989.06,
+     "max_dd_pct": 99.9,
+     "avg_r": -0.1215
+    },
+    "no costs": {
+     "trades": 77012,
+     "win_rate": 0.341,
+     "net": 124549.3,
+     "max_dd_pct": 52.07,
+     "avg_r": 0.0205
+    }
+   },
+   "in_sample_avg_r": -1.0385,
+   "oos_avg_r": -1.266,
+   "periods": [
+    -9946.41,
+    -0.2,
+    -0.0,
+    -0.0
+   ],
+   "by_side": {
+    "long": {
+     "trades": 43508,
+     "net": -4977.55
+    },
+    "short": {
+     "trades": 41413,
+     "net": -5022.45
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 30451,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 29322,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 25148,
+     "net": -3333.33
+    }
+   },
+   "by_year": {
+    "2020": -9839.1,
+    "2021": -160.89,
+    "2022": -0.01,
+    "2023": -0.0,
+    "2024": -0.0,
+    "2025": -0.0,
+    "2026": -0.0
+   },
+   "move_per_trade_pct_before_costs": 0.0081,
+   "move_per_trade_pct_at_verdict_cost": -0.291,
+   "avg_hold_bars": 10.7
+  },
+  "PB 15m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 25937,
+     "win_rate": 0.313,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.5017
+    },
+    "2x stress": {
+     "trades": 27621,
+     "win_rate": 0.271,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -1.1078
+    },
+    "taker": {
+     "trades": 24987,
+     "win_rate": 0.337,
+     "net": -9983.89,
+     "max_dd_pct": 99.85,
+     "avg_r": -0.1814
+    },
+    "maker-like": {
+     "trades": 24756,
+     "win_rate": 0.343,
+     "net": -6429.38,
+     "max_dd_pct": 80.08,
+     "avg_r": -0.0415
+    },
+    "no costs": {
+     "trades": 24756,
+     "win_rate": 0.343,
+     "net": 43724.25,
+     "max_dd_pct": 32.19,
+     "avg_r": 0.0268
+    }
+   },
+   "in_sample_avg_r": -0.4482,
+   "oos_avg_r": -0.5696,
+   "periods": [
+    -8635.0,
+    -1358.87,
+    -6.11,
+    -0.02
+   ],
+   "by_side": {
+    "long": {
+     "trades": 13444,
+     "net": -6267.02
+    },
+    "short": {
+     "trades": 12493,
+     "net": -3732.98
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 8876,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 8910,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 8151,
+     "net": -3333.33
+    }
+   },
+   "by_year": {
+    "2020": -8019.53,
+    "2021": -1455.7,
+    "2022": -497.65,
+    "2023": -25.86,
+    "2024": -1.22,
+    "2025": -0.03,
+    "2026": -0.0
+   },
+   "move_per_trade_pct_before_costs": 0.0173,
+   "move_per_trade_pct_at_verdict_cost": -0.2816,
+   "avg_hold_bars": 12.3
+  },
+  "SQZ 5m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 49343,
+     "win_rate": 0.174,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.7688
+    },
+    "2x stress": {
+     "trades": 50380,
+     "win_rate": 0.113,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -1.5737
+    },
+    "taker": {
+     "trades": 49041,
+     "win_rate": 0.237,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.3113
+    },
+    "maker-like": {
+     "trades": 48989,
+     "win_rate": 0.277,
+     "net": -9963.18,
+     "max_dd_pct": 99.95,
+     "avg_r": -0.1091
+    },
+    "no costs": {
+     "trades": 48989,
+     "win_rate": 0.3,
+     "net": 2477.12,
+     "max_dd_pct": 90.74,
+     "avg_r": -0.0079
+    }
+   },
+   "in_sample_avg_r": -0.7122,
+   "oos_avg_r": -0.8566,
+   "periods": [
+    -9699.35,
+    -137.38,
+    -0.0,
+    -0.0
+   ],
+   "by_side": {
+    "long": {
+     "trades": 24215,
+     "net": -4397.34
+    },
+    "short": {
+     "trades": 25128,
+     "net": -5602.66
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 16527,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 17291,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 15525,
+     "net": -3333.33
+    }
+   },
+   "by_year": {
+    "2020": -8123.46,
+    "2021": -1858.86,
+    "2022": -17.66,
+    "2023": -0.02,
+    "2024": -0.0,
+    "2025": -0.0,
+    "2026": -0.0
+   },
+   "move_per_trade_pct_before_costs": -0.0104,
+   "move_per_trade_pct_at_verdict_cost": -0.3093,
+   "avg_hold_bars": 12.1
+  },
+  "SQZ 15m": {
+   "verdict": "FAIL",
+   "checks": {
+    "1 trades >= 100": true,
+    "2 positive at 2x costs": false,
+    "3 max drawdown <= 15%": false,
+    "4 out-of-sample avg R positive and >= 50% of in-sample": false,
+    "5 at least 2 of 4 periods profitable": false
+   },
+   "by_cost": {
+    "verdict": {
+     "trades": 19775,
+     "win_rate": 0.219,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.418
+    },
+    "2x stress": {
+     "trades": 19924,
+     "win_rate": 0.169,
+     "net": -10000.0,
+     "max_dd_pct": 100.0,
+     "avg_r": -0.8529
+    },
+    "taker": {
+     "trades": 19710,
+     "win_rate": 0.261,
+     "net": -9986.45,
+     "max_dd_pct": 99.87,
+     "avg_r": -0.1623
+    },
+    "maker-like": {
+     "trades": 19691,
+     "win_rate": 0.284,
+     "net": -9268.07,
+     "max_dd_pct": 94.29,
+     "avg_r": -0.0466
+    },
+    "no costs": {
+     "trades": 19691,
+     "win_rate": 0.298,
+     "net": -3632.26,
+     "max_dd_pct": 63.5,
+     "avg_r": 0.0103
+    }
+   },
+   "in_sample_avg_r": -0.3741,
+   "oos_avg_r": -0.4802,
+   "periods": [
+    -7606.74,
+    -2272.23,
+    -63.44,
+    -0.67
+   ],
+   "by_side": {
+    "long": {
+     "trades": 9744,
+     "net": -4232.63
+    },
+    "short": {
+     "trades": 10031,
+     "net": -5767.37
+    }
+   },
+   "by_coin": {
+    "BTC/USDT": {
+     "trades": 6861,
+     "net": -3333.33
+    },
+    "ETH/USDT": {
+     "trades": 6989,
+     "net": -3333.33
+    },
+    "SOL/USDT": {
+     "trades": 5925,
+     "net": -3333.33
+    }
+   },
+   "by_year": {
+    "2020": -6220.34,
+    "2021": -2700.24,
+    "2022": -916.99,
+    "2023": -146.36,
+    "2024": -15.32,
+    "2025": -0.71,
+    "2026": -0.04
+   },
+   "move_per_trade_pct_before_costs": -0.0234,
+   "move_per_trade_pct_at_verdict_cost": -0.3235,
+   "avg_hold_bars": 12.4
+  }
+ },
+ "seconds": 53
+}
