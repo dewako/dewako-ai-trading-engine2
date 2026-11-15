@@ -67,3 +67,13 @@ position stays open below maintenance margin. Mutation check: 22 deliberate faul
 `research/futures_trend_f2_2026-11-15/PROTOCOL.md`: 55-day breakout with a 3 ATR trailing stop, long + short, daily, BTC + ETH + SOL,
 through this paper core. **FAIL**: 5 of 6 checks passed (+5,709 on 10,000 at 1x, 11.1% drawdown, positive at double costs and in
 every year), but the out-of-sample edge is 37% of the in-sample edge (the limit is 50%). Not retuned.
+
+## Intraday and unseen-coin results (2026-11-15)
+* `research/futures_intraday_2026-11-15/`: four standard rules on 5m and 15m, long + short: **all 8 cells FAIL** at every cost. The
+  rules earn -0.03% to +0.02% of the position per trade before costs against a 0.30% round trip. **Owner decision: short timeframes
+  are closed** ("leave short time frames").
+* `research/futures_trend_unseen_2026-11-15/`: the daily trend rule, unchanged, on BNB, XRP, ADA, AVAX, LINK: **FAIL** on drawdown
+  (17.5%) and out-of-sample ratio (34%), while +16,224 on 10,000, positive at double costs and on 4 of 5 coins. The profit generalised;
+  the fading edge and the drawdown did not pass. Shorts contribute nothing in either group.
+* F3 (engine wiring) stays blocked: no strategy has passed its pre-registered test. The next candidate is a long-only version of the
+  trend rule with a drawdown-aware size, as a new pre-registered test.

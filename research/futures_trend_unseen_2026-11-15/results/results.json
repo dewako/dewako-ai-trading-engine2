@@ -1,0 +1,578 @@
+{
+ "data": {
+  "BNB/USDT": {
+   "days": 2496,
+   "first": "2020-01-01"
+  },
+  "XRP/USDT": {
+   "days": 2496,
+   "first": "2020-01-01"
+  },
+  "ADA/USDT": {
+   "days": 2496,
+   "first": "2020-01-01"
+  },
+  "AVAX/USDT": {
+   "days": 2231,
+   "first": "2020-09-22"
+  },
+  "LINK/USDT": {
+   "days": 2496,
+   "first": "2020-01-01"
+  }
+ },
+ "FIVE UNSEEN COINS (the verdict)": {
+  "VERDICT": "FAIL",
+  "checks": {
+   "1 trades >= 100": {
+    "passed": true,
+    "value": 181
+   },
+   "2 positive at 2x costs": {
+    "passed": true,
+    "value": 15354.83
+   },
+   "3 max drawdown <= 15%": {
+    "passed": false,
+    "value": 17.49
+   },
+   "4 out-of-sample avg R positive and >= 50% of in-sample": {
+    "passed": false,
+    "value": {
+     "in_sample_avg_r": 0.878,
+     "n_in": 104,
+     "oos_avg_r": 0.295,
+     "n_oos": 77
+    }
+   },
+   "5 at least 2 of 4 periods profitable": {
+    "passed": true,
+    "value": [
+     10182.84,
+     -2516.63,
+     6761.71,
+     1795.85
+    ]
+   },
+   "6 max drawdown below buy-and-hold": {
+    "passed": true,
+    "value": {
+     "strategy": 17.49,
+     "buy_and_hold": 85.76
+    }
+   }
+  },
+  "verdict cost": {
+   "trades": 181,
+   "wins": 78,
+   "win_rate": 0.431,
+   "net": 16223.77,
+   "max_dd_pct": 17.49,
+   "avg_r": 0.63,
+   "net_over_dd": 9.28,
+   "liquidations": 0,
+   "skipped": 10
+  },
+  "2x stress": {
+   "trades": 181,
+   "wins": 78,
+   "win_rate": 0.431,
+   "net": 15354.83,
+   "max_dd_pct": 17.97,
+   "avg_r": 0.611,
+   "net_over_dd": 8.54,
+   "liquidations": 0,
+   "skipped": 10
+  },
+  "buy and hold": {
+   "net": 150769.55,
+   "max_dd_pct": 85.76
+  },
+  "by coin (each alone)": {
+   "BNB/USDT": {
+    "trades": 38,
+    "wins": 17,
+    "win_rate": 0.447,
+    "net": 2582.69,
+    "max_dd_pct": 7.11,
+    "avg_r": 0.677,
+    "net_over_dd": 3.63,
+    "liquidations": 0,
+    "skipped": 2
+   },
+   "XRP/USDT": {
+    "trades": 31,
+    "wins": 13,
+    "win_rate": 0.419,
+    "net": 1972.97,
+    "max_dd_pct": 8.68,
+    "avg_r": 0.636,
+    "net_over_dd": 2.27,
+    "liquidations": 0,
+    "skipped": 2
+   },
+   "ADA/USDT": {
+    "trades": 38,
+    "wins": 18,
+    "win_rate": 0.474,
+    "net": 2232.94,
+    "max_dd_pct": 5.82,
+    "avg_r": 0.556,
+    "net_over_dd": 3.84,
+    "liquidations": 0,
+    "skipped": 1
+   },
+   "AVAX/USDT": {
+    "trades": 30,
+    "wins": 16,
+    "win_rate": 0.533,
+    "net": 5689.59,
+    "max_dd_pct": 6.64,
+    "avg_r": 1.647,
+    "net_over_dd": 8.57,
+    "liquidations": 0,
+    "skipped": 3
+   },
+   "LINK/USDT": {
+    "trades": 44,
+    "wins": 14,
+    "win_rate": 0.318,
+    "net": -227.46,
+    "max_dd_pct": 12.7,
+    "avg_r": -0.045,
+    "net_over_dd": -0.18,
+    "liquidations": 0,
+    "skipped": 2
+   }
+  },
+  "by side": {
+   "LONG": {
+    "trades": 106,
+    "net": 16708.12,
+    "sum_r": 117.8
+   },
+   "SHORT": {
+    "trades": 75,
+    "net": -437.07,
+    "sum_r": -3.77
+   }
+  },
+  "by year": {
+   "2020": {
+    "trades": 18,
+    "net": 1808.54
+   },
+   "2021": {
+    "trades": 28,
+    "net": 7945.31
+   },
+   "2022": {
+    "trades": 27,
+    "net": -336.51
+   },
+   "2023": {
+    "trades": 31,
+    "net": 2349.21
+   },
+   "2024": {
+    "trades": 31,
+    "net": 2839.09
+   },
+   "2025": {
+    "trades": 24,
+    "net": 70.51
+   },
+   "2026": {
+    "trades": 22,
+    "net": 1594.9
+   }
+  },
+  "without best trades": {
+   "all": 16271.05,
+   "without best 1": 12593.36,
+   "without best 3": 6460.1,
+   "without best 5": 3147.89
+  },
+  "best 5": [
+   {
+    "symbol": "AVAX/USDT",
+    "side": "LONG",
+    "entry": "2021-01-07",
+    "pnl": 3677.69,
+    "r": 30.55
+   },
+   {
+    "symbol": "XRP/USDT",
+    "side": "LONG",
+    "entry": "2024-11-13",
+    "pnl": 3152.77,
+    "r": 16.06
+   },
+   {
+    "symbol": "BNB/USDT",
+    "side": "LONG",
+    "entry": "2021-01-18",
+    "pnl": 2980.49,
+    "r": 23.75
+   },
+   {
+    "symbol": "ADA/USDT",
+    "side": "LONG",
+    "entry": "2023-10-24",
+    "pnl": 1821.0,
+    "r": 10.19
+   },
+   {
+    "symbol": "ADA/USDT",
+    "side": "LONG",
+    "entry": "2024-11-09",
+    "pnl": 1491.21,
+    "r": 7.78
+   }
+  ]
+ },
+ "all eight coins together (reported)": {
+  "VERDICT": "FAIL",
+  "checks": {
+   "1 trades >= 100": {
+    "passed": true,
+    "value": 297
+   },
+   "2 positive at 2x costs": {
+    "passed": true,
+    "value": 26549.89
+   },
+   "3 max drawdown <= 15%": {
+    "passed": false,
+    "value": 23.54
+   },
+   "4 out-of-sample avg R positive and >= 50% of in-sample": {
+    "passed": false,
+    "value": {
+     "in_sample_avg_r": 0.746,
+     "n_in": 173,
+     "oos_avg_r": 0.259,
+     "n_oos": 124
+    }
+   },
+   "5 at least 2 of 4 periods profitable": {
+    "passed": true,
+    "value": [
+     15323.08,
+     -2157.58,
+     10972.96,
+     4593.36
+    ]
+   },
+   "6 max drawdown below buy-and-hold": {
+    "passed": true,
+    "value": {
+     "strategy": 23.54,
+     "buy_and_hold": 85.22
+    }
+   }
+  },
+  "verdict cost": {
+   "trades": 297,
+   "wins": 135,
+   "win_rate": 0.455,
+   "net": 28731.81,
+   "max_dd_pct": 23.54,
+   "avg_r": 0.543,
+   "net_over_dd": 12.2,
+   "liquidations": 0,
+   "skipped": 13
+  },
+  "2x stress": {
+   "trades": 297,
+   "wins": 133,
+   "win_rate": 0.448,
+   "net": 26549.89,
+   "max_dd_pct": 24.57,
+   "avg_r": 0.523,
+   "net_over_dd": 10.8,
+   "liquidations": 0,
+   "skipped": 13
+  },
+  "buy and hold": {
+   "net": 167692.59,
+   "max_dd_pct": 85.22
+  },
+  "by coin (each alone)": {
+   "BTC/USDT": {
+    "trades": 41,
+    "wins": 19,
+    "win_rate": 0.463,
+    "net": 1181.73,
+    "max_dd_pct": 5.47,
+    "avg_r": 0.292,
+    "net_over_dd": 2.16,
+    "liquidations": 0,
+    "skipped": 0
+   },
+   "ETH/USDT": {
+    "trades": 40,
+    "wins": 21,
+    "win_rate": 0.525,
+    "net": 1048.5,
+    "max_dd_pct": 3.81,
+    "avg_r": 0.256,
+    "net_over_dd": 2.75,
+    "liquidations": 0,
+    "skipped": 1
+   },
+   "SOL/USDT": {
+    "trades": 35,
+    "wins": 17,
+    "win_rate": 0.486,
+    "net": 2707.42,
+    "max_dd_pct": 4.84,
+    "avg_r": 0.714,
+    "net_over_dd": 5.59,
+    "liquidations": 0,
+    "skipped": 2
+   },
+   "BNB/USDT": {
+    "trades": 38,
+    "wins": 17,
+    "win_rate": 0.447,
+    "net": 2582.69,
+    "max_dd_pct": 7.11,
+    "avg_r": 0.677,
+    "net_over_dd": 3.63,
+    "liquidations": 0,
+    "skipped": 2
+   },
+   "XRP/USDT": {
+    "trades": 31,
+    "wins": 13,
+    "win_rate": 0.419,
+    "net": 1972.97,
+    "max_dd_pct": 8.68,
+    "avg_r": 0.636,
+    "net_over_dd": 2.27,
+    "liquidations": 0,
+    "skipped": 2
+   },
+   "ADA/USDT": {
+    "trades": 38,
+    "wins": 18,
+    "win_rate": 0.474,
+    "net": 2232.94,
+    "max_dd_pct": 5.82,
+    "avg_r": 0.556,
+    "net_over_dd": 3.84,
+    "liquidations": 0,
+    "skipped": 1
+   },
+   "AVAX/USDT": {
+    "trades": 30,
+    "wins": 16,
+    "win_rate": 0.533,
+    "net": 5689.59,
+    "max_dd_pct": 6.64,
+    "avg_r": 1.647,
+    "net_over_dd": 8.57,
+    "liquidations": 0,
+    "skipped": 3
+   },
+   "LINK/USDT": {
+    "trades": 44,
+    "wins": 14,
+    "win_rate": 0.318,
+    "net": -227.46,
+    "max_dd_pct": 12.7,
+    "avg_r": -0.045,
+    "net_over_dd": -0.18,
+    "liquidations": 0,
+    "skipped": 2
+   }
+  },
+  "by side": {
+   "LONG": {
+    "trades": 183,
+    "net": 27352.18,
+    "sum_r": 158.49
+   },
+   "SHORT": {
+    "trades": 114,
+    "net": 1458.72,
+    "sum_r": 2.71
+   }
+  },
+  "by year": {
+   "2020": {
+    "trades": 32,
+    "net": 2631.39
+   },
+   "2021": {
+    "trades": 46,
+    "net": 12235.99
+   },
+   "2022": {
+    "trades": 42,
+    "net": 34.8
+   },
+   "2023": {
+    "trades": 53,
+    "net": 4786.96
+   },
+   "2024": {
+    "trades": 47,
+    "net": 4961.16
+   },
+   "2025": {
+    "trades": 41,
+    "net": 592.6
+   },
+   "2026": {
+    "trades": 36,
+    "net": 3568.0
+   }
+  },
+  "without best trades": {
+   "all": 28810.9,
+   "without best 1": 24399.51,
+   "without best 3": 17194.91,
+   "without best 5": 12879.48
+  },
+  "best 5": [
+   {
+    "symbol": "XRP/USDT",
+    "side": "LONG",
+    "entry": "2024-11-13",
+    "pnl": 4411.4,
+    "r": 16.06
+   },
+   {
+    "symbol": "AVAX/USDT",
+    "side": "LONG",
+    "entry": "2021-01-07",
+    "pnl": 4012.0,
+    "r": 30.55
+   },
+   {
+    "symbol": "BNB/USDT",
+    "side": "LONG",
+    "entry": "2021-01-18",
+    "pnl": 3192.6,
+    "r": 23.75
+   },
+   {
+    "symbol": "ADA/USDT",
+    "side": "LONG",
+    "entry": "2023-10-24",
+    "pnl": 2284.02,
+    "r": 10.19
+   },
+   {
+    "symbol": "ADA/USDT",
+    "side": "LONG",
+    "entry": "2024-11-09",
+    "pnl": 2031.4,
+    "r": 7.78
+   }
+  ]
+ },
+ "neighbours on the five unseen coins (1x, verdict cost)": {
+  "40 days, 2.5 ATR": {
+   "trades": 271,
+   "wins": 96,
+   "win_rate": 0.354,
+   "net": 8427.51,
+   "max_dd_pct": 24.58,
+   "avg_r": 0.288,
+   "net_over_dd": 3.43,
+   "liquidations": 0,
+   "skipped": 11
+  },
+  "40 days, 3.0 ATR": {
+   "trades": 232,
+   "wins": 90,
+   "win_rate": 0.388,
+   "net": 14435.76,
+   "max_dd_pct": 21.98,
+   "avg_r": 0.473,
+   "net_over_dd": 6.57,
+   "liquidations": 0,
+   "skipped": 13
+  },
+  "40 days, 3.5 ATR": {
+   "trades": 204,
+   "wins": 80,
+   "win_rate": 0.392,
+   "net": 14223.63,
+   "max_dd_pct": 18.64,
+   "avg_r": 0.529,
+   "net_over_dd": 7.63,
+   "liquidations": 0,
+   "skipped": 17
+  },
+  "55 days, 2.5 ATR": {
+   "trades": 213,
+   "wins": 80,
+   "win_rate": 0.376,
+   "net": 10572.96,
+   "max_dd_pct": 19.63,
+   "avg_r": 0.407,
+   "net_over_dd": 5.39,
+   "liquidations": 0,
+   "skipped": 10
+  },
+  "55 days, 3.0 ATR": {
+   "trades": 181,
+   "wins": 78,
+   "win_rate": 0.431,
+   "net": 16223.77,
+   "max_dd_pct": 17.49,
+   "avg_r": 0.63,
+   "net_over_dd": 9.28,
+   "liquidations": 0,
+   "skipped": 10
+  },
+  "55 days, 3.5 ATR": {
+   "trades": 162,
+   "wins": 72,
+   "win_rate": 0.444,
+   "net": 15128.31,
+   "max_dd_pct": 16.79,
+   "avg_r": 0.676,
+   "net_over_dd": 9.01,
+   "liquidations": 0,
+   "skipped": 12
+  },
+  "70 days, 2.5 ATR": {
+   "trades": 182,
+   "wins": 65,
+   "win_rate": 0.357,
+   "net": 9182.96,
+   "max_dd_pct": 17.91,
+   "avg_r": 0.432,
+   "net_over_dd": 5.13,
+   "liquidations": 0,
+   "skipped": 8
+  },
+  "70 days, 3.0 ATR": {
+   "trades": 152,
+   "wins": 65,
+   "win_rate": 0.428,
+   "net": 14860.55,
+   "max_dd_pct": 15.99,
+   "avg_r": 0.706,
+   "net_over_dd": 9.29,
+   "liquidations": 0,
+   "skipped": 8
+  },
+  "70 days, 3.5 ATR": {
+   "trades": 135,
+   "wins": 61,
+   "win_rate": 0.452,
+   "net": 13957.78,
+   "max_dd_pct": 15.04,
+   "avg_r": 0.768,
+   "net_over_dd": 9.28,
+   "liquidations": 0,
+   "skipped": 11
+  }
+ }
+}

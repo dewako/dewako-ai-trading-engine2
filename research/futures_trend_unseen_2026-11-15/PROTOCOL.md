@@ -28,3 +28,42 @@ Spot candles stand in for perpetuals; funding is a constant. The five coins and 
 and move together, so eight coins are still far from eight independent tests. Shorts face a rising market overall.
 
 ## Results (added after the run; nothing above was changed)
+
+**Verdict: FAIL — 4 of 6 checks passed; checks 3 (drawdown 17.5% > 15%) and 4 (out-of-sample edge 34% of in-sample) failed. Nothing retuned.**
+
+### The five unseen coins together (1x, fee 0.10% + slippage 0.05%)
+| Check | Result | |
+|---|---|---|
+| 1. at least 100 trades | 181 | pass |
+| 2. positive at 2x costs | +15,355 | pass |
+| 3. max drawdown at most 15% | **17.49%** | **FAIL** |
+| 4. out of sample (2024+) avg R at least 50% of in-sample | 0.295 R (77 trades) vs 0.878 R (104) = **34%** | **FAIL** |
+| 5. at least 2 of 4 periods profitable | 3 of 4 (+10,183, -2,517, +6,762, +1,796) | pass |
+| 6. drawdown below buy-and-hold | 17.49% vs 85.76% | pass |
+Net **+16,224** on 10,000 (about 15% a year), win rate 43%, 0 liquidations, 10 entries refused by the guard.
+
+* **Each coin alone:** BNB +2,583, XRP +1,973, ADA +2,233, AVAX +5,690, **LINK -227** (44 trades, 32% wins). Four of five positive.
+* **By side:** long 106 trades +16,708; **short 75 trades -437**. The shorts lose on these coins too (F2: +849 on BTC/ETH/SOL).
+* **By year:** 2020 +1,809; 2021 +7,945; 2022 -337; 2023 +2,349; 2024 +2,839; 2025 +71; 2026 +1,595. One losing year (2022).
+* **Without the best trades:** all +16,271; without the best 1: +12,593; best 3: +6,460; best 5: +3,148. The best five are all longs,
+  three of them from the 2021 bull run.
+* **Neighbours:** all nine settings positive (+8,428 to +16,224); drawdowns 15.0% to 24.6%, only 70 days / 3.5 ATR under 15%.
+
+### All eight coins as one account (reported, not a verdict)
+297 trades, **+28,732**, max drawdown 23.5%, positive at 2x costs (+26,550); 0.746 R before 2024 vs 0.259 R after (35%).
+Longs +27,352 on 183 trades; shorts +1,459 on 114. Every coin positive except LINK.
+
+### What this shows
+* **The profit generalised; the test still fails.** On coins never looked at, the rule made more per trade (0.63 R vs 0.41 R) and
+  the same picture held: positive at double costs, far below buy-and-hold's drawdown, most years positive, no setting-sensitivity.
+  This is the first idea tested here whose result carried over to unseen data.
+* **Two things did not carry over:** the drawdown limit (17.5% and 23.5% across eight coins, against the 15% rule), and the
+  out-of-sample ratio, which came out at 34-37% in every group. An edge that is one third of its 2020-2023 size after 2024 is the
+  consistent finding, not noise in one group.
+* **Shorts have no edge in this data** (-437 here, +849 in F2, 189 short trades in all, about zero R). Long-only would have scored
+  better on every check, but that is a change decided after seeing results, so it is not applied here; it is a hypothesis for a new
+  pre-registered test.
+* Eight correlated coins over one crypto cycle are still one history, and 2021 supplies most of the profit.
+
+### Harness note
+`harness.run` from the F2 folder was used as is. The books were checked: trade P&L sums to the account change in every run.
