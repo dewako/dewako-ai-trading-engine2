@@ -30,6 +30,8 @@ jobs:
       - run: python scripts/scan_secrets.py
       - name: the CI skip-policy script turns each kind of bad report red (self-test)
         run: python scripts/test_assert_no_skips.py
+      - name: Linux paper-run script self-test (stand-in API, run wrapper, systemd unit text; no network)
+        run: bash scripts/linux/dewako_paper.sh selftest
       - name: dashboard JavaScript parses (no build step exists; this is a syntax check, not a linter)
         run: |
           set -euo pipefail
