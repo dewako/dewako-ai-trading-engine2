@@ -33,3 +33,19 @@ Each coin alone; by calendar year; result without the best 1 and 3 trades; unsca
 
 ## Known limits
 Survivorship bias (the 2017-2019 universe is coins that survived and were later chosen); spot standing in for perpetuals with constant funding; only 2.4 years, with the number of coins growing over time; 2017-2018 slippage may be understated; partial days where candles are missing; a single bull-bust-recovery cycle.
+
+---
+## Results (appended 2026-11-21 after the single run; protocol text above unchanged)
+Raw numbers: `results/results.json`. One bug fix between the first attempt and the run (duplicate dict key in the data report; the first attempt crashed before computing any strategy result; no rule or check changed).
+
+**Verdict: PASS, 6/6.** 29 closed trades; net +1,637.76 (+16.4%) at base costs, +1,578.44 at 2x; max drawdown 5.92%; average R 0.635 vs 0.608 in the 2020-2026 reference (147 trades); slices +430.61 / -376.46 / +1,682.43 / -98.82 (2 of 4 profitable); buy-and-hold drawdown 77.62%.
+
+What the pass does and does not mean (stress test of the result):
+- The drawdown-aware sizing never acted: peak drawdown was 5.9%, far below 15%, so `skipped_dd` = 0 and the scale was only a small reduction (unscaled long-only: +1,943.64, drawdown 6.95%, same 29 trades). That part of the hypothesis was not tested by this data.
+- Thin: 29 trades; net without the best 3 trades is +154.62 (about zero); 2019 supplies 17 of 29 trades and +1,583.61 of the net; 2018 was negative (-320.47); XRP lost on all 3 trades.
+- Check 6 is weak for a strategy that is mostly in cash: it earned +16.4% in a period where equal-weight buy-and-hold made +172.8% (with a 77.6% drawdown). The rule is a low-risk, low-return filter, not a profit engine.
+- Direction is consistent with the 2020-2026 reference (avg R 0.635 vs 0.608; neighbouring settings all positive, 20-46 trades), which is the useful part: the edge did not vanish on unseen data.
+- The long+short rule on the same data: +3,465.73, drawdown 6.79%, avg R 0.557 (53 trades, 4 still open): shorts did not hurt here, which differs from 2020-2026 and shows how regime-dependent this is.
+- Known limits stand: survivorship, spot standing in for perpetuals, a single cycle, 11 BTC days with under 90% of candles.
+
+Per the stop rule this is not a promotion and the 100-trade gate is still unmet. Next step under the protocol: a separate pre-registered pooled test aimed at 100 trades, plus forward paper testing.

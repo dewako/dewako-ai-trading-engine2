@@ -1,0 +1,371 @@
+{
+ "data": {
+  "pre": {
+   "BTC/USDT": {
+    "days": 866,
+    "first": 1502928000000,
+    "last": 1577750400000,
+    "candle_days": 866,
+    "under_90pct": 11
+   },
+   "ETH/USDT": {
+    "days": 866,
+    "first": 1502928000000,
+    "last": 1577750400000,
+    "candle_days": 866,
+    "under_90pct": 11
+   },
+   "BNB/USDT": {
+    "days": 785,
+    "first": 1509926400000,
+    "last": 1577750400000,
+    "candle_days": 785,
+    "under_90pct": 10
+   },
+   "XRP/USDT": {
+    "days": 607,
+    "first": 1525392000000,
+    "last": 1577750400000,
+    "candle_days": 607,
+    "under_90pct": 8
+   },
+   "ADA/USDT": {
+    "days": 624,
+    "first": 1523923200000,
+    "last": 1577750400000,
+    "candle_days": 624,
+    "under_90pct": 8
+   },
+   "LINK/USDT": {
+    "days": 334,
+    "first": 1548979200000,
+    "last": 1577750400000,
+    "candle_days": 334,
+    "under_90pct": 3
+   }
+  },
+  "reference": {
+   "BTC/USDT": {
+    "days": 2496,
+    "first": 1577836800000,
+    "last": 1793404800000
+   },
+   "ETH/USDT": {
+    "days": 2496,
+    "first": 1577836800000,
+    "last": 1793404800000
+   },
+   "BNB/USDT": {
+    "days": 2496,
+    "first": 1577836800000,
+    "last": 1793404800000
+   },
+   "XRP/USDT": {
+    "days": 2496,
+    "first": 1577836800000,
+    "last": 1793404800000
+   },
+   "ADA/USDT": {
+    "days": 2496,
+    "first": 1577836800000,
+    "last": 1793404800000
+   },
+   "LINK/USDT": {
+    "days": 2496,
+    "first": 1577836800000,
+    "last": 1793404800000
+   }
+  }
+ },
+ "verdict run": {
+  "trades": 29,
+  "wins": 13,
+  "net": 1637.76,
+  "max_dd_pct": 5.92,
+  "avg_r": 0.635,
+  "sum_r": 18.41,
+  "liquidations": 0,
+  "skipped_dd": 0,
+  "open_at_end": 0
+ },
+ "2x stress run": {
+  "trades": 29,
+  "wins": 13,
+  "net": 1578.44,
+  "max_dd_pct": 5.97,
+  "avg_r": 0.616,
+  "sum_r": 17.87,
+  "liquidations": 0,
+  "skipped_dd": 0,
+  "open_at_end": 0
+ },
+ "reference run (2020-2026, same rule)": {
+  "trades": 147,
+  "wins": 65,
+  "net": 5310.72,
+  "max_dd_pct": 10.81,
+  "avg_r": 0.608,
+  "sum_r": 89.34,
+  "liquidations": 0,
+  "skipped_dd": 0,
+  "open_at_end": 0
+ },
+ "verdict checks": {
+  "1 at least 20 closed trades": {
+   "passed": true,
+   "value": 29
+  },
+  "2 positive at base and at 2x costs": {
+   "passed": true,
+   "value": {
+    "base": 1637.76,
+    "x2": 1578.44
+   }
+  },
+  "3 max drawdown <= 15%": {
+   "passed": true,
+   "value": 5.92
+  },
+  "4 avg R positive and >= 50% of the reference avg R": {
+   "passed": true,
+   "value": {
+    "pre_avg_r": 0.635,
+    "reference_avg_r": 0.608
+   }
+  },
+  "5 at least 2 of 4 equal slices profitable": {
+   "passed": true,
+   "value": [
+    430.61,
+    -376.46,
+    1682.43,
+    -98.82
+   ]
+  },
+  "6 max drawdown below buy-and-hold": {
+   "passed": true,
+   "value": {
+    "strategy": 5.92,
+    "buy_and_hold": 77.62
+   }
+  }
+ },
+ "VERDICT": "PASS",
+ "buy and hold (equal-weight start, no rebalancing)": {
+  "net": 17277.12,
+  "max_dd_pct": 77.62
+ },
+ "by coin (each alone with the whole account)": {
+  "BTC/USDT": {
+   "trades": 8,
+   "wins": 4,
+   "net": 639.09,
+   "max_dd_pct": 3.75,
+   "avg_r": 0.98,
+   "sum_r": 7.84,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "ETH/USDT": {
+   "trades": 6,
+   "wins": 3,
+   "net": 136.14,
+   "max_dd_pct": 2.96,
+   "avg_r": 0.294,
+   "sum_r": 1.76,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "BNB/USDT": {
+   "trades": 6,
+   "wins": 3,
+   "net": 560.0,
+   "max_dd_pct": 3.47,
+   "avg_r": 1.181,
+   "sum_r": 7.09,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "XRP/USDT": {
+   "trades": 3,
+   "wins": 0,
+   "net": -214.54,
+   "max_dd_pct": 2.25,
+   "avg_r": -0.758,
+   "sum_r": -2.27,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "ADA/USDT": {
+   "trades": 1,
+   "wins": 1,
+   "net": 286.65,
+   "max_dd_pct": 1.85,
+   "avg_r": 2.867,
+   "sum_r": 2.87,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "LINK/USDT": {
+   "trades": 5,
+   "wins": 2,
+   "net": 98.98,
+   "max_dd_pct": 3.36,
+   "avg_r": 0.226,
+   "sum_r": 1.13,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  }
+ },
+ "by calendar year (entry year)": {
+  "2017": {
+   "trades": 5,
+   "net": 374.61,
+   "sum_r": 4.05
+  },
+  "2018": {
+   "trades": 7,
+   "net": -320.47,
+   "sum_r": -4.0
+  },
+  "2019": {
+   "trades": 17,
+   "net": 1583.61,
+   "sum_r": 18.36
+  }
+ },
+ "without best trades (sum of trade P&L)": {
+  "all": 1637.76,
+  "without best 1": 999.32,
+  "without best 3": 154.62
+ },
+ "unscaled long-only (dd_limit none)": {
+  "trades": 29,
+  "wins": 13,
+  "net": 1943.64,
+  "max_dd_pct": 6.95,
+  "avg_r": 0.635,
+  "sum_r": 18.41,
+  "liquidations": 0,
+  "skipped_dd": 0,
+  "open_at_end": 0
+ },
+ "original long+short rule, unscaled": {
+  "trades": 53,
+  "wins": 27,
+  "net": 3465.73,
+  "max_dd_pct": 6.79,
+  "avg_r": 0.557,
+  "sum_r": 29.54,
+  "liquidations": 0,
+  "skipped_dd": 0,
+  "open_at_end": 4
+ },
+ "neighbours (scaled long-only)": {
+  "40 days, 2.5 ATR": {
+   "trades": 46,
+   "wins": 19,
+   "net": 150.23,
+   "max_dd_pct": 6.57,
+   "avg_r": 0.112,
+   "sum_r": 5.16,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "40 days, 3.0 ATR": {
+   "trades": 37,
+   "wins": 13,
+   "net": 1462.63,
+   "max_dd_pct": 5.97,
+   "avg_r": 0.446,
+   "sum_r": 16.51,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "40 days, 3.5 ATR": {
+   "trades": 33,
+   "wins": 12,
+   "net": 1250.1,
+   "max_dd_pct": 6.24,
+   "avg_r": 0.407,
+   "sum_r": 13.44,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "55 days, 2.5 ATR": {
+   "trades": 37,
+   "wins": 18,
+   "net": 474.31,
+   "max_dd_pct": 6.33,
+   "avg_r": 0.247,
+   "sum_r": 9.13,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "55 days, 3.0 ATR": {
+   "trades": 29,
+   "wins": 13,
+   "net": 1637.76,
+   "max_dd_pct": 5.92,
+   "avg_r": 0.635,
+   "sum_r": 18.41,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "55 days, 3.5 ATR": {
+   "trades": 25,
+   "wins": 12,
+   "net": 1469.33,
+   "max_dd_pct": 5.72,
+   "avg_r": 0.644,
+   "sum_r": 16.09,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "70 days, 2.5 ATR": {
+   "trades": 30,
+   "wins": 16,
+   "net": 803.09,
+   "max_dd_pct": 5.58,
+   "avg_r": 0.385,
+   "sum_r": 11.54,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "70 days, 3.0 ATR": {
+   "trades": 24,
+   "wins": 11,
+   "net": 1695.94,
+   "max_dd_pct": 4.86,
+   "avg_r": 0.748,
+   "sum_r": 17.96,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  },
+  "70 days, 3.5 ATR": {
+   "trades": 20,
+   "wins": 10,
+   "net": 1584.13,
+   "max_dd_pct": 4.68,
+   "avg_r": 0.828,
+   "sum_r": 16.56,
+   "liquidations": 0,
+   "skipped_dd": 0,
+   "open_at_end": 0
+  }
+ }
+}
