@@ -24,11 +24,11 @@ class Bar:
     c: float
 
 
-def load_daily(db: str, symbol: str) -> list[Bar]:
+def load_daily(db: str, symbol: str, start_ms: int = START_MS, end_ms: int = END_MS) -> list[Bar]:
     q = ("SELECT open_ms, o, h, l, c FROM candles WHERE symbol=? AND timeframe='5m' AND source='binance_archive' "
          "AND open_ms>=? AND open_ms<? ORDER BY open_ms")
     out: list[Bar] = []
-    for t, o, h, l, c in sqlite3.connect(f"file:{db}?mode=ro", uri=True).execute(q, (symbol, START_MS, END_MS)):
+    for t, o, h, l, c in sqlite3.connect(f"file:{db}?mode=ro", uri=True).execute(q, (symbol, start_ms, end_ms)):
         d = t // DAY * DAY
         if out and out[-1].t == d:
             b = out[-1]
@@ -81,8 +81,10 @@ class Trade:
 
 
 def run(data: dict, n: int = 55, atr_n: int = 20, k: float = 3.0, leverage: int = 1, fee: float = 0.001, slip: float = 0.0005,
-        shorts_funding: str = "none", cash: float = 10_000.0, sides=("LONG", "SHORT")) -> dict:
-    """data: {symbol: [Bar]}. shorts_funding: 'none' (shorts receive nothing), 'pay' (shorts pay too), 'receive'."""
+        shorts_funding: str = "none", cash: float = 10_000.0, sides=("LONG", "SHORT"), dd_limit: float | None = None) -> dict:
+    """data: {symbol: [Bar]}. shorts_funding: 'none' (shorts receive nothing), 'pay' (shorts pay too), 'receive'.
+    dd_limit: None = every entry risks 1% of equity (F2, unchanged). A number such as 0.15 = drawdown-aware sizing: an entry risks
+    1% x max(0, 1 - drawdown / dd_limit), where drawdown is (peak closing equity - equity now) / peak; at or beyond dd_limit no new entry is taken."""
     acct = PaperFuturesAccount(cash, FuturesConfig(fee_rate=fee, slippage=slip, max_leverage=3))
     risk = 0.01 * leverage
     idx = {s: {b.t: i for i, b in enumerate(bars)} for s, bars in data.items()}
@@ -96,6 +98,8 @@ def run(data: dict, n: int = 55, atr_n: int = 20, k: float = 3.0, leverage: int 
     trades: list[Trade] = []
     curve: list = []
     skipped = 0
+    skipped_dd = 0
+    peak = cash
 
     def finish(s, t, liquidated=False):
         st = open_.pop(s)      # one trade's profit = this symbol's ledger entries since its entry (fees, funding, P&L, liquidation)
@@ -127,7 +131,11 @@ def run(data: dict, n: int = 55, atr_n: int = 20, k: float = 3.0, leverage: int 
             if s in pending and s not in open_:
                 side, a = pending.pop(s)
                 eq = acct.equity()
-                qty = min(eq * risk / (k * a), leverage * eq / 3 / b.o)
+                scale = 1.0 if dd_limit is None else max(0.0, 1.0 - max(0.0, (peak - eq) / peak) / dd_limit)
+                if scale <= 0.0:
+                    skipped_dd += 1
+                    continue
+                qty = min(eq * risk * scale / (k * a), leverage * eq / 3 / b.o)
                 stop = b.o - k * a if side == "LONG" else b.o + k * a
                 mmr = acct.config.mmr(qty * b.o)
                 liq = b.o * (1 - 1 / leverage) / (1 - mmr) if side == "LONG" else b.o * (1 + 1 / leverage) / (1 + mmr)
@@ -170,7 +178,8 @@ def run(data: dict, n: int = 55, atr_n: int = 20, k: float = 3.0, leverage: int 
                     pending[s] = (sig, atrs[s][i])
         acct.check()
         curve.append((t, acct.equity()))
-    return dict(trades=trades, curve=curve, skipped=skipped, final=curve[-1][1], liquidations=len(acct.liquidations),
+        peak = max(peak, curve[-1][1])
+    return dict(trades=trades, curve=curve, skipped=skipped, skipped_dd=skipped_dd, final=curve[-1][1], liquidations=len(acct.liquidations),
                 open_at_end=len(open_))
 
 

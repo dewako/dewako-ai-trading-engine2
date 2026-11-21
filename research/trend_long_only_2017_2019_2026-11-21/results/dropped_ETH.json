@@ -1,0 +1,1496 @@
+[
+ {
+  "file": "ETHUSDT-5m-2017-09.csv",
+  "open_ms": 1504713300000,
+  "close_ms": 1504713600000,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2017-12.csv",
+  "open_ms": 1513591200000,
+  "close_ms": 1513591242455,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2017-12.csv",
+  "open_ms": 1513599900000,
+  "close_ms": 1513600153429,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-01.csv",
+  "open_ms": 1515034800000,
+  "close_ms": 1515034814849,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518049500000,
+  "close_ms": 1518049694799,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518170294800,
+  "close_ms": 1518170594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518170594800,
+  "close_ms": 1518170894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518170894800,
+  "close_ms": 1518171194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518171194800,
+  "close_ms": 1518171494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518171494800,
+  "close_ms": 1518171794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518171794800,
+  "close_ms": 1518172094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518172094800,
+  "close_ms": 1518172394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518172394800,
+  "close_ms": 1518172694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518172694800,
+  "close_ms": 1518172994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518172994800,
+  "close_ms": 1518173294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518173294800,
+  "close_ms": 1518173594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518173594800,
+  "close_ms": 1518173894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518173894800,
+  "close_ms": 1518174194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518174194800,
+  "close_ms": 1518174494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518174494800,
+  "close_ms": 1518174794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518174794800,
+  "close_ms": 1518175094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518175094800,
+  "close_ms": 1518175394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518175394800,
+  "close_ms": 1518175694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518175694800,
+  "close_ms": 1518175994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518175994800,
+  "close_ms": 1518176294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518176294800,
+  "close_ms": 1518176594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518176594800,
+  "close_ms": 1518176894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518176894800,
+  "close_ms": 1518177194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518177194800,
+  "close_ms": 1518177494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518177494800,
+  "close_ms": 1518177794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518177794800,
+  "close_ms": 1518178094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518178094800,
+  "close_ms": 1518178394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518178394800,
+  "close_ms": 1518178694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518178694800,
+  "close_ms": 1518178994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518178994800,
+  "close_ms": 1518179294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518179294800,
+  "close_ms": 1518179594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518179594800,
+  "close_ms": 1518179894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518179894800,
+  "close_ms": 1518180194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518180194800,
+  "close_ms": 1518180494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518180494800,
+  "close_ms": 1518180794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518180794800,
+  "close_ms": 1518181094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518181094800,
+  "close_ms": 1518181394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518181394800,
+  "close_ms": 1518181694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518181694800,
+  "close_ms": 1518181994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518181994800,
+  "close_ms": 1518182294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518182294800,
+  "close_ms": 1518182594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518182594800,
+  "close_ms": 1518182894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518182894800,
+  "close_ms": 1518183194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518183194800,
+  "close_ms": 1518183494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518183494800,
+  "close_ms": 1518183794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518183794800,
+  "close_ms": 1518184094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518184094800,
+  "close_ms": 1518184394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518184394800,
+  "close_ms": 1518184694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518184694800,
+  "close_ms": 1518184994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518184994800,
+  "close_ms": 1518185294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518185294800,
+  "close_ms": 1518185594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518185594800,
+  "close_ms": 1518185894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518185894800,
+  "close_ms": 1518186194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518186194800,
+  "close_ms": 1518186494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518186494800,
+  "close_ms": 1518186794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518186794800,
+  "close_ms": 1518187094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518187094800,
+  "close_ms": 1518187394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518187394800,
+  "close_ms": 1518187694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518187694800,
+  "close_ms": 1518187994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518187994800,
+  "close_ms": 1518188294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518188294800,
+  "close_ms": 1518188594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518188594800,
+  "close_ms": 1518188894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518188894800,
+  "close_ms": 1518189194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518189194800,
+  "close_ms": 1518189494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518189494800,
+  "close_ms": 1518189794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518189794800,
+  "close_ms": 1518190094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518190094800,
+  "close_ms": 1518190394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518190394800,
+  "close_ms": 1518190694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518190694800,
+  "close_ms": 1518190994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518190994800,
+  "close_ms": 1518191294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518191294800,
+  "close_ms": 1518191594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518191594800,
+  "close_ms": 1518191894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518191894800,
+  "close_ms": 1518192194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518192194800,
+  "close_ms": 1518192494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518192494800,
+  "close_ms": 1518192794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518192794800,
+  "close_ms": 1518193094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518193094800,
+  "close_ms": 1518193394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518193394800,
+  "close_ms": 1518193694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518193694800,
+  "close_ms": 1518193994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518193994800,
+  "close_ms": 1518194294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518194294800,
+  "close_ms": 1518194594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518194594800,
+  "close_ms": 1518194894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518194894800,
+  "close_ms": 1518195194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518195194800,
+  "close_ms": 1518195494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518195494800,
+  "close_ms": 1518195794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518195794800,
+  "close_ms": 1518196094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518196094800,
+  "close_ms": 1518196394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518196394800,
+  "close_ms": 1518196694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518196694800,
+  "close_ms": 1518196994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518196994800,
+  "close_ms": 1518197294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518197294800,
+  "close_ms": 1518197594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518197594800,
+  "close_ms": 1518197894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518197894800,
+  "close_ms": 1518198194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518198194800,
+  "close_ms": 1518198494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518198494800,
+  "close_ms": 1518198794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518198794800,
+  "close_ms": 1518199094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518199094800,
+  "close_ms": 1518199394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518199394800,
+  "close_ms": 1518199694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518199694800,
+  "close_ms": 1518199994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518199994800,
+  "close_ms": 1518200294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518200294800,
+  "close_ms": 1518200594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518200594800,
+  "close_ms": 1518200894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518200894800,
+  "close_ms": 1518201194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518201194800,
+  "close_ms": 1518201494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518201494800,
+  "close_ms": 1518201794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518201794800,
+  "close_ms": 1518202094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518202094800,
+  "close_ms": 1518202394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518202394800,
+  "close_ms": 1518202694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518202694800,
+  "close_ms": 1518202994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518202994800,
+  "close_ms": 1518203294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518203294800,
+  "close_ms": 1518203594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518203594800,
+  "close_ms": 1518203894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518203894800,
+  "close_ms": 1518204194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518204194800,
+  "close_ms": 1518204494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518204494800,
+  "close_ms": 1518204794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518204794800,
+  "close_ms": 1518205094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518205094800,
+  "close_ms": 1518205394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518205394800,
+  "close_ms": 1518205694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518205694800,
+  "close_ms": 1518205994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518205994800,
+  "close_ms": 1518206294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518206294800,
+  "close_ms": 1518206594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518206594800,
+  "close_ms": 1518206894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518206894800,
+  "close_ms": 1518207194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518207194800,
+  "close_ms": 1518207494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518207494800,
+  "close_ms": 1518207794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518207794800,
+  "close_ms": 1518208094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518208094800,
+  "close_ms": 1518208394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518208394800,
+  "close_ms": 1518208694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518208694800,
+  "close_ms": 1518208994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518208994800,
+  "close_ms": 1518209294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518209294800,
+  "close_ms": 1518209594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518209594800,
+  "close_ms": 1518209894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518209894800,
+  "close_ms": 1518210194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518210194800,
+  "close_ms": 1518210494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518210494800,
+  "close_ms": 1518210794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518210794800,
+  "close_ms": 1518211094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518211094800,
+  "close_ms": 1518211394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518211394800,
+  "close_ms": 1518211694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518211694800,
+  "close_ms": 1518211994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518211994800,
+  "close_ms": 1518212294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518212294800,
+  "close_ms": 1518212594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518212594800,
+  "close_ms": 1518212894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518212894800,
+  "close_ms": 1518213194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518213194800,
+  "close_ms": 1518213494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518213494800,
+  "close_ms": 1518213794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518213794800,
+  "close_ms": 1518214094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518214094800,
+  "close_ms": 1518214394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518214394800,
+  "close_ms": 1518214694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518214694800,
+  "close_ms": 1518214994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518214994800,
+  "close_ms": 1518215294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518215294800,
+  "close_ms": 1518215594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518215594800,
+  "close_ms": 1518215894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518215894800,
+  "close_ms": 1518216194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518216194800,
+  "close_ms": 1518216494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518216494800,
+  "close_ms": 1518216794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518216794800,
+  "close_ms": 1518217094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518217094800,
+  "close_ms": 1518217394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518217394800,
+  "close_ms": 1518217694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518217694800,
+  "close_ms": 1518217994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518217994800,
+  "close_ms": 1518218294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518218294800,
+  "close_ms": 1518218594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518218594800,
+  "close_ms": 1518218894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518218894800,
+  "close_ms": 1518219194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518219194800,
+  "close_ms": 1518219494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518219494800,
+  "close_ms": 1518219794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518219794800,
+  "close_ms": 1518220094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518220094800,
+  "close_ms": 1518220394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518220394800,
+  "close_ms": 1518220694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518220694800,
+  "close_ms": 1518220994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518220994800,
+  "close_ms": 1518221294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518221294800,
+  "close_ms": 1518221594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518221594800,
+  "close_ms": 1518221894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518221894800,
+  "close_ms": 1518222194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518222194800,
+  "close_ms": 1518222494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518222494800,
+  "close_ms": 1518222794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518222794800,
+  "close_ms": 1518223094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518223094800,
+  "close_ms": 1518223394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518223394800,
+  "close_ms": 1518223694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518223694800,
+  "close_ms": 1518223994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518223994800,
+  "close_ms": 1518224294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518224294800,
+  "close_ms": 1518224594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518224594800,
+  "close_ms": 1518224894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518224894800,
+  "close_ms": 1518225194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518225194800,
+  "close_ms": 1518225494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518225494800,
+  "close_ms": 1518225794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518225794800,
+  "close_ms": 1518226094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518226094800,
+  "close_ms": 1518226394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518226394800,
+  "close_ms": 1518226694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518226694800,
+  "close_ms": 1518226994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518226994800,
+  "close_ms": 1518227294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518227294800,
+  "close_ms": 1518227594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518227594800,
+  "close_ms": 1518227894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518227894800,
+  "close_ms": 1518228194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518228194800,
+  "close_ms": 1518228494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518228494800,
+  "close_ms": 1518228794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518228794800,
+  "close_ms": 1518229094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518229094800,
+  "close_ms": 1518229394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518229394800,
+  "close_ms": 1518229694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518229694800,
+  "close_ms": 1518229994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518229994800,
+  "close_ms": 1518230294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518230294800,
+  "close_ms": 1518230594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518230594800,
+  "close_ms": 1518230894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518230894800,
+  "close_ms": 1518231194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518231194800,
+  "close_ms": 1518231494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518231494800,
+  "close_ms": 1518231794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518231794800,
+  "close_ms": 1518232094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518232094800,
+  "close_ms": 1518232394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518232394800,
+  "close_ms": 1518232694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518232694800,
+  "close_ms": 1518232994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518232994800,
+  "close_ms": 1518233294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518233294800,
+  "close_ms": 1518233594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518233594800,
+  "close_ms": 1518233894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518233894800,
+  "close_ms": 1518234194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518234194800,
+  "close_ms": 1518234494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518234494800,
+  "close_ms": 1518234794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518234794800,
+  "close_ms": 1518235094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518235094800,
+  "close_ms": 1518235394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518235394800,
+  "close_ms": 1518235694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518235694800,
+  "close_ms": 1518235994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518235994800,
+  "close_ms": 1518236294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518236294800,
+  "close_ms": 1518236594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518236594800,
+  "close_ms": 1518236894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518236894800,
+  "close_ms": 1518237194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518237194800,
+  "close_ms": 1518237494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518237494800,
+  "close_ms": 1518237794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518237794800,
+  "close_ms": 1518238094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518238094800,
+  "close_ms": 1518238394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518238394800,
+  "close_ms": 1518238694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518238694800,
+  "close_ms": 1518238994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518238994800,
+  "close_ms": 1518239294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518239294800,
+  "close_ms": 1518239594799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518239594800,
+  "close_ms": 1518239894799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518239894800,
+  "close_ms": 1518240194799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518240194800,
+  "close_ms": 1518240494799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518240494800,
+  "close_ms": 1518240794799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518240794800,
+  "close_ms": 1518241094799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518241094800,
+  "close_ms": 1518241394799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518241394800,
+  "close_ms": 1518241694799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518241694800,
+  "close_ms": 1518241994799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518241994800,
+  "close_ms": 1518242294799,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518242294800,
+  "close_ms": 1518242399999,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-02.csv",
+  "open_ms": 1518321600000,
+  "close_ms": 1518321600999,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2018-07.csv",
+  "open_ms": 1530663600000,
+  "close_ms": 1530663745562,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ETHUSDT-5m-2019-06.csv",
+  "open_ms": 1559941800000,
+  "close_ms": 1559941993540,
+  "reason": "close time is not open + 5m - 1ms"
+ }
+]
