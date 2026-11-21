@@ -1,0 +1,1496 @@
+[
+ {
+  "file": "BTCUSDT-5m-2017-09.csv",
+  "open_ms": 1504713300000,
+  "close_ms": 1504713600000,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2017-12.csv",
+  "open_ms": 1513591200000,
+  "close_ms": 1513591242445,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2017-12.csv",
+  "open_ms": 1513599900000,
+  "close_ms": 1513600153419,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-01.csv",
+  "open_ms": 1515034800000,
+  "close_ms": 1515034814838,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518049500000,
+  "close_ms": 1518049694788,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518170294789,
+  "close_ms": 1518170594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518170594789,
+  "close_ms": 1518170894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518170894789,
+  "close_ms": 1518171194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518171194789,
+  "close_ms": 1518171494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518171494789,
+  "close_ms": 1518171794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518171794789,
+  "close_ms": 1518172094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518172094789,
+  "close_ms": 1518172394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518172394789,
+  "close_ms": 1518172694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518172694789,
+  "close_ms": 1518172994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518172994789,
+  "close_ms": 1518173294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518173294789,
+  "close_ms": 1518173594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518173594789,
+  "close_ms": 1518173894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518173894789,
+  "close_ms": 1518174194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518174194789,
+  "close_ms": 1518174494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518174494789,
+  "close_ms": 1518174794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518174794789,
+  "close_ms": 1518175094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518175094789,
+  "close_ms": 1518175394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518175394789,
+  "close_ms": 1518175694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518175694789,
+  "close_ms": 1518175994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518175994789,
+  "close_ms": 1518176294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518176294789,
+  "close_ms": 1518176594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518176594789,
+  "close_ms": 1518176894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518176894789,
+  "close_ms": 1518177194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518177194789,
+  "close_ms": 1518177494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518177494789,
+  "close_ms": 1518177794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518177794789,
+  "close_ms": 1518178094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518178094789,
+  "close_ms": 1518178394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518178394789,
+  "close_ms": 1518178694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518178694789,
+  "close_ms": 1518178994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518178994789,
+  "close_ms": 1518179294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518179294789,
+  "close_ms": 1518179594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518179594789,
+  "close_ms": 1518179894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518179894789,
+  "close_ms": 1518180194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518180194789,
+  "close_ms": 1518180494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518180494789,
+  "close_ms": 1518180794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518180794789,
+  "close_ms": 1518181094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518181094789,
+  "close_ms": 1518181394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518181394789,
+  "close_ms": 1518181694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518181694789,
+  "close_ms": 1518181994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518181994789,
+  "close_ms": 1518182294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518182294789,
+  "close_ms": 1518182594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518182594789,
+  "close_ms": 1518182894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518182894789,
+  "close_ms": 1518183194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518183194789,
+  "close_ms": 1518183494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518183494789,
+  "close_ms": 1518183794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518183794789,
+  "close_ms": 1518184094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518184094789,
+  "close_ms": 1518184394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518184394789,
+  "close_ms": 1518184694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518184694789,
+  "close_ms": 1518184994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518184994789,
+  "close_ms": 1518185294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518185294789,
+  "close_ms": 1518185594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518185594789,
+  "close_ms": 1518185894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518185894789,
+  "close_ms": 1518186194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518186194789,
+  "close_ms": 1518186494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518186494789,
+  "close_ms": 1518186794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518186794789,
+  "close_ms": 1518187094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518187094789,
+  "close_ms": 1518187394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518187394789,
+  "close_ms": 1518187694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518187694789,
+  "close_ms": 1518187994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518187994789,
+  "close_ms": 1518188294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518188294789,
+  "close_ms": 1518188594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518188594789,
+  "close_ms": 1518188894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518188894789,
+  "close_ms": 1518189194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518189194789,
+  "close_ms": 1518189494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518189494789,
+  "close_ms": 1518189794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518189794789,
+  "close_ms": 1518190094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518190094789,
+  "close_ms": 1518190394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518190394789,
+  "close_ms": 1518190694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518190694789,
+  "close_ms": 1518190994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518190994789,
+  "close_ms": 1518191294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518191294789,
+  "close_ms": 1518191594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518191594789,
+  "close_ms": 1518191894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518191894789,
+  "close_ms": 1518192194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518192194789,
+  "close_ms": 1518192494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518192494789,
+  "close_ms": 1518192794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518192794789,
+  "close_ms": 1518193094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518193094789,
+  "close_ms": 1518193394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518193394789,
+  "close_ms": 1518193694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518193694789,
+  "close_ms": 1518193994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518193994789,
+  "close_ms": 1518194294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518194294789,
+  "close_ms": 1518194594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518194594789,
+  "close_ms": 1518194894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518194894789,
+  "close_ms": 1518195194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518195194789,
+  "close_ms": 1518195494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518195494789,
+  "close_ms": 1518195794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518195794789,
+  "close_ms": 1518196094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518196094789,
+  "close_ms": 1518196394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518196394789,
+  "close_ms": 1518196694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518196694789,
+  "close_ms": 1518196994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518196994789,
+  "close_ms": 1518197294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518197294789,
+  "close_ms": 1518197594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518197594789,
+  "close_ms": 1518197894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518197894789,
+  "close_ms": 1518198194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518198194789,
+  "close_ms": 1518198494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518198494789,
+  "close_ms": 1518198794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518198794789,
+  "close_ms": 1518199094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518199094789,
+  "close_ms": 1518199394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518199394789,
+  "close_ms": 1518199694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518199694789,
+  "close_ms": 1518199994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518199994789,
+  "close_ms": 1518200294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518200294789,
+  "close_ms": 1518200594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518200594789,
+  "close_ms": 1518200894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518200894789,
+  "close_ms": 1518201194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518201194789,
+  "close_ms": 1518201494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518201494789,
+  "close_ms": 1518201794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518201794789,
+  "close_ms": 1518202094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518202094789,
+  "close_ms": 1518202394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518202394789,
+  "close_ms": 1518202694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518202694789,
+  "close_ms": 1518202994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518202994789,
+  "close_ms": 1518203294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518203294789,
+  "close_ms": 1518203594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518203594789,
+  "close_ms": 1518203894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518203894789,
+  "close_ms": 1518204194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518204194789,
+  "close_ms": 1518204494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518204494789,
+  "close_ms": 1518204794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518204794789,
+  "close_ms": 1518205094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518205094789,
+  "close_ms": 1518205394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518205394789,
+  "close_ms": 1518205694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518205694789,
+  "close_ms": 1518205994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518205994789,
+  "close_ms": 1518206294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518206294789,
+  "close_ms": 1518206594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518206594789,
+  "close_ms": 1518206894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518206894789,
+  "close_ms": 1518207194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518207194789,
+  "close_ms": 1518207494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518207494789,
+  "close_ms": 1518207794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518207794789,
+  "close_ms": 1518208094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518208094789,
+  "close_ms": 1518208394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518208394789,
+  "close_ms": 1518208694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518208694789,
+  "close_ms": 1518208994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518208994789,
+  "close_ms": 1518209294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518209294789,
+  "close_ms": 1518209594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518209594789,
+  "close_ms": 1518209894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518209894789,
+  "close_ms": 1518210194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518210194789,
+  "close_ms": 1518210494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518210494789,
+  "close_ms": 1518210794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518210794789,
+  "close_ms": 1518211094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518211094789,
+  "close_ms": 1518211394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518211394789,
+  "close_ms": 1518211694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518211694789,
+  "close_ms": 1518211994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518211994789,
+  "close_ms": 1518212294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518212294789,
+  "close_ms": 1518212594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518212594789,
+  "close_ms": 1518212894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518212894789,
+  "close_ms": 1518213194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518213194789,
+  "close_ms": 1518213494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518213494789,
+  "close_ms": 1518213794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518213794789,
+  "close_ms": 1518214094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518214094789,
+  "close_ms": 1518214394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518214394789,
+  "close_ms": 1518214694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518214694789,
+  "close_ms": 1518214994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518214994789,
+  "close_ms": 1518215294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518215294789,
+  "close_ms": 1518215594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518215594789,
+  "close_ms": 1518215894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518215894789,
+  "close_ms": 1518216194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518216194789,
+  "close_ms": 1518216494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518216494789,
+  "close_ms": 1518216794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518216794789,
+  "close_ms": 1518217094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518217094789,
+  "close_ms": 1518217394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518217394789,
+  "close_ms": 1518217694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518217694789,
+  "close_ms": 1518217994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518217994789,
+  "close_ms": 1518218294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518218294789,
+  "close_ms": 1518218594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518218594789,
+  "close_ms": 1518218894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518218894789,
+  "close_ms": 1518219194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518219194789,
+  "close_ms": 1518219494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518219494789,
+  "close_ms": 1518219794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518219794789,
+  "close_ms": 1518220094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518220094789,
+  "close_ms": 1518220394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518220394789,
+  "close_ms": 1518220694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518220694789,
+  "close_ms": 1518220994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518220994789,
+  "close_ms": 1518221294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518221294789,
+  "close_ms": 1518221594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518221594789,
+  "close_ms": 1518221894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518221894789,
+  "close_ms": 1518222194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518222194789,
+  "close_ms": 1518222494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518222494789,
+  "close_ms": 1518222794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518222794789,
+  "close_ms": 1518223094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518223094789,
+  "close_ms": 1518223394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518223394789,
+  "close_ms": 1518223694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518223694789,
+  "close_ms": 1518223994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518223994789,
+  "close_ms": 1518224294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518224294789,
+  "close_ms": 1518224594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518224594789,
+  "close_ms": 1518224894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518224894789,
+  "close_ms": 1518225194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518225194789,
+  "close_ms": 1518225494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518225494789,
+  "close_ms": 1518225794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518225794789,
+  "close_ms": 1518226094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518226094789,
+  "close_ms": 1518226394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518226394789,
+  "close_ms": 1518226694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518226694789,
+  "close_ms": 1518226994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518226994789,
+  "close_ms": 1518227294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518227294789,
+  "close_ms": 1518227594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518227594789,
+  "close_ms": 1518227894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518227894789,
+  "close_ms": 1518228194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518228194789,
+  "close_ms": 1518228494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518228494789,
+  "close_ms": 1518228794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518228794789,
+  "close_ms": 1518229094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518229094789,
+  "close_ms": 1518229394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518229394789,
+  "close_ms": 1518229694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518229694789,
+  "close_ms": 1518229994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518229994789,
+  "close_ms": 1518230294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518230294789,
+  "close_ms": 1518230594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518230594789,
+  "close_ms": 1518230894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518230894789,
+  "close_ms": 1518231194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518231194789,
+  "close_ms": 1518231494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518231494789,
+  "close_ms": 1518231794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518231794789,
+  "close_ms": 1518232094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518232094789,
+  "close_ms": 1518232394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518232394789,
+  "close_ms": 1518232694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518232694789,
+  "close_ms": 1518232994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518232994789,
+  "close_ms": 1518233294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518233294789,
+  "close_ms": 1518233594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518233594789,
+  "close_ms": 1518233894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518233894789,
+  "close_ms": 1518234194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518234194789,
+  "close_ms": 1518234494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518234494789,
+  "close_ms": 1518234794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518234794789,
+  "close_ms": 1518235094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518235094789,
+  "close_ms": 1518235394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518235394789,
+  "close_ms": 1518235694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518235694789,
+  "close_ms": 1518235994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518235994789,
+  "close_ms": 1518236294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518236294789,
+  "close_ms": 1518236594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518236594789,
+  "close_ms": 1518236894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518236894789,
+  "close_ms": 1518237194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518237194789,
+  "close_ms": 1518237494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518237494789,
+  "close_ms": 1518237794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518237794789,
+  "close_ms": 1518238094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518238094789,
+  "close_ms": 1518238394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518238394789,
+  "close_ms": 1518238694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518238694789,
+  "close_ms": 1518238994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518238994789,
+  "close_ms": 1518239294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518239294789,
+  "close_ms": 1518239594788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518239594789,
+  "close_ms": 1518239894788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518239894789,
+  "close_ms": 1518240194788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518240194789,
+  "close_ms": 1518240494788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518240494789,
+  "close_ms": 1518240794788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518240794789,
+  "close_ms": 1518241094788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518241094789,
+  "close_ms": 1518241394788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518241394789,
+  "close_ms": 1518241694788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518241694789,
+  "close_ms": 1518241994788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518241994789,
+  "close_ms": 1518242294788,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518242294789,
+  "close_ms": 1518242399999,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-02.csv",
+  "open_ms": 1518321600000,
+  "close_ms": 1518321600999,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2018-07.csv",
+  "open_ms": 1530663600000,
+  "close_ms": 1530663745551,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BTCUSDT-5m-2019-06.csv",
+  "open_ms": 1559941800000,
+  "close_ms": 1559941993524,
+  "reason": "close time is not open + 5m - 1ms"
+ }
+]

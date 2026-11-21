@@ -1,0 +1,14 @@
+[
+ {
+  "file": "XRPUSDT-5m-2018-07.csv",
+  "open_ms": 1530663600000,
+  "close_ms": 1530663748667,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "XRPUSDT-5m-2019-06.csv",
+  "open_ms": 1559941800000,
+  "close_ms": 1559941997331,
+  "reason": "close time is not open + 5m - 1ms"
+ }
+]

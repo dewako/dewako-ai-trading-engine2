@@ -1,0 +1,14 @@
+[
+ {
+  "file": "ADAUSDT-5m-2018-07.csv",
+  "open_ms": 1530663600000,
+  "close_ms": 1530663748561,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "ADAUSDT-5m-2019-06.csv",
+  "open_ms": 1559941800000,
+  "close_ms": 1559941997225,
+  "reason": "close time is not open + 5m - 1ms"
+ }
+]

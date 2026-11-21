@@ -125,5 +125,52 @@ class Trades(unittest.TestCase):
         self.assertEqual(bh, [(0, 1000.0), (D, 1500.0)])       # A doubles (500 -> 1000); B starts on day 1 at its open
 
 
+class DrawdownSizing(unittest.TestCase):
+    """dd_limit=None must leave F2 unchanged; a number scales the risk of each new entry by 1 - drawdown/limit."""
+    KW = dict(n=5, atr_n=3, k=3.0, fee=0.0, slip=0.0, sides=("LONG",))
+
+    @staticmethod
+    def two_longs():
+        bars = flat(8)
+        mv = [(100, 103.5, 99, 103), (103, 104, 90, 91)] + [(91, 92, 90, 91)] * 6 + \
+             [(91, 96, 90.5, 95), (95, 97, 94, 96), (96, 100, 95, 99), (99, 99.5, 50, 55)]
+        for j, m in enumerate(mv):
+            bars.append(H.Bar((8 + j) * D, *m))
+        return bars
+
+    def test_default_is_unchanged(self):
+        a = H.run({"X": self.two_longs()}, **self.KW)
+        b = H.run({"X": self.two_longs()}, dd_limit=None, **self.KW)
+        self.assertEqual([(t.entry_ms, t.pnl, t.risked) for t in a["trades"]], [(t.entry_ms, t.pnl, t.risked) for t in b["trades"]])
+        self.assertEqual((a["skipped_dd"], b["skipped_dd"]), (0, 0))
+        self.assertEqual(len(a["trades"]), 2)
+
+    def test_first_entry_is_full_size_and_second_is_scaled_by_the_drawdown(self):
+        full = H.run({"X": self.two_longs()}, **self.KW)["trades"]
+        sized = H.run({"X": self.two_longs()}, dd_limit=0.15, **self.KW)["trades"]
+        self.assertAlmostEqual(sized[0].risked, full[0].risked, places=9)           # no drawdown yet: scale 1
+        dd = (10_000 - (10_000 + full[0].pnl)) / 10_000                              # the first trade lost ~1%
+        self.assertAlmostEqual(sized[1].risked / full[1].risked, 1 - dd / 0.15, delta=0.002)
+
+    def test_entries_are_skipped_and_counted_when_the_limit_is_reached(self):
+        r = H.run({"X": self.two_longs()}, dd_limit=1e-9, **self.KW)
+        self.assertEqual(len(r["trades"]), 1)
+        self.assertGreaterEqual(r["skipped_dd"], 1)
+
+    def test_load_daily_window(self):
+        import sqlite3
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            db = os.path.join(d, "c.db")
+            con = sqlite3.connect(db)
+            con.execute("CREATE TABLE candles(symbol, timeframe, source, open_ms, o, h, l, c)")
+            for day in range(4):
+                con.execute("INSERT INTO candles VALUES('X','5m','binance_archive',?,1,2,0.5,1.5)", (day * D + 1000 * 300_000 % D,))
+            con.commit()
+            con.close()
+            self.assertEqual(len(H.load_daily(db, "X", 0, 4 * D)), 4)
+            self.assertEqual(len(H.load_daily(db, "X", D, 3 * D)), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

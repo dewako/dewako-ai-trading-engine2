@@ -1,0 +1,1490 @@
+[
+ {
+  "file": "BNBUSDT-5m-2017-12.csv",
+  "open_ms": 1513591200000,
+  "close_ms": 1513591243423,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2017-12.csv",
+  "open_ms": 1513599900000,
+  "close_ms": 1513600154401,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-01.csv",
+  "open_ms": 1515034800000,
+  "close_ms": 1515034815836,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518049500000,
+  "close_ms": 1518049695786,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518170295787,
+  "close_ms": 1518170595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518170595787,
+  "close_ms": 1518170895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518170895787,
+  "close_ms": 1518171195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518171195787,
+  "close_ms": 1518171495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518171495787,
+  "close_ms": 1518171795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518171795787,
+  "close_ms": 1518172095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518172095787,
+  "close_ms": 1518172395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518172395787,
+  "close_ms": 1518172695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518172695787,
+  "close_ms": 1518172995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518172995787,
+  "close_ms": 1518173295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518173295787,
+  "close_ms": 1518173595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518173595787,
+  "close_ms": 1518173895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518173895787,
+  "close_ms": 1518174195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518174195787,
+  "close_ms": 1518174495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518174495787,
+  "close_ms": 1518174795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518174795787,
+  "close_ms": 1518175095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518175095787,
+  "close_ms": 1518175395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518175395787,
+  "close_ms": 1518175695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518175695787,
+  "close_ms": 1518175995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518175995787,
+  "close_ms": 1518176295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518176295787,
+  "close_ms": 1518176595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518176595787,
+  "close_ms": 1518176895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518176895787,
+  "close_ms": 1518177195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518177195787,
+  "close_ms": 1518177495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518177495787,
+  "close_ms": 1518177795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518177795787,
+  "close_ms": 1518178095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518178095787,
+  "close_ms": 1518178395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518178395787,
+  "close_ms": 1518178695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518178695787,
+  "close_ms": 1518178995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518178995787,
+  "close_ms": 1518179295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518179295787,
+  "close_ms": 1518179595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518179595787,
+  "close_ms": 1518179895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518179895787,
+  "close_ms": 1518180195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518180195787,
+  "close_ms": 1518180495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518180495787,
+  "close_ms": 1518180795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518180795787,
+  "close_ms": 1518181095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518181095787,
+  "close_ms": 1518181395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518181395787,
+  "close_ms": 1518181695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518181695787,
+  "close_ms": 1518181995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518181995787,
+  "close_ms": 1518182295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518182295787,
+  "close_ms": 1518182595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518182595787,
+  "close_ms": 1518182895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518182895787,
+  "close_ms": 1518183195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518183195787,
+  "close_ms": 1518183495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518183495787,
+  "close_ms": 1518183795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518183795787,
+  "close_ms": 1518184095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518184095787,
+  "close_ms": 1518184395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518184395787,
+  "close_ms": 1518184695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518184695787,
+  "close_ms": 1518184995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518184995787,
+  "close_ms": 1518185295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518185295787,
+  "close_ms": 1518185595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518185595787,
+  "close_ms": 1518185895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518185895787,
+  "close_ms": 1518186195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518186195787,
+  "close_ms": 1518186495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518186495787,
+  "close_ms": 1518186795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518186795787,
+  "close_ms": 1518187095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518187095787,
+  "close_ms": 1518187395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518187395787,
+  "close_ms": 1518187695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518187695787,
+  "close_ms": 1518187995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518187995787,
+  "close_ms": 1518188295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518188295787,
+  "close_ms": 1518188595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518188595787,
+  "close_ms": 1518188895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518188895787,
+  "close_ms": 1518189195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518189195787,
+  "close_ms": 1518189495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518189495787,
+  "close_ms": 1518189795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518189795787,
+  "close_ms": 1518190095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518190095787,
+  "close_ms": 1518190395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518190395787,
+  "close_ms": 1518190695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518190695787,
+  "close_ms": 1518190995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518190995787,
+  "close_ms": 1518191295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518191295787,
+  "close_ms": 1518191595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518191595787,
+  "close_ms": 1518191895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518191895787,
+  "close_ms": 1518192195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518192195787,
+  "close_ms": 1518192495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518192495787,
+  "close_ms": 1518192795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518192795787,
+  "close_ms": 1518193095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518193095787,
+  "close_ms": 1518193395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518193395787,
+  "close_ms": 1518193695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518193695787,
+  "close_ms": 1518193995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518193995787,
+  "close_ms": 1518194295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518194295787,
+  "close_ms": 1518194595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518194595787,
+  "close_ms": 1518194895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518194895787,
+  "close_ms": 1518195195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518195195787,
+  "close_ms": 1518195495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518195495787,
+  "close_ms": 1518195795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518195795787,
+  "close_ms": 1518196095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518196095787,
+  "close_ms": 1518196395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518196395787,
+  "close_ms": 1518196695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518196695787,
+  "close_ms": 1518196995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518196995787,
+  "close_ms": 1518197295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518197295787,
+  "close_ms": 1518197595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518197595787,
+  "close_ms": 1518197895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518197895787,
+  "close_ms": 1518198195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518198195787,
+  "close_ms": 1518198495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518198495787,
+  "close_ms": 1518198795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518198795787,
+  "close_ms": 1518199095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518199095787,
+  "close_ms": 1518199395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518199395787,
+  "close_ms": 1518199695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518199695787,
+  "close_ms": 1518199995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518199995787,
+  "close_ms": 1518200295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518200295787,
+  "close_ms": 1518200595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518200595787,
+  "close_ms": 1518200895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518200895787,
+  "close_ms": 1518201195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518201195787,
+  "close_ms": 1518201495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518201495787,
+  "close_ms": 1518201795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518201795787,
+  "close_ms": 1518202095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518202095787,
+  "close_ms": 1518202395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518202395787,
+  "close_ms": 1518202695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518202695787,
+  "close_ms": 1518202995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518202995787,
+  "close_ms": 1518203295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518203295787,
+  "close_ms": 1518203595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518203595787,
+  "close_ms": 1518203895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518203895787,
+  "close_ms": 1518204195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518204195787,
+  "close_ms": 1518204495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518204495787,
+  "close_ms": 1518204795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518204795787,
+  "close_ms": 1518205095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518205095787,
+  "close_ms": 1518205395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518205395787,
+  "close_ms": 1518205695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518205695787,
+  "close_ms": 1518205995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518205995787,
+  "close_ms": 1518206295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518206295787,
+  "close_ms": 1518206595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518206595787,
+  "close_ms": 1518206895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518206895787,
+  "close_ms": 1518207195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518207195787,
+  "close_ms": 1518207495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518207495787,
+  "close_ms": 1518207795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518207795787,
+  "close_ms": 1518208095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518208095787,
+  "close_ms": 1518208395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518208395787,
+  "close_ms": 1518208695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518208695787,
+  "close_ms": 1518208995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518208995787,
+  "close_ms": 1518209295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518209295787,
+  "close_ms": 1518209595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518209595787,
+  "close_ms": 1518209895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518209895787,
+  "close_ms": 1518210195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518210195787,
+  "close_ms": 1518210495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518210495787,
+  "close_ms": 1518210795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518210795787,
+  "close_ms": 1518211095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518211095787,
+  "close_ms": 1518211395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518211395787,
+  "close_ms": 1518211695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518211695787,
+  "close_ms": 1518211995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518211995787,
+  "close_ms": 1518212295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518212295787,
+  "close_ms": 1518212595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518212595787,
+  "close_ms": 1518212895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518212895787,
+  "close_ms": 1518213195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518213195787,
+  "close_ms": 1518213495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518213495787,
+  "close_ms": 1518213795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518213795787,
+  "close_ms": 1518214095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518214095787,
+  "close_ms": 1518214395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518214395787,
+  "close_ms": 1518214695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518214695787,
+  "close_ms": 1518214995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518214995787,
+  "close_ms": 1518215295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518215295787,
+  "close_ms": 1518215595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518215595787,
+  "close_ms": 1518215895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518215895787,
+  "close_ms": 1518216195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518216195787,
+  "close_ms": 1518216495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518216495787,
+  "close_ms": 1518216795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518216795787,
+  "close_ms": 1518217095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518217095787,
+  "close_ms": 1518217395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518217395787,
+  "close_ms": 1518217695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518217695787,
+  "close_ms": 1518217995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518217995787,
+  "close_ms": 1518218295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518218295787,
+  "close_ms": 1518218595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518218595787,
+  "close_ms": 1518218895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518218895787,
+  "close_ms": 1518219195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518219195787,
+  "close_ms": 1518219495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518219495787,
+  "close_ms": 1518219795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518219795787,
+  "close_ms": 1518220095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518220095787,
+  "close_ms": 1518220395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518220395787,
+  "close_ms": 1518220695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518220695787,
+  "close_ms": 1518220995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518220995787,
+  "close_ms": 1518221295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518221295787,
+  "close_ms": 1518221595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518221595787,
+  "close_ms": 1518221895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518221895787,
+  "close_ms": 1518222195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518222195787,
+  "close_ms": 1518222495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518222495787,
+  "close_ms": 1518222795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518222795787,
+  "close_ms": 1518223095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518223095787,
+  "close_ms": 1518223395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518223395787,
+  "close_ms": 1518223695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518223695787,
+  "close_ms": 1518223995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518223995787,
+  "close_ms": 1518224295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518224295787,
+  "close_ms": 1518224595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518224595787,
+  "close_ms": 1518224895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518224895787,
+  "close_ms": 1518225195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518225195787,
+  "close_ms": 1518225495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518225495787,
+  "close_ms": 1518225795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518225795787,
+  "close_ms": 1518226095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518226095787,
+  "close_ms": 1518226395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518226395787,
+  "close_ms": 1518226695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518226695787,
+  "close_ms": 1518226995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518226995787,
+  "close_ms": 1518227295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518227295787,
+  "close_ms": 1518227595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518227595787,
+  "close_ms": 1518227895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518227895787,
+  "close_ms": 1518228195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518228195787,
+  "close_ms": 1518228495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518228495787,
+  "close_ms": 1518228795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518228795787,
+  "close_ms": 1518229095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518229095787,
+  "close_ms": 1518229395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518229395787,
+  "close_ms": 1518229695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518229695787,
+  "close_ms": 1518229995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518229995787,
+  "close_ms": 1518230295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518230295787,
+  "close_ms": 1518230595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518230595787,
+  "close_ms": 1518230895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518230895787,
+  "close_ms": 1518231195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518231195787,
+  "close_ms": 1518231495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518231495787,
+  "close_ms": 1518231795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518231795787,
+  "close_ms": 1518232095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518232095787,
+  "close_ms": 1518232395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518232395787,
+  "close_ms": 1518232695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518232695787,
+  "close_ms": 1518232995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518232995787,
+  "close_ms": 1518233295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518233295787,
+  "close_ms": 1518233595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518233595787,
+  "close_ms": 1518233895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518233895787,
+  "close_ms": 1518234195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518234195787,
+  "close_ms": 1518234495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518234495787,
+  "close_ms": 1518234795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518234795787,
+  "close_ms": 1518235095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518235095787,
+  "close_ms": 1518235395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518235395787,
+  "close_ms": 1518235695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518235695787,
+  "close_ms": 1518235995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518235995787,
+  "close_ms": 1518236295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518236295787,
+  "close_ms": 1518236595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518236595787,
+  "close_ms": 1518236895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518236895787,
+  "close_ms": 1518237195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518237195787,
+  "close_ms": 1518237495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518237495787,
+  "close_ms": 1518237795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518237795787,
+  "close_ms": 1518238095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518238095787,
+  "close_ms": 1518238395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518238395787,
+  "close_ms": 1518238695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518238695787,
+  "close_ms": 1518238995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518238995787,
+  "close_ms": 1518239295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518239295787,
+  "close_ms": 1518239595786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518239595787,
+  "close_ms": 1518239895786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518239895787,
+  "close_ms": 1518240195786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518240195787,
+  "close_ms": 1518240495786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518240495787,
+  "close_ms": 1518240795786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518240795787,
+  "close_ms": 1518241095786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518241095787,
+  "close_ms": 1518241395786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518241395787,
+  "close_ms": 1518241695786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518241695787,
+  "close_ms": 1518241995786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518241995787,
+  "close_ms": 1518242295786,
+  "reason": "open time is not on the 5m grid"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518242295787,
+  "close_ms": 1518242399999,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-02.csv",
+  "open_ms": 1518321600000,
+  "close_ms": 1518321600999,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2018-07.csv",
+  "open_ms": 1530663600000,
+  "close_ms": 1530663746472,
+  "reason": "close time is not open + 5m - 1ms"
+ },
+ {
+  "file": "BNBUSDT-5m-2019-06.csv",
+  "open_ms": 1559941800000,
+  "close_ms": 1559941994658,
+  "reason": "close time is not open + 5m - 1ms"
+ }
+]

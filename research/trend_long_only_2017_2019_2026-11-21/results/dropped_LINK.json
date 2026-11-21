@@ -1,0 +1,8 @@
+[
+ {
+  "file": "LINKUSDT-5m-2019-06.csv",
+  "open_ms": 1559941800000,
+  "close_ms": 1559941998844,
+  "reason": "close time is not open + 5m - 1ms"
+ }
+]
