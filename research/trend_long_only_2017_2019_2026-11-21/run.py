@@ -31,7 +31,7 @@ def partial_days(db, symbol, a, b):
     import sqlite3
     q = "SELECT open_ms/86400000, COUNT(*) FROM candles WHERE symbol=? AND timeframe='5m' AND source='binance_archive' AND open_ms>=? AND open_ms<? GROUP BY 1"
     rows = sqlite3.connect(f"file:{db}?mode=ro", uri=True).execute(q, (symbol, a, b)).fetchall()
-    return dict(days=len(rows), under_90pct=sum(n < 259 for _, n in rows))
+    return dict(candle_days=len(rows), under_90pct=sum(n < 259 for _, n in rows))
 
 
 def main(db_pre, db_be, db_un):
