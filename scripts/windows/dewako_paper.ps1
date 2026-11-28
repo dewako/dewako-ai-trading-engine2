@@ -11,7 +11,8 @@
 #   3. creates a virtualenv with the exact versions CI tests (constraints-test.txt)
 #   4. keeps all state OUTSIDE the repo in <Root>\paper-state (database, logs, secrets) so git updates never touch it
 #   5. registers a scheduled task "Dewako Paper" that starts the app at logon, and "Dewako Paper Watchdog" that checks it every
-#      5 minutes and starts it again if no engine process is left (every check is written to paper-state\logs\watchdog.log)
+#      5 minutes and starts it again if no engine process is left, or restarts an engine that made no bot decision for over
+#      4h15m (every check is written to paper-state\logs\watchdog.log; a stale restart is marked ALERT)
 #   6. starts it, creates the first admin, creates + enables bot "dewako-eth-paper" (Dewako ETH 1.0, ETH/USDT, 4h, PAPER)
 #   7. stops this PC from sleeping or hibernating on AC power
 #   8. verifies: the app is healthy, live Binance data gives the 1,210 candles the strategy needs, the bot is enabled
@@ -81,13 +82,41 @@ function Compare-Counts([int]$api, [int]$db, [int]$cap) {
     if ($api -eq $expect) { return "" }
     return "MISMATCH: the API lists $api, the database has $db" + $(if ($db -gt $cap) { " (the API shows the latest $cap)" } else { "" })
 }
-# D2: what the watchdog does. It never stops a running engine process (an order transition could be cut in half); it only starts
-# the task when no engine process is left.
-function Watchdog-Decision([bool]$apiUp, [int]$engineProcs, [string]$taskState) {
+# D2: what the watchdog does. It never stops an engine that is still making bot decisions (an order transition could be cut in half);
+# it starts the task when no engine process is left. D4 (paper run, 27 Nov 2026): an engine whose workers had all died kept answering
+# /health/live for 18 hours, so "answering" is not enough. With owner approval, an engine process with no bot decision for more than
+# $StaleMinutes (one 4h candle + 15 min) is stopped and started again, and the watchdog log says so with ALERT.
+$StaleMinutes = 255
+function Watchdog-Decision([bool]$apiUp, [int]$engineProcs, [string]$taskState, [double]$decisionAgeMin = -1) {
+    if ($engineProcs -gt 0 -and $decisionAgeMin -gt $StaleMinutes) { return "restart-stale" }
     if ($apiUp) { return "alive" }
     if ($engineProcs -gt 0) { return "wait" }              # starting up, or hung: logged, not touched
     if ($taskState -eq "Running") { return "restart-stuck" }  # the task's PowerShell host outlived the engine
     return "restart"
+}
+# Minutes since the bot's newest decision line ("... dewako.bots: bot ... bar ...") in the current engine log; an engine that has not
+# logged one yet counts from its log's start. -1 = unknown (no log): never a reason to restart.
+function Decision-Age([string[]]$lines, [datetime]$logStart, [datetime]$now) {
+    if ($null -eq $logStart -or $logStart -eq [datetime]::MinValue) { return -1 }
+    $ref = $logStart
+    $last = @($lines | Where-Object { $_ -match "^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d.* dewako\.bots: " }) | Select-Object -Last 1
+    if ($last) {
+        $t = [datetime]::ParseExact($last.Substring(0, 19), "yyyy-MM-dd HH:mm:ss", [Globalization.CultureInfo]::InvariantCulture)
+        if ($t -gt $ref) { $ref = $t }
+    }
+    return [Math]::Round(($now - $ref).TotalMinutes, 1)
+}
+function Current-Decision-Age {
+    $f = Get-ChildItem (Join-Path $Logs "engine-*.log") -ErrorAction SilentlyContinue | Where-Object Name -notlike "*.out.log" |
+         Sort-Object LastWriteTime | Select-Object -Last 1
+    if (-not $f) { return -1 }
+    return Decision-Age @(Get-Content $f.FullName -Tail 5000) $f.CreationTime (Get-Date)
+}
+function Stop-Engine {
+    Stop-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
+    Start-Sleep 2
+    Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -like "*uvicorn dewako.api.main:app*" } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }   # the venv launcher may take its child with it
 }
 function Register-Watchdog([string]$name, [string]$self, [string]$root) {
     $a = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$self`" -Action watchdog -Root `"$root`""
@@ -139,9 +168,11 @@ if ($Action -eq "watchdog") {
     New-Item -ItemType Directory -Force -Path $Logs | Out-Null
     $procs = Engine-Procs
     $state = "$((Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue).State)"
-    $d = Watchdog-Decision (Api-Up) $procs.Count $state
-    $line = "$(Get-Date -Format s) $d (engine processes: $($procs.Count), task: $state)"
+    $age = Current-Decision-Age
+    $d = Watchdog-Decision (Api-Up) $procs.Count $state $age
+    $line = "$(Get-Date -Format s) $d (engine processes: $($procs.Count), task: $state, last bot decision: $age min ago)"
     if ($d -eq "restart-stuck") { Stop-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue; Start-Sleep 2 }
+    if ($d -eq "restart-stale") { $line = "ALERT $($line): no bot decision for over $StaleMinutes min, engine stopped"; Stop-Engine; Start-Sleep 3 }
     if ($d -like "restart*") { Start-ScheduledTask -TaskName $Task; $line += " -> task started" }
     Add-Content (Join-Path $Logs "watchdog.log") $line
     exit 0
@@ -181,6 +212,18 @@ if ($Action -eq "selftest") {
     Check "watchdog: no process, task ended" (Watchdog-Decision $false 0 "Ready") "restart"
     Check "watchdog: no process, task still running" (Watchdog-Decision $false 0 "Running") "restart-stuck"
     Check "watchdog: no process, task missing" (Watchdog-Decision $false 0 "") "restart"
+    Check "watchdog: answering, decided 30 min ago" (Watchdog-Decision $true 2 "Running" 30) "alive"
+    Check "watchdog: answering, no decision for 256 min (the 27 Nov freeze)" (Watchdog-Decision $true 2 "Running" 256) "restart-stale"
+    Check "watchdog: hung, no decision for 300 min" (Watchdog-Decision $false 2 "Running" 300) "restart-stale"
+    Check "watchdog: hung, decided 10 min ago" (Watchdog-Decision $false 2 "Running" 10) "wait"
+    Check "watchdog: decision age unknown" (Watchdog-Decision $true 2 "Running" -1) "alive"
+    Check "watchdog: no process, old decision" (Watchdog-Decision $false 0 "Ready" 999) "restart"
+    $now = [datetime]"2026-11-28 15:00:00"; $start = [datetime]"2026-11-25 00:23:03"
+    $sample = @("2026-11-27 20:00:18,259 INFO dewako.bots: bot dewako-eth-paper bar 2026-11-27T12:00:00+00:00: NO_SIGNAL (no setup)",
+                "2026-11-27 21:53:55,428 ERROR dewako.workers: worker audit_integrity failed (OperationalError), consecutive failures 1")
+    Check "decision age from the newest bot line" (Decision-Age $sample $start $now) 1139.7
+    Check "decision age of a fresh engine with no bot line yet" (Decision-Age @("2026-11-28 14:50:00,000 INFO dewako.app: up") ([datetime]"2026-11-28 14:50:00") $now) 10
+    Check "decision age with no log" (Decision-Age @() ([datetime]::MinValue) $now) -1
     if ($TestTasks) {
         $tn = "Dewako Selftest Watchdog"
         try {
@@ -201,9 +244,7 @@ if ($Action -eq "selftest") {
 # ------------------------------------------------------------------------------------------------------------- stop
 if ($Action -eq "stop") {
     Disable-ScheduledTask -TaskName $Watch -ErrorAction SilentlyContinue | Out-Null      # or it would start the app again within 5 minutes
-    Stop-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
-    Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -like "*uvicorn dewako.api.main:app*" } |
-        ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+    Stop-Engine
     Ok "stopped; the watchdog is disabled (both tasks stay registered; -Action setup starts and re-enables them)"
     exit 0
 }
@@ -241,6 +282,9 @@ if ($Action -eq "status") {
     if ($dbc) {
         foreach ($m in @((Compare-Counts $pos.Count $dbc.positions 500), (Compare-Counts $ord.Count $dbc.orders 500))) { if ($m) { Warn $m } }
     } else { Warn "could not read the database counts (read-only query failed)" }
+    $age = Current-Decision-Age
+    if ($age -gt $StaleMinutes) { Warn "last bot decision $age min ago (over $StaleMinutes): the engine is not deciding; the watchdog will restart it" }
+    elseif ($age -ge 0) { Ok "last bot decision $age min ago" }
     $w = Join-Path $Logs "watchdog.log"
     if (Test-Path $w) { Write-Host "watchdog: $(Get-Content $w -Tail 1)" } else { Warn "watchdog has not written anything yet" }
     try { $d = Invoke-RestMethod "$Api/health/detailed" -Headers $h; $d | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $State "last-health.json"); Write-Host "full health report: $State\last-health.json" } catch { Warn "detailed health not readable: $_" }
